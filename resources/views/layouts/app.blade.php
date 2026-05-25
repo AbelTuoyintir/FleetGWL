@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Ghana Water Limited | Vehicle Fleet Management</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <!-- Tailwind + Fonts + Icons -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    @vite('resources/css/app.css')
+  
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        body { background: #f4f7fc; overflow-x: hidden; }
+        /* Glassmorphism refined */
+        .glass-card { background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); }
+        .sidebar-glass { background: rgba(255,255,255,0.94); backdrop-filter: blur(16px); border-right: 1px solid rgba(0,0,0,0.05); }
+        /* Sidebar transitions */
+        .sidebar-fleet { position: fixed; top: 0; left: 0; height: 100vh; width: 280px; z-index: 40; transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1); }
+        .sidebar-closed { transform: translateX(-100%); }
+        .overlay-fleet { position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(2px); z-index: 35; display: none; }
+        .overlay-open { display: block; }
+        /* Navigation items */
+        .nav-item-fleet { transition: all 0.2s ease; border-radius: 12px; margin-bottom: 2px; }
+        .nav-item-fleet:hover { background: rgba(59,130,246,0.12); color: #1e40af; }
+        .nav-active-fleet { background: #eef2ff; color: #2563eb; font-weight: 500; border-left: 3px solid #3b82f6; }
+        .submenu-item { padding-left: 2.5rem; transition: all 0.2s; }
+        .rotate-180 { transform: rotate(180deg); }
+        /* custom scroll */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #eef2f6; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #b9c3d0; border-radius: 10px; }
+        /* card stats */
+        .stat-card { transition: transform 0.2s, box-shadow 0.2s; }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 15px 30px -12px rgba(0,0,0,0.1); }
+        @media (max-width: 768px) { .sidebar-fleet { width: 85%; max-width: 280px; } }
+        
+        /* User menu styles */
+        .user-menu-dropdown {
+            position: absolute;
+            right: 0;
+            top: 100%;
+            margin-top: 8px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+            width: 220px;
+            z-index: 50;
+            overflow: hidden;
+        }
+        .user-menu-dropdown a, .user-menu-dropdown button {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 10px 16px;
+            text-align: left;
+            font-size: 14px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .user-menu-dropdown a:hover, .user-menu-dropdown button:hover {
+            background-color: #f8fafc;
+        }
+    </style>
+</head>
+<body class="text-gray-800 antialiased">
+
+<!-- MOBILE OVERLAY -->
+<div id="mobileOverlay" class="overlay-fleet"></div>
+
+<!-- STICKY HEADER -->
+<header class="sticky top-0 z-30 glass-card shadow-sm flex items-center justify-end px-5 py-3 border-b border-white/60">
+    <div class="relative">
+        @php
+            $userName = Auth::user()->name ?? 'Kwame Asare';
+            $nameParts = preg_split('/\s+/', trim($userName));
+            $initials = '';
+            foreach (array_slice($nameParts, 0, 2) as $part) {
+                $initials .= strtoupper(substr($part, 0, 1));
+            }
+            $initials = $initials ?: 'KA';
+        @endphp
+        <button id="userMenuToggle" type="button" class="flex items-center gap-2 bg-slate-50 rounded-full pl-2 pr-3 py-1 border border-slate-200 hover:bg-slate-100 transition">
+            <div class="w-7 h-7 bg-blue-700 text-white rounded-full flex items-center justify-center text-xs font-bold">{{ $initials }}</div>
+            <span class="text-sm font-medium text-gray-700 hidden sm:inline">{{ $userName }}</span>
+            <span class="text-[11px] bg-slate-200 text-gray-700 px-2 py-0.5 rounded-full hidden sm:inline">Fleet Admin</span>
+            <i class="fas fa-chevron-down text-[10px] text-gray-500"></i>
+        </button>
+
+        <div id="userMenuDropdown" class="hidden user-menu-dropdown">
+            <button id="refreshDashboardBtn" type="button">
+                <i class="fas fa-sync-alt text-blue-600 w-5"></i>
+                <span>Refresh Data</span>
+            </button>
+            <a id="logoutBtn" href="{{ route('logout') }}">
+                <i class="fas fa-sign-out-alt text-red-600 w-5"></i>
+                <span>Logout</span>
+            </a>
+        </div>
+    </div>
+</header>
+
+<!-- SIDEBAR -->
+<aside id="fleetSidebar" class="sidebar-fleet sidebar-closed lg:translate-x-0 sidebar-glass shadow-2xl flex flex-col">
+    <!-- brand area -->
+    <div class="p-5 border-b border-gray-200/70 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-md">
+                <img src="/images/gwl-logo.png" alt="GWL Logo" class="object-cover w-full h-full">
+            </div>
+            <div>
+                <h1 class="font-bold text-lg tracking-tight text-gray-800">Ghana<span class="text-blue-600">Water</span><span class="text-gray-800">Limited</span></h1>
+                <p class="text-[10px] text-gray-500 uppercase tracking-wide">Vehicle fleet intelligence</p>
+            </div>
+        </div>
+        <button id="closeSidebarBtn" class="lg:hidden text-gray-500 hover:text-blue-600"><i class="fas fa-times text-lg"></i></button>
+    </div>
+
+    <!-- navigation menu -->
+    <nav class="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
+        <!-- Dashboard (Fleet Overview) -->
+        <a href="#" data-nav="dashboard" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl transition">
+            <i class="fas fa-chart-line w-5 text-center text-gray-500"></i><span>Fleet Overview</span>
+        </a>
+
+        <!-- Vehicle Registry -->
+        <div class="space-y-1">
+            <button onclick="toggleSubMenu('vehicles')" class="nav-item-fleet w-full flex items-center justify-between px-3 py-2.5 rounded-xl">
+                <div class="flex items-center gap-3"><i class="fas fa-truck-moving w-5 text-center text-gray-500"></i><span>Vehicle Registry</span></div>
+                <i class="fas fa-chevron-down text-xs transition-transform" id="vehicles-chevron"></i>
+            </button>
+            <div id="vehicles-submenu" class="hidden pl-5 space-y-1">
+                <a href="#" data-nav="all-vehicles" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-list-ul text-sm"></i><span>All Fleet Units</span></a>
+                <a href="#" data-nav="add-vehicle" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-plus-circle text-sm"></i><span>Register New Vehicle</span></a>
+                <a href="#" data-nav="vehicle-status" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-chart-simple text-sm"></i><span>Status Overview</span></a>
+            </div>
+        </div>
+
+        <!-- Location Management (NEW) -->
+        <div class="space-y-1">
+            <button onclick="toggleSubMenu('locations')" class="nav-item-fleet w-full flex items-center justify-between px-3 py-2.5 rounded-xl">
+                <div class="flex items-center gap-3"><i class="fas fa-map-marker-alt w-5 text-center text-gray-500"></i><span>Location Management</span></div>
+                <i class="fas fa-chevron-down text-xs transition-transform" id="locations-chevron"></i>
+            </button>
+            <div id="locations-submenu" class="hidden pl-5 space-y-1">
+                <a href="#" data-nav="locations" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-globe text-sm"></i><span>Manage Locations</span></a>
+            </div>
+        </div>
+
+        <!-- Fuel Management -->
+        <div class="space-y-1">
+            <button onclick="toggleSubMenu('fuel')" class="nav-item-fleet w-full flex items-center justify-between px-3 py-2.5 rounded-xl">
+                <div class="flex items-center gap-3"><i class="fas fa-gas-pump w-5 text-center text-gray-500"></i><span>Fuel Management</span></div>
+                <i class="fas fa-chevron-down text-xs transition-transform" id="fuel-chevron"></i>
+            </button>
+            <div id="fuel-submenu" class="hidden pl-5 space-y-1">
+                <a href="#" data-nav="fuel-logs" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-file-alt text-sm"></i><span>Fuel Logs</span></a>
+                <a href="#" data-nav="fuel-analytics" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-chart-line text-sm"></i><span>Consumption Analytics</span></a>
+                <a href="#" data-nav="fuel-cost" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-coins text-sm"></i><span>Cost Analysis</span></a>
+            </div>
+        </div>
+
+        <!-- Mileage Management -->
+        <div class="space-y-1">
+            <button onclick="toggleSubMenu('mileage')" class="nav-item-fleet w-full flex items-center justify-between px-3 py-2.5 rounded-xl">
+                <div class="flex items-center gap-3"><i class="fas fa-tachometer-alt w-5 text-center text-gray-500"></i><span>Mileage Management</span></div>
+                <i class="fas fa-chevron-down text-xs transition-transform" id="mileage-chevron"></i>
+            </button>
+            <div id="mileage-submenu" class="hidden pl-5 space-y-1">
+                <a href="#" data-nav="mileage-logs" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-file-alt text-sm"></i><span>Mileage Logs</span></a>
+                <a href="#" data-nav="mileage-analytics" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-chart-line text-sm"></i><span>Mileage Analytics</span></a>
+            </div>
+        </div>
+
+        <!-- Maintenance & Service -->
+        <div class="space-y-1">
+            <button onclick="toggleSubMenu('maint')" class="nav-item-fleet w-full flex items-center justify-between px-3 py-2.5 rounded-xl">
+                <div class="flex items-center gap-3"><i class="fas fa-tools w-5 text-center text-gray-500"></i><span>Maintenance</span></div>
+                <i class="fas fa-chevron-down text-xs transition-transform" id="maint-chevron"></i>
+            </button>
+            <div id="maint-submenu" class="hidden pl-5 space-y-1">
+                <a href="#" data-nav="service-schedule" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-calendar-alt text-sm"></i><span>Service Schedule</span></a>
+                <a href="#" data-nav="maintenance-history" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-history text-sm"></i><span>History Log</span></a>
+                <a href="#" data-nav="upcoming-reminders" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-bell text-sm"></i><span>Upcoming Reminders</span></a>
+            </div>
+        </div>
+
+        <!-- Driver Management -->
+        <a href="#" data-nav="drivers" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl">
+            <i class="fas fa-id-card w-5 text-center text-gray-500"></i><span>Driver Hub</span>
+        </a>
+
+        <!-- Insurance & Documents -->
+        <a href="#" data-nav="documents" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl">
+            <i class="fas fa-file-invoice w-5 text-center text-gray-500"></i><span>Insurance & Docs</span>
+        </a>
+
+        <!-- Fleet Reports -->
+        <div class="space-y-1">
+            <button onclick="toggleSubMenu('reports')" class="nav-item-fleet w-full flex items-center justify-between px-3 py-2.5 rounded-xl">
+                <div class="flex items-center gap-3"><i class="fas fa-chart-pie w-5 text-center text-gray-500"></i><span>Fleet Reports</span></div>
+                <i class="fas fa-chevron-down text-xs transition-transform" id="reports-chevron"></i>
+            </button>
+            <div id="reports-submenu" class="hidden pl-5 space-y-1">
+                <a href="#" data-nav="vehicle-utilization" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-chart-bar text-sm"></i><span>Utilization</span></a>
+                <a href="#" data-nav="cost-analysis-report" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-dollar-sign text-sm"></i><span>Cost Analysis</span></a>
+                <a href="#" data-nav="fuel-efficiency" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-tachometer-alt text-sm"></i><span>Fuel Efficiency</span></a>
+            </div>
+        </div>
+
+        <!-- Fleet Settings -->
+        <a href="#" data-nav="settings" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl">
+            <i class="fas fa-sliders-h w-5 text-center text-gray-500"></i><span>Fleet Settings</span>
+        </a>
+    </nav>
+
+    <div class="p-4 border-t border-gray-200/50 text-[11px] text-gray-400 text-center">
+        <i class="fas fa-road mr-1"></i> FleetPilot v2.4 · © 2025
+    </div>
+</aside>
+
+<!-- MAIN CONTENT DYNAMIC AREA -->
+<main id="mainContentArea" class="min-h-screen lg:ml-[280px] p-5 md:p-7 transition-all duration-300">
+    <div id="pageContent">
+        @yield('content')
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    // Keep sidebar controls working even when a page doesn't define its own handlers.
+    function toggleSubMenu(menuId) {
+        const subMenu = document.getElementById(`${menuId}-submenu`);
+        const chevron = document.getElementById(`${menuId}-chevron`);
+
+        if (!subMenu) return;
+        subMenu.classList.toggle('hidden');
+        if (chevron) chevron.classList.toggle('rotate-180');
+    }
+    window.toggleSubMenu = window.toggleSubMenu || toggleSubMenu;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const sidebar = document.getElementById('fleetSidebar');
+        const overlay = document.getElementById('mobileOverlay');
+        const openBtn = document.getElementById('menuToggleBtn');
+        const closeBtn = document.getElementById('closeSidebarBtn');
+        const userMenuToggle = document.getElementById('userMenuToggle');
+        const userMenuDropdown = document.getElementById('userMenuDropdown');
+
+        const openSidebar = () => {
+            sidebar?.classList.remove('sidebar-closed');
+            overlay?.classList.add('overlay-open');
+            document.body.style.overflow = 'hidden';
+        };
+
+        const closeSidebar = () => {
+            sidebar?.classList.add('sidebar-closed');
+            overlay?.classList.remove('overlay-open');
+            document.body.style.overflow = '';
+        };
+
+        openBtn?.addEventListener('click', openSidebar);
+        closeBtn?.addEventListener('click', closeSidebar);
+        overlay?.addEventListener('click', closeSidebar);
+
+        const closeUserMenu = () => {
+            if (userMenuDropdown) userMenuDropdown.classList.add('hidden');
+        };
+
+        userMenuToggle?.addEventListener('click', (event) => {
+            event.stopPropagation();
+            userMenuDropdown?.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!userMenuDropdown || !userMenuToggle) return;
+            if (userMenuDropdown.contains(event.target) || userMenuToggle.contains(event.target)) return;
+            closeUserMenu();
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') closeUserMenu();
+        });
+
+        // Refresh dashboard data
+        const refreshBtn = document.getElementById('refreshDashboardBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                window.location.reload();
+            });
+        }
+
+        // Navigation route mapping
+        const navRouteMap = {
+            'dashboard': '/dashboard',
+            'all-vehicles': '/vehicles?tab=all-vehicles',
+            'add-vehicle': '/vehicles?tab=add-vehicle',
+            'vehicle-status': '/vehicles?tab=status-overview',
+            'locations': '/locations',
+            'fuel-logs': '/fuel-management?tab=logs',
+            'fuel-analytics': '/fuel-management?tab=analytics',
+            'fuel-cost': '/fuel-management?tab=cost-analysis',
+            'mileage-logs': '/mileage-logs',
+            'mileage-analytics': '/mileage-analytics',
+            'service-schedule': '/maintenance',
+            'maintenance-history': '/maintenance/history',
+            'upcoming-reminders': '/maintenance/reminders',
+            'drivers': '/drivers',
+            'documents': '/documents',
+            'vehicle-utilization': '/reports/utilization',
+            'cost-analysis-report': '/reports/cost',
+            'fuel-efficiency': '/reports/fuel-efficiency',
+            'settings': '/settings'
+        };
+
+        document.querySelectorAll('[data-nav]').forEach((link) => {
+            link.addEventListener('click', (event) => {
+                const key = link.dataset.nav;
+                const target = navRouteMap[key];
+                if (!target) return;
+
+                event.preventDefault();
+                window.location.href = target;
+            });
+        });
+    });
+</script>
+</body>
+</html>
