@@ -127,7 +127,7 @@ class DashboardController extends Controller
         }
 
         // Check collections for strings or incomplete classes (common cache issues)
-        $collectionsToCheck = ['recentVehicles', 'upcomingVehicleMaintenance', 'expiringDocuments'];
+        $collectionsToCheck = ['vehiclesByRegion', 'recentVehicles', 'upcomingVehicleMaintenance', 'expiringDocuments'];
         
         foreach ($collectionsToCheck as $key) {
             if (array_key_exists($key, $dashboardData)) {
@@ -207,7 +207,13 @@ class DashboardController extends Controller
             ->join('regions', 'vehicles.region_id', '=', 'regions.id')
             ->groupBy('regions.name', 'regions.id')
             ->orderBy('count', 'desc')
-            ->get();
+            ->get()
+            ->map(function ($item) {
+                return (object) [
+                    'region_name' => $item->region_name,
+                    'count' => (int) $item->count,
+                ];
+            });
         
         $activeDrivers = Driver::where('status', '!=', 'deleted')
             ->whereHas('vehicle', function($q) {

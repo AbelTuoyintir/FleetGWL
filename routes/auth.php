@@ -9,6 +9,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\FuelMileageController;
 use App\Http\Controllers\MaintenanceController;
+use App\Http\Controllers\DriverController;
 
 /*
 |--------------------------------------------------------------------------
@@ -80,6 +81,8 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:driver')->prefix('driver')->name('driver.')->group(function () {
         Route::get('/dashboard', [FuelMileageController::class, 'dashboard'])->name('dashboard');
         Route::get('/fuel-mileage', [FuelMileageController::class, 'dashboard'])->name('fuel-mileage.dashboard');
+        Route::get('/profile', [DriverController::class, 'profile'])->name('profile');
+        Route::post('/profile', [DriverController::class, 'updateProfile'])->name('profile.update');
     });
     
     // Technician routes

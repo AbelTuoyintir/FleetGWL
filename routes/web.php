@@ -10,4 +10,5 @@ Route::get('/vehicles/maintenance/{id}', [\App\Http\Controllers\MaintenanceContr
 Route::get('/vehicles/maintenance/{id}/data', [\App\Http\Controllers\MaintenanceController::class, 'getMaintenanceData'])->name('vehicles.maintenance.data');
 
 require __DIR__ . '/admin.php';
+require __DIR__ . '/driver.php';
 require __DIR__ . '/auth.php';
