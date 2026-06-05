@@ -70,7 +70,7 @@
         }
     </style>
 </head>
-<body class="text-gray-800 antialiased">
+<body class="text-gray-800 antialiased text-sm">
 
 <!-- MOBILE OVERLAY -->
 <div id="mobileOverlay" class="overlay-fleet"></div>
@@ -124,7 +124,7 @@
     </div>
 
     <!-- navigation menu -->
-    <nav class="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
+    <nav id="fleetNav" class="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
         <!-- Dashboard (Fleet Overview) -->
         <a href="#" data-nav="dashboard" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl transition">
             <i class="fas fa-chart-line w-5 text-center text-gray-500"></i><span>Fleet Overview</span>
@@ -192,9 +192,9 @@
             </div>
         </div>
 
-        <!-- Driver Management -->
+        <!-- Driver Management - Make sure data-nav="drivers" is present -->
         <a href="#" data-nav="drivers" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl">
-            <i class="fas fa-id-card w-5 text-center text-gray-500"></i><span>Driver Hub</span>
+        <i class="fas fa-id-card w-5 text-center text-gray-500"></i><span>Driver Hub</span>
         </a>
 
         <!-- Insurance & Documents -->
@@ -233,6 +233,7 @@
     </div>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     // Keep sidebar controls working even when a page doesn't define its own handlers.
@@ -297,7 +298,7 @@
             });
         }
 
-        // Navigation route mapping
+        // Navigation route mapping - CORRECTED with all routes including drivers
         const navRouteMap = {
             'dashboard': '/dashboard',
             'all-vehicles': '/vehicles?tab=all-vehicles',
@@ -320,15 +321,17 @@
             'settings': '/settings'
         };
 
-        document.querySelectorAll('[data-nav]').forEach((link) => {
-            link.addEventListener('click', (event) => {
-                const key = link.dataset.nav;
-                const target = navRouteMap[key];
-                if (!target) return;
+        document.getElementById('fleetNav')?.addEventListener('click', (e) => {
+            const link = e.target.closest('[data-nav]');
+            if (!link) return;
 
-                event.preventDefault();
+            const key = link.dataset.nav;
+            const target = navRouteMap[key];
+
+            if (target) {
+                e.preventDefault();
                 window.location.href = target;
-            });
+            }
         });
     });
 </script>

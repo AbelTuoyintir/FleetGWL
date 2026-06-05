@@ -7,6 +7,7 @@ use App\Models\Vehicle;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Support\SqlDate;
 
 class VehicleMaintenanceAnalyticsController extends Controller
 {
@@ -75,7 +76,7 @@ class VehicleMaintenanceAnalyticsController extends Controller
     {
         $data = Maintenance::where('status', '!=', 'deleted')
             ->whereBetween('maintenance_date', [$dateRange['start'], $dateRange['end']])
-            ->selectRaw('MONTH(maintenance_date) as month, COUNT(*) as count, SUM(cost) as cost')
+            ->selectRaw(SqlDate::month('maintenance_date') . ' as month, COUNT(*) as count, SUM(cost) as cost')
             ->groupBy('month')
             ->orderBy('month')
             ->get();

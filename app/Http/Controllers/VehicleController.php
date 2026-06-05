@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Region;
 use App\Models\District;
-use App\Models\Department;
 use App\Models\Vehicle;
 use App\Models\Driver;
 use App\Models\Maintenance;
@@ -46,13 +45,10 @@ class VehicleController extends Controller
                 'registration_date' => 'nullable|date',
                 'insurance_expiry_date' => 'nullable|date',
                 'next_inspection_date' => 'nullable|date',
-                'fuel_consumption' => 'nullable|numeric|min:0',
                 'vehicle_type' => 'required|string|max:100',
                 'status' => 'required|in:active,inactive,maintenance,disposed,deleted',
                 'notes' => 'nullable|string',
-                'owner_name' => 'nullable|string|max:255',
-                'owner_contact' => 'nullable|string|max:255',
-'district_id' => 'nullable|exists:districts,id',
+                'district_id' => 'nullable|exists:districts,id',
                 'region_id' => 'nullable|exists:regions,id',
                 'station_id' => 'nullable|exists:stations,id',
                 'photo' => 'nullable|image|mimes:jpg,jpeg,gif,png|max:10024',
@@ -72,7 +68,7 @@ class VehicleController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'Vehicle added successfully.',
-                    'data' => $vehicle->fresh(['region', 'district', 'department', 'assignedDriver']),
+                    'data' => $vehicle->fresh(['region', 'district', 'station', 'assignedDriver']),
                 ], 201);
             }
 
@@ -168,11 +164,51 @@ class VehicleController extends Controller
         ));
     }
 
-    private function calculateAverageWeeklyMileage($vehicle)
-    {
-        // Implement your actual weekly mileage calculation
-        // This is a simplified version
-        return $vehicle->mileage / 52; // Assuming 1 year of usage
+ /**
+ * Calculate average weekly mileage for a specific period
+ */
+private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
+{
+    $startDate = now()->subWeeks($weeks);
+    
+    // Get mileage logs within date range
+    $mileageLogs = MileageLog::where('vehicle_id', $vehicle->id)
+        ->where('created_at', '>=', $startDate)
+        ->orderBy('created_at', 'asc')
+        ->get();
+    
+    if ($mileageLogs->count() >= 2) {
+        $firstLog = $mileageLogs->first();
+        $lastLog = $mileageLogs->last();
+        
+        $totalDistance = $lastLog->end_mileage - $firstLog->start_mileage;
+        $weeksCount = $firstLog->created_at->diffInWeeks($lastLog->created_at);
+        
+        if ($weeksCount > 0) {
+            return round($totalDistance / $weeksCount);
+        }
+    }
+    
+    // Fallback to fuel log method
+    $fuelLogs = FuelLog::where('vehicle_id', $vehicle->id)
+        ->where('date', '>=', $startDate)
+        ->where('distance_traveled', '>', 0)
+        ->orderBy('date', 'asc')
+        ->get();
+    
+    if ($fuelLogs->count() >= 2) {
+        $firstLog = $fuelLogs->first();
+        $lastLog = $fuelLogs->last();
+            
+            $totalDistance = $lastLog->odometer - $firstLog->odometer;
+            $weeksCount = $firstLog->date->diffInWeeks($lastLog->date);
+            
+            if ($weeksCount > 0) {
+                return round($totalDistance / $weeksCount);
+            }
+        }
+        
+        return 500; // Default fallback
     }
 
     private function getRecentActivity($vehicle)
@@ -305,7 +341,7 @@ class VehicleController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'Vehicle updated successfully!',
-                    'data' => $vehicle->fresh(['region', 'district', 'department', 'assignedDriver'])
+                    'data' => $vehicle->fresh(['region', 'district', 'station', 'assignedDriver'])
                 ], 200);
             }
 
@@ -422,7 +458,7 @@ class VehicleController extends Controller
     {
         try {
             $query = Vehicle::where('vehicles.status', '!=', 'deleted')
-                ->with(['region', 'district', 'department', 'assignedDriver']);
+                ->with(['region', 'district', 'station', 'assignedDriver']);
             
             // Apply filters
             if ($request->filled('status')) {
@@ -557,7 +593,7 @@ class VehicleController extends Controller
     {
         try {
             $vehicles = Vehicle::where('status', '!=', 'deleted')
-                ->with(['region', 'district', 'department', 'assignedDriver'])
+                ->with(['region', 'district', 'station', 'assignedDriver'])
                 ->get();
             
             $filename = 'vehicles_export_' . date('Y-m-d_His') . '.csv';
@@ -567,7 +603,7 @@ class VehicleController extends Controller
             fputcsv($handle, [
                 'Registration Number', 'Make', 'Model', 'Year', 'Color', 
                 'Chassis Number', 'Engine Number', 'Mileage', 'Vehicle Type', 
-                'Status', 'Region', 'District', 'Department', 
+                'Status', 'Region', 'District', 'Station', 
                 'Assigned Driver', 'Insurance Expiry', 'Purchase Price', 'Purchase Date'
             ]);
             
@@ -586,7 +622,7 @@ class VehicleController extends Controller
                     $vehicle->status,
                     $vehicle->region->name ?? 'N/A',
                     $vehicle->district->name ?? 'N/A',
-                    $vehicle->department->name ?? 'N/A',
+                    $vehicle->station->name ?? 'N/A',
                     $vehicle->assignedDriver->name ?? 'Unassigned',
                     $vehicle->insurance_expiry_date,
                     $vehicle->purchase_price,

@@ -30,14 +30,10 @@ return new class extends Migration
             $table->enum('status', ['active', 'inactive', 'maintenance', 'disposed', 'deleted'])->default('active');
             $table->text('notes')->nullable();
             
-            // Ownership
-            $table->string('owner_name')->nullable();
-            $table->string('owner_contact')->nullable();
             
             // Relationships
             $table->foreignId('region_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('district_id')->nullable()->constrained()->onDelete('set null');
-            $table->foreignId('department_id')->nullable()->constrained()->onDelete('set null');
             $table->foreignId('assigned_driver_id')->nullable()->constrained('drivers')->onDelete('set null');
             
             // Financial

@@ -366,7 +366,7 @@
                                     </div>
                                     <div>
                                         <label class="form-label">Station</label>
-                                        <select name="station_id" class="form-input" id="department-select">
+                                        <select name="station_id" class="form-input" id="station-select">
                                             <option value="">Select station</option>
                                         </select>
                                     </div>
@@ -794,7 +794,7 @@ function loadFormData() {
                 // Populate dropdowns
                 populateSelect('#region-select', data.regions, 'id', 'name');
                 populateSelect('#district-select', data.districts, 'id', 'name');
-                populateSelect('#department-select', data.departments, 'id', 'name');
+                populateSelect('#station-select', data.stations, 'id', 'name');
                 populateSelect('#office-select', data.offices, 'id', 'name');
                 populateSelect('#driver-select', data.drivers, 'id', 'name');
             }

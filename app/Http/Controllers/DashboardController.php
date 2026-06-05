@@ -377,9 +377,9 @@ class DashboardController extends Controller
             if (DB::getSchemaBuilder()->hasTable('fuel_logs')) {
                 $fuelEfficiency = DB::table('fuel_logs')
                     ->join('vehicles', 'fuel_logs.vehicle_id', '=', 'vehicles.id')
-                    ->select(DB::raw('COALESCE(vehicles.make, "") || " " || COALESCE(vehicles.model, "") as make_model'), DB::raw('AVG(km_per_litre) as avg_km_per_litre'))
+                    ->select(DB::raw('COALESCE(vehicles.make, "") || " " || COALESCE(vehicles.model, "") as make_model'), DB::raw('AVG(fuel_efficiency) as avg_km_per_litre'))
                     ->where('fuel_logs.status', '!=', 'deleted')
-                    ->whereNotNull('km_per_litre')
+                    ->whereNotNull('fuel_efficiency')
                     ->groupBy('vehicles.id')
                     ->orderBy('avg_km_per_litre', 'desc')
                     ->limit(5)

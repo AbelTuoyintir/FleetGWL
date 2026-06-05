@@ -25,7 +25,6 @@ class Vehicle extends Model
         'registration_date',
         'insurance_expiry_date',
         'next_inspection_date',
-        'fuel_consumption',
         'vehicle_type',
         'status',
         'notes',

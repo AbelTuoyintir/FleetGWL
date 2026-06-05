@@ -186,7 +186,6 @@
                     <table class="data-table w-full">
                         <thead>
                             <tr>
-                                <th>ID</th>
                                 <th>Name</th>
                                 <th>Code</th>
                                 <th>Status</th>
@@ -217,7 +216,6 @@
                     <table class="data-table w-full">
                         <thead>
                             <tr>
-                                <th>ID</th>
                                 <th>Name</th>
                                 <th>Code</th>
                                 <th>Region</th>
@@ -249,7 +247,6 @@
                     <table class="data-table w-full">
                         <thead>
                             <tr>
-                                <th>ID</th>
                                 <th>Name</th>
                                 <th>Code</th>
                                 <th>Type</th>
@@ -503,7 +500,6 @@ function renderRegionsTable(regions) {
     regions.forEach(region => {
         html += `
             <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4">#${region.id}</td>
                 <td class="px-6 py-4 font-medium">${escapeHtml(region.name)}</td>
                 <td class="px-6 py-4"><code class="bg-gray-100 px-2 py-1 rounded">${escapeHtml(region.code)}</code></td>
                 <td class="px-6 py-4">
@@ -641,7 +637,6 @@ function renderDistrictsTable(districts) {
     districts.forEach(district => {
         html += `
             <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4">#${district.id}</td>
                 <td class="px-6 py-4 font-medium">${escapeHtml(district.name)}</td>
                 <td class="px-6 py-4"><code class="bg-gray-100 px-2 py-1 rounded">${escapeHtml(district.code)}</code></td>
                 <td class="px-6 py-4">${escapeHtml(district.region_name)}</td>
@@ -780,7 +775,6 @@ function renderStationsTable(stations) {
     stations.forEach(station => {
         html += `
             <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4">#${station.id}</td>
                 <td class="px-6 py-4 font-medium">${escapeHtml(station.name)}</td>
                 <td class="px-6 py-4"><code class="bg-gray-100 px-2 py-1 rounded">${escapeHtml(station.code)}</code></td>
                 <td class="px-6 py-4"><span class="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-700">${escapeHtml(station.type)}</span></td>

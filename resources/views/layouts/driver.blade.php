@@ -128,7 +128,7 @@
         }
     </style>
 </head>
-<body class="text-gray-800 antialiased">
+<body class="text-gray-800 antialiased text-sm">
 
 <!-- MOBILE OVERLAY -->
 <div id="mobileOverlay" class="overlay-fleet"></div>

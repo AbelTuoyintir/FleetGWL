@@ -11,7 +11,8 @@
                 <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
             </a>
             <h1 class="text-2xl font-bold text-gray-800 mt-2">Request Maintenance</h1>
-            <p class="text-gray-500 text-sm mt-1">Submit a maintenance request for {{ $vehicle->registration_number }}</p>
+            <p class="text-gray-500 text-sm mt-1">Submit a maintenance request for {{ $selectedVehicle->registration_number ?? 'your vehicle' }}</p>
+
         </div>
         
         <div class="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -31,7 +32,8 @@
                     <div>
                         <label class="form-label">Current Mileage (km) *</label>
                         <input type="number" name="mileage_at_service" class="form-input @error('mileage_at_service') border-red-500 @enderror" 
-                               value="{{ old('mileage_at_service', $vehicle->current_mileage ?? $vehicle->mileage ?? 0) }}" required>
+                               value="{{ old('mileage_at_service', $selectedVehicle->current_mileage ?? $selectedVehicle->mileage ?? 0) }}" required>
+
                         @error('mileage_at_service')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror

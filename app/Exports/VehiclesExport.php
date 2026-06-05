@@ -28,7 +28,7 @@ class VehiclesExport implements FromCollection, WithHeadings, WithMapping, Shoul
         return [
             'Registration Number', 'Make', 'Model', 'Year', 'Color', 'Chassis Number',
             'Engine Number', 'Mileage', 'Vehicle Type', 'Status', 'Region',
-            'District', 'Department', 'Assigned Driver', 'Driver Email',
+            'District', 'Station', 'Assigned Driver', 'Driver Email',
             'Purchase Price (GHS)', 'Purchase Date', 'Registration Date',
             'Insurance Expiry Date', 'Next Inspection Date', 'Fuel Consumption (km/L)',
             'Owner Name', 'Owner Contact', 'Notes', 'Created At', 'Last Updated'
@@ -50,7 +50,7 @@ class VehiclesExport implements FromCollection, WithHeadings, WithMapping, Shoul
             $vehicle->status,
             $vehicle->region->name ?? 'N/A',
             $vehicle->district->name ?? 'N/A',
-            $vehicle->department->name ?? 'N/A',
+            $vehicle->station->name ?? 'N/A',
             $vehicle->assignedDriver->name ?? 'Unassigned',
             $vehicle->assignedDriver->email ?? '',
             $vehicle->purchase_price,

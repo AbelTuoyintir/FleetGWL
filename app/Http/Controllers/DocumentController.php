@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
+use App\Support\SqlDate;
 
 class DocumentController extends Controller
 {
@@ -493,8 +495,8 @@ class DocumentController extends Controller
                                 ->selectRaw('document_type, count(*) as count')
                                 ->pluck('count', 'document_type'),
             'by_month' => Document::whereYear('created_at', date('Y'))
-                                ->groupBy(\DB::raw('MONTH(created_at)'))
-                                ->selectRaw('MONTH(created_at) as month, count(*) as count')
+                                ->groupBy(DB::raw(SqlDate::month('created_at')))
+                                ->selectRaw(SqlDate::month('created_at') . ' as month, count(*) as count')
                                 ->pluck('count', 'month'),
         ];
 

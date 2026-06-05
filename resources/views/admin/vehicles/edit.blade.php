@@ -204,12 +204,12 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="form-label">Department</label>
-                                    <select name="department_id" class="form-select">
-                                        <option value="">Select Department</option>
-                                        @foreach($departments as $department)
-                                            <option value="{{ $department->id }}" {{ old('department_id', $vehicle->department_id) == $department->id ? 'selected' : '' }}>
-                                                {{ $department->name }}
+                                    <label class="form-label">Station</label>
+                                    <select name="station_id" class="form-select">
+                                        <option value="">Select Station</option>
+                                        @foreach($stations as $station)
+                                            <option value="{{ $station->id }}" {{ old('station_id', $vehicle->station_id) == $station->id ? 'selected' : '' }}>
+                                                {{ $station->name }}
                                             </option>
                                         @endforeach
                                     </select>

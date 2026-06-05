@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use App\Support\SqlDate;
 
 
 class FuelMileageController extends Controller
@@ -73,9 +74,10 @@ class FuelMileageController extends Controller
         ];
 
         // Get maintenance trend (last 6 months)
+        // SQLite doesn't support YEAR()/MONTH(), so we use strftime for driver-agnostic grouping.
         $maintenanceTrend = VehicleMaintenance::select(
-            DB::raw('YEAR(maintenance_date) as year'),
-            DB::raw('MONTH(maintenance_date) as month'),
+            DB::raw("cast(strftime('%Y', maintenance_date) as integer) as year"),
+            DB::raw("cast(strftime('%m', maintenance_date) as integer) as month"),
             DB::raw('SUM(cost) as total_cost'),
             DB::raw('COUNT(*) as request_count')
         )
@@ -237,8 +239,10 @@ class FuelMileageController extends Controller
     public function mileageLogs(Request $request)
     {
         $driver = Driver::where('user_id', Auth::id())->firstOrFail();
+        $vehicle = $driver->vehicle;
 
         $query = MileageLog::where('driver_id', $driver->id)
+
             ->where('status', '!=', 'deleted')
             ->with(['vehicle', 'driver'])
             ->latest();
@@ -268,7 +272,33 @@ class FuelMileageController extends Controller
             ];
         }
 
-        return view('driver.fuel-mileage.mileage-index', compact('logs', 'weeklyStats'));
+        // Render an existing view (this repo only has mileage-create for driver mileage screens).
+        // Provide a minimal set of variables so the view can render without undefined variables.
+        $currentWeek = Carbon::now()->weekOfYear;
+        $weekStart = Carbon::now()->startOfWeek();
+        $weekLabel = "Week " . $currentWeek . " (" . $weekStart->format('M d') . ")";
+
+        $existingLog = MileageLog::where('vehicle_id', $vehicle->id)
+            ->where('driver_id', $driver->id)
+            ->where('week_start_date', $weekStart->format('Y-m-d'))
+            ->first();
+
+        $lastWeekLog = MileageLog::where('vehicle_id', $vehicle->id)
+            ->where('driver_id', $driver->id)
+            ->latest()
+            ->first();
+
+        return view('driver.fuel-mileage.mileage-create', compact(
+            'vehicle',
+            'weekLabel',
+            'weekStart',
+            'existingLog',
+            'lastWeekLog'
+        ));
+
+
+
+
     }
 
     /**
@@ -420,8 +450,8 @@ class FuelMileageController extends Controller
 
         // Monthly maintenance expenditure report
         $monthlyMaintenance = VehicleMaintenance::select(
-            DB::raw('YEAR(maintenance_date) as year'),
-            DB::raw('MONTH(maintenance_date) as month'),
+            DB::raw(SqlDate::year('maintenance_date') . ' as year'),
+            DB::raw(SqlDate::month('maintenance_date') . ' as month'),
             DB::raw('SUM(cost) as total_cost'),
             DB::raw('COUNT(*) as request_count')
         )
@@ -608,26 +638,5 @@ class FuelMileageController extends Controller
 
         return redirect()->route('driver.fuel-mileage.maintenance.index')
             ->with('success', 'Maintenance request deleted successfully.');
-    }
-
-    /**
-     * Delete a mileage log
-     */
-    public function destroyMileageLog($id)
-    {
-        $driver = Driver::where('user_id', Auth::id())->firstOrFail();
-        $mileageLog = MileageLog::findOrFail($id);
-
-        // Verify the mileage log belongs to this driver
-        if ($mileageLog->driver_id !== $driver->id) {
-            return back()->with('error', 'Unauthorized action.');
-        }
-
-        try {
-            $mileageLog->delete();
-            return back()->with('success', 'Mileage log deleted successfully.');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Failed to delete mileage log: ' . $e->getMessage());
-        }
     }
 }

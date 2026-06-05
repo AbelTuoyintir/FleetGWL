@@ -346,7 +346,7 @@ class DriverController extends Controller
         // Assign vehicle
         $vehicle->update(['assigned_driver_id' => $driver->id]);
 
-        return redirect()->route('admin.drivers.index')->with('success', 'Vehicle assigned successfully!');
+        return redirect()->route('drivers.index')->with('success', 'Vehicle assigned successfully!');
     }
 
     /**
@@ -360,7 +360,7 @@ class DriverController extends Controller
 
         $driver->vehicle->update(['assigned_driver_id' => null]);
 
-        return redirect()->route('admin.drivers.index')->with('success', 'Vehicle unassigned successfully!');
+        return redirect()->route('drivers.index')->with('success', 'Vehicle unassigned successfully!');
     }
 
     /**

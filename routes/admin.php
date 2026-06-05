@@ -108,14 +108,14 @@ Route::middleware(['auth'])->prefix('drivers')->name('drivers.')->group(function
     Route::get('/', [DriverController::class, 'index'])->name('index');
     Route::get('/create', [DriverController::class, 'create'])->name('create');
     Route::post('/store', [DriverController::class, 'store'])->name('store');
+    Route::get('/statistics', [DriverController::class, 'statistics'])->name('statistics');
+    Route::get('/search', [DriverController::class, 'searchDrivers'])->name('search');
     Route::get('/{driver}', [DriverController::class, 'show'])->name('show');
     Route::get('/{driver}/edit', [DriverController::class, 'edit'])->name('edit');
     Route::put('/{driver}', [DriverController::class, 'update'])->name('update');
     Route::delete('/{driver}', [DriverController::class, 'destroy'])->name('destroy');
     Route::post('/{driver}/assign-vehicle', [DriverController::class, 'assignVehicle'])->name('assign-vehicle');
     Route::post('/{driver}/unassign-vehicle', [DriverController::class, 'unassignVehicle'])->name('unassign-vehicle');
-    Route::get('/statistics', [DriverController::class, 'statistics'])->name('statistics');
-    Route::get('/search', [DriverController::class, 'searchDrivers'])->name('search');
 });
 
 

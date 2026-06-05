@@ -6,9 +6,9 @@ namespace App\Imports;
 use App\Models\Vehicle;
 use App\Models\Region;
 use App\Models\District;
-use App\Models\Department;
 use App\Models\Driver;
 use App\Models\Office;
+use App\Models\Station;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
@@ -85,12 +85,12 @@ class VehiclesImport implements ToCollection, WithHeadingRow, SkipsOnError
             }
         }
         
-        // Find department
-        $departmentId = null;
-        if (!empty($row['department_name'])) {
-            $department = Department::where('name', $row['department_name'])->first();
-            if ($department) {
-                $departmentId = $department->id;
+        // Find station
+        $stationId = null;
+        if (!empty($row['station_name'])) {
+            $station = Station::where('name', $row['station_name'])->first();
+            if ($station) {
+                $stationId = $station->id;
             }
         }
         
@@ -145,7 +145,7 @@ class VehiclesImport implements ToCollection, WithHeadingRow, SkipsOnError
                 'status' => $row['status'] ?? $existingVehicle->status,
                 'region_id' => $regionId ?? $existingVehicle->region_id,
                 'district_id' => $districtId ?? $existingVehicle->district_id,
-                'department_id' => $departmentId ?? $existingVehicle->department_id,
+                'station_id' => $stationId ?? $existingVehicle->station_id,
                 'office_id' => $officeId ?? $existingVehicle->office_id,
                 'assigned_driver_id' => $driverId ?? $existingVehicle->assigned_driver_id,
                 'purchase_price' => $row['purchase_price'] ?? $existingVehicle->purchase_price,
@@ -174,7 +174,7 @@ class VehiclesImport implements ToCollection, WithHeadingRow, SkipsOnError
                 'status' => $row['status'] ?? 'active',
                 'region_id' => $regionId,
                 'district_id' => $districtId,
-                'department_id' => $departmentId,
+                'station_id' => $stationId,
                 'office_id' => $officeId,
                 'assigned_driver_id' => $driverId,
                 'purchase_price' => $row['purchase_price'] ?? null,
