@@ -8,6 +8,11 @@ use Illuminate\Http\Request;
 
 class MaintenanceController extends Controller
 {
+    public function vehiclesNeedingPage()
+    {
+        return view('maintenance.vehicles-needing');
+    }
+
     /**
      * Display a listing of the resource.
      */

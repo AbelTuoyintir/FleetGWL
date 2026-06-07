@@ -167,52 +167,145 @@ class FuelMileageController extends Controller
             return back()->with('error', 'No vehicle assigned.');
         }
 
+        // Update validation to include 'both' option
         $validated = $request->validate([
             'maintenance_date' => 'required|date',
-            'maintenance_type' => 'required|string|in:servicing,specific,breakdown',
+            'maintenance_type' => 'required|string|in:servicing,specific,both',
             'mileage_at_service' => 'required|integer|min:0',
             'description' => 'nullable|string',
-            'checklist' => 'nullable|array',
+            'selected_services' => 'nullable|array',
+            'selected_services.*' => 'string|max:255',
             'other_maintenance_type' => 'nullable|string|max:255',
+            'include_service' => 'nullable|boolean',
+            'priority' => 'nullable|in:low,medium,high,urgent',
         ]);
 
         try {
             DB::beginTransaction();
 
+            // Prepare checklist based on selected services
+            $checklist = [];
+            
+            // If both is selected or specific is selected with services
+            if ($validated['maintenance_type'] === 'both' || ($validated['maintenance_type'] === 'specific' && !empty($validated['selected_services']))) {
+                $checklist = $validated['selected_services'] ?? [];
+                
+                // Add service package to checklist if 'both' is selected
+                if ($validated['maintenance_type'] === 'both') {
+                    array_unshift($checklist, 'Standard Service Package (Oil Change, Filter Replacement, Basic Inspection)');
+                }
+            }
+            
+            // Add other maintenance type if provided
+            if (!empty($validated['other_maintenance_type'])) {
+                $checklist[] = $validated['other_maintenance_type'];
+            }
+            
+            // Determine final maintenance type for database
+            $dbMaintenanceType = $validated['maintenance_type'];
+            if ($dbMaintenanceType === 'servicing') {
+                $dbMaintenanceType = 'general_service';
+            } elseif ($dbMaintenanceType === 'specific') {
+                $dbMaintenanceType = 'specific';
+            } elseif ($dbMaintenanceType === 'both') {
+                $dbMaintenanceType = 'both';
+            }
+            
+            // Prepare description with additional details
+            $fullDescription = $validated['description'] ?? '';
+            
+            // Add service details if 'both' is selected
+            if ($validated['maintenance_type'] === 'both') {
+                $serviceDetails = "\n\n--- Service Requested ---\n- Oil Change\n- Oil Filter Replacement\n- Air Filter Check/Replacement\n- General Vehicle Inspection";
+                $fullDescription .= $serviceDetails;
+            }
+            
+            // Add checklist items to description if any
+            if (!empty($checklist)) {
+                $fullDescription .= "\n\n--- Specific Repairs Requested ---\n- " . implode("\n- ", $checklist);
+            }
+            
+            // Create maintenance record
             $maintenance = VehicleMaintenance::create([
                 'vehicle_id' => $vehicle->id,
                 'driver_id' => $driver->id,
                 'maintenance_date' => $validated['maintenance_date'],
-                'date' => $validated['maintenance_date'], // Sync both
-                'maintenance_type' => $validated['maintenance_type'],
+                'date' => $validated['maintenance_date'],
+                'maintenance_type' => $dbMaintenanceType,
                 'mileage_at_service' => $validated['mileage_at_service'],
-                'description' => $validated['description'] ?? null,
-                'checklist' => $validated['checklist'] ?? [],
+                'description' => $fullDescription,
+                'parts_replaced' => json_encode($checklist), // Store selected services as JSON
+                'checklist' => json_encode($checklist),
                 'other_maintenance_type' => $validated['other_maintenance_type'] ?? null,
-                'status' => 'waiting', // Driver requests always start as waiting
-                'cost' => 0.00, // Cost is updated by admin/technician later
+                'priority' => $validated['priority'] ?? 'medium',
+                'status' => 'waiting',
+                'cost' => 0.00,
             ]);
-
+            
+            // Update vehicle's last maintenance request info
+            $vehicle->update([
+                'last_maintenance_request_date' => now(),
+                'last_maintenance_request_mileage' => $validated['mileage_at_service'],
+            ]);
+            
+            // Prepare notification message based on type
+            $typeMessage = '';
+            switch ($validated['maintenance_type']) {
+                case 'servicing':
+                    $typeMessage = 'regular service';
+                    break;
+                case 'specific':
+                    $typeMessage = 'specific repairs (' . count($checklist) . ' item(s))';
+                    break;
+                case 'both':
+                    $typeMessage = 'regular service plus ' . count($checklist) . ' additional repair(s)';
+                    break;
+            }
+            
             // Notify Admins
-            $admins = \App\Models\User::where('role', 'admin')->get();
+            $admins = \App\Models\User::whereIn('role', ['admin', 'super_admin'])->get();
             foreach ($admins as $admin) {
                 \Illuminate\Support\Facades\DB::table('notifications')->insert([
                     'user_id' => $admin->id,
                     'type' => 'maintenance_request',
-                    'message' => 'Driver ' . auth()->user()->name . ' has requested maintenance for ' . $vehicle->registration_number,
+                    'title' => 'New Maintenance Request',
+                    'message' => 'Driver ' . auth()->user()->name . ' has requested ' . $typeMessage . ' for ' . $vehicle->registration_number . ' (Mileage: ' . number_format($validated['mileage_at_service']) . ' km)',
                     'is_read' => false,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
             }
-
+            
+            // Also send email notification (optional)
+            // Mail::to($admins->pluck('email')->toArray())->send(new MaintenanceRequestNotification($maintenance, $driver));
+            
             DB::commit();
-
+            
+            // Determine success message
+            $successMessage = '';
+            switch ($validated['maintenance_type']) {
+                case 'servicing':
+                    $successMessage = 'Service request submitted successfully! Our team will contact you shortly.';
+                    break;
+                case 'specific':
+                    $successMessage = 'Repair request submitted successfully! Our team will review and get back to you.';
+                    break;
+                case 'both':
+                    $successMessage = 'Service and repair request submitted successfully! Our team will handle both requests.';
+                    break;
+            }
+            
             return redirect()->route('driver.fuel-mileage.maintenance.index')
-                ->with('success', 'Maintenance request submitted successfully!');
-
+                ->with('success', $successMessage);
+            
         } catch (\Exception $e) {
             DB::rollBack();
+            \Log::error('Maintenance request failed: ' . $e->getMessage(), [
+                'request_data' => $request->all(),
+                'driver_id' => $driver->id,
+                'vehicle_id' => $vehicle->id
+            ]);
+            
             return back()->with('error', 'Failed to submit request: ' . $e->getMessage())
                 ->withInput();
         }

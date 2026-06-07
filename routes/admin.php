@@ -179,7 +179,8 @@ Route::middleware(['auth'])->prefix('reports')->name('reports.')->group(function
 
 // Maintenance Alert Routes
 Route::middleware(['auth'])->prefix('maintenance')->name('maintenance.')->group(function () {
-    Route::get('/vehicles-needing', [\App\Http\Controllers\MaintenanceController::class, 'getVehiclesNeedingMaintenance'])->name('vehicles-needing');
+    Route::get('/vehicles-needing', [\App\Http\Controllers\MaintenanceController::class, 'vehiclesNeedingPage'])->name('vehicles-needing');
+    Route::get('/vehicles-needing/data', [\App\Http\Controllers\MaintenanceController::class, 'getVehiclesNeedingMaintenance'])->name('vehicles-needing.data');
     Route::post('/vehicle/{id}/acknowledge', [\App\Http\Controllers\MaintenanceController::class, 'acknowledgeAlert'])->name('acknowledge');
     Route::get('/schedule/{vehicleId}', [\App\Http\Controllers\MaintenanceController::class, 'create'])->name('schedule');
 });

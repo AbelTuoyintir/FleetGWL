@@ -211,9 +211,11 @@
                 <div class="stat-card rounded-xl p-4">
                     <h3 class="font-semibold text-gray-800 mb-3"><i class="fas fa-map-marker-alt mr-1 text-red-600"></i>Vehicles by Operational Region</h3>
                     <div class="space-y-2" id="vehiclesByRegionList">
-                        @forelse($vehiclesByRegion as $r)
+@forelse($vehiclesByRegion as $r)
                             @php
-                                $pct = ($totalVehicles ?? 0) > 0 ? round(($r->count / $totalVehicles) * 100, 1) : 0;
+                                $total = (int)($totalVehicles ?? 0);
+                                $count = (int)($r->count ?? 0);
+                                $pct = $total > 0 ? round(($count / $total) * 100, 1) : 0;
                             @endphp
                             <div class="flex justify-between items-center">
                                 <span class="text-gray-700 text-sm">{{ $r->region_name }}</span>

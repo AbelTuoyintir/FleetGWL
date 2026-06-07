@@ -588,15 +588,17 @@ $('#jobOrderForm').on('submit', function(e) {
     if (!maintenanceType) {
         e.preventDefault();
         Swal.fire('Error', 'Please select a maintenance type', 'error');
-        return false;
+        return;
     }
     
     if ((maintenanceType === 'specific' || maintenanceType === 'both') && $('.service-checkbox:checked').length === 0) {
         e.preventDefault();
         Swal.fire('Warning', 'Please select at least one service from the checklist', 'warning');
-        return false;
+        return;
     }
     
+    e.preventDefault();
+
     Swal.fire({
         title: 'Confirm Job Order',
         text: 'Create this maintenance job order?',
@@ -606,11 +608,10 @@ $('#jobOrderForm').on('submit', function(e) {
         confirmButtonText: 'Yes, create it!'
     }).then((result) => {
         if (result.isConfirmed) {
-            $('#jobOrderForm').off('submit').submit();
+            $('#jobOrderForm').off('submit').trigger('submit');
         }
     });
-    
-    return false;
 });
 </script>
 @endsection
+
