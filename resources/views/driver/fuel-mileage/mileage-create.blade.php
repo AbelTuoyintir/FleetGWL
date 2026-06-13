@@ -42,13 +42,13 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="form-label">Start Mileage (km)</label>
-                        <input type="number" name="start_mileage" class="form-input" 
+                        <input type="number" name="start_mileage" class="form-input " 
                                value="{{ old('start_mileage', $lastWeekLog->end_mileage ?? $vehicle->current_mileage ?? 0) }}" required>
                         <p class="text-xs text-gray-500 mt-1">Previous week's ending mileage</p>
                     </div>
                     <div>
                         <label class="form-label">End Mileage (km) *</label>
-                        <input type="number" name="end_mileage" class="form-input @error('end_mileage') border-red-500 @enderror" 
+                        <input type="number" name="end_mileage" class=" border-1 shadow-sm my-2 rounded-lg @error('end_mileage') border-red-500 @enderror" 
                                value="{{ old('end_mileage') }}" required>
                         @error('end_mileage')
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>

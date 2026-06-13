@@ -229,11 +229,6 @@
             <i class="fas fa-tachometer-alt w-5 text-center text-gray-500"></i><span>Mileage Logs</span>
         </a>
 
-        <!-- Quick Log -->
-        <a href="{{ route('driver.fuel-mileage.quick-log') }}" data-nav="quick-log" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl transition">
-            <i class="fas fa-bolt w-5 text-center text-yellow-500"></i><span>Quick Log</span>
-        </a>
-
         <!-- Reports -->
         <a href="{{ route('driver.fuel-mileage.reports') }}" data-nav="reports" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl transition">
             <i class="fas fa-chart-pie w-5 text-center text-gray-500"></i><span>Reports</span>
