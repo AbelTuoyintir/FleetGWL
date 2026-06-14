@@ -32,6 +32,7 @@ class MaintenanceController extends Controller
 public function create($vehicleId = null)
 {
     $vehicles = Vehicle::query()
+
         ->where('status', 'active')
         ->select('vehicles.*')
         ->selectSub(function ($query) {
@@ -55,7 +56,18 @@ public function create($vehicleId = null)
     $selectedVehicle = $vehicleId ? $vehicles->firstWhere('id', $vehicleId) : null;
     $drivers = \App\Models\Driver::where('status', 'active')->with('user')->get();
     
-    return view('vehicle-maintenance.create', compact('vehicles', 'drivers', 'vehicleId', 'selectedVehicle'));
+$maintenance = new Maintenance();
+
+    // Pre-fill some common fields for the create form
+    if ($selectedVehicle) {
+        $maintenance->vehicle_id = $selectedVehicle->id;
+        $maintenance->mileage_at_service = $selectedVehicle->latest_mileage ?? null;
+    }
+
+    // Default values expected by the Blade
+    $maintenance->status = $maintenance->status ?? 'scheduled';
+
+    return view('vehicle-maintenance.edit', compact('vehicles', 'drivers', 'vehicleId', 'selectedVehicle', 'maintenance'));
 }
 
     /**
@@ -111,7 +123,7 @@ public function create($vehicleId = null)
 
         Maintenance::create($validated);
 
-        return redirect()->route('vehicle-maintenance.index')
+        return redirect()->route('maintenance.index')
             ->with('success', 'Maintenance record created successfully.');
 
         }catch(\Exception $e){
@@ -122,53 +134,49 @@ public function create($vehicleId = null)
     /**
      * Display the specified resource.
      */
+ 
+
     public function show($id)
     {
-        $maintenance = Maintenance::with(['vehicle', 'driver'])->findOrFail($id);
-
-        return view('admin.vehicles.maintenance-details', compact('maintenance'));
+        try {
+            $maintenance = Maintenance::with(['vehicle', 'driver.user'])->findOrFail($id);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $maintenance
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Record not found'], 404);
+        }
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-public function edit(Maintenance $maintenance)
-{
-    $vehicles = Vehicle::all();
-    $drivers = \App\Models\Driver::where('status', '!=', 'deleted')->with('user')->get();
-    return view('vehicle-maintenance.edit', compact('maintenance', 'vehicles', 'drivers'));
-}
+       // Add to your MaintenanceController
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Maintenance $maintenance)
+    public function statistics(Request $request)
     {
-        $validated = $request->validate([
-            'vehicle_id' => 'required|exists:vehicles,id',
-            'driver_id' => 'nullable|exists:drivers,id',
-            'maintenance_type' => 'required|string|max:255',
-            'checklist' => 'nullable|array',
-            'other_maintenance_type' => 'nullable|string|max:255',
-            'maintenance_date' => 'required|date',
-            'mileage_at_service' => 'nullable|integer|min:0',
-            'description' => 'nullable|string',
-            'cost' => 'required|numeric|min:0',
-            'service_provider' => 'nullable|string|max:255',
-            'next_service_due' => 'nullable|date',
-            'next_expected_mileage' => 'nullable|integer|min:0',
-            'status' => 'required|in:scheduled,completed,cancelled,waiting,dispatched',
-        ]);
-
-        // Sync the 'date' column with 'maintenance_date'
-        $validated['date'] = $validated['maintenance_date'];
-        $validated['modified_by'] = auth()->id();
-
-        $maintenance->update($validated);
-
-        return redirect()->route('vehicle-maintenance.index')
-            ->with('success', 'Maintenance record updated successfully.');
+        try {
+            $query = Maintenance::where('status', '!=', 'deleted');
+            
+            if ($request->filled('vehicle_id')) {
+                $query->where('vehicle_id', $request->vehicle_id);
+            }
+            
+            $pending = (clone $query)->where('status', 'waiting')->count();
+            $inProgress = (clone $query)->where('status', 'in_progress')->count();
+            $completed = (clone $query)->where('status', 'completed')->count();
+            
+            return response()->json([
+                'success' => true,
+                'pending' => $pending,
+                'in_progress' => $inProgress,
+                'completed' => $completed
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
+
+       
 
     /**
      * Remove the specified resource from storage.
@@ -180,7 +188,7 @@ public function edit(Maintenance $maintenance)
             'deleted_by' => auth()->id()
         ]);
 
-        return redirect()->route('vehicle-maintenance.index')
+        return redirect()->route('maintenance.index')
             ->with('success', 'Maintenance record deleted successfully.');
     }
 

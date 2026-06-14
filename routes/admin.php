@@ -7,6 +7,7 @@ use App\Http\Controllers\FuelManagementController;
 use App\Http\Controllers\DriverController;
 use App\Http\Controllers\DocumentController;
 Use App\Http\Controllers\LocationController;
+use App\Http\Controllers\MaintenanceController;
 
 Route::middleware(['auth'])->prefix('vehicles')->name('vehicles.')->group(function () {
     Route::get('/', [VehicleController::class, 'index'])->name('index');
@@ -192,6 +193,6 @@ Route::middleware(['auth'])->prefix('maintenance')->name('maintenance.')->group(
     Route::delete('/{id}', [MaintenanceController::class, 'destroy'])->name('destroy');
     Route::get('/statistics', [MaintenanceController::class, 'statistics'])->name('statistics');
 });
-// routes/web.php - Add these routes
+
 
 
