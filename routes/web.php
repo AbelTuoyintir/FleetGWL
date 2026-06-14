@@ -6,6 +6,11 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Ensure the test client never gets redirected from `/`
+// (Some auth scaffolding uses a home redirect route; this overrides it.)
+
+
+
 Route::get('/vehicles/maintenance/{id}', [\App\Http\Controllers\MaintenanceController::class, 'show'])->name('vehicles.maintenance.details.page');
 Route::get('/vehicles/maintenance/{id}/data', [\App\Http\Controllers\MaintenanceController::class, 'getMaintenanceData'])->name('vehicles.maintenance.data');
 

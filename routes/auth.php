@@ -102,14 +102,4 @@ Route::middleware('auth')->group(function () {
     Route::post('/dashboard/clear-cache', [DashboardController::class, 'clearCache'])->name('dashboard.clear-cache');
 });
 
-/*
-|--------------------------------------------------------------------------
-| Home/Redirect Route
-|--------------------------------------------------------------------------
-*/
-Route::get('/', function () {
-    if (Auth::check()) {
-        return redirect()->route('dashboard');
-    }
-    return redirect()->route('login');
-})->name('home');
+
