@@ -435,7 +435,7 @@ class AuthenticationController extends Controller
                 ->where('user_identifier', $user->email)
                 ->where('event_type', 'successful_login')
                 ->where('created_at', '>=', now()->subDays(30))
-                ->selectRaw("strftime('%H', created_at) as hour, COUNT(*) as count")
+                ->selectRaw('HOUR(created_at) as hour, COUNT(*) as count')
                 ->groupBy('hour')
                 ->orderBy('count', 'desc')
                 ->limit(3)
