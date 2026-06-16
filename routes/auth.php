@@ -20,7 +20,7 @@ use App\Http\Controllers\DriverController;
 // Guest routes (only accessible when not logged in)
 Route::middleware('guest')->group(function () {
     // Login routes
-    Route::get('/login', [AuthenticationController::class, 'showLoginForm'])->name('login');
+    Route::get('/', [AuthenticationController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthenticationController::class, 'login'])->name('login.submit');
     
     // Password reset routes

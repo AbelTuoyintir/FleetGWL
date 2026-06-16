@@ -2,9 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Route::get('/', function () {
+//     return view('welcome');
+// });
 
 // Ensure the test client never gets redirected from `/`
 // (Some auth scaffolding uses a home redirect route; this overrides it.)
