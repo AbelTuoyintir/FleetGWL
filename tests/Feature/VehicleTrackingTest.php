@@ -11,11 +11,6 @@ class VehicleTrackingTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->withoutVite();
-    }
 
     public function test_tracking_data_api_returns_json()
     {
