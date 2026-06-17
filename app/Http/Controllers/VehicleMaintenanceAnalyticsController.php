@@ -55,20 +55,23 @@ class VehicleMaintenanceAnalyticsController extends Controller
 
     private function getKpis($dateRange)
     {
-        $baseQuery = Maintenance::where('status', '!=', 'deleted')
-            ->whereBetween('maintenance_date', [$dateRange['start'], $dateRange['end']]);
-
-        $totalServices = (clone $baseQuery)->count();
-        $totalCost = (clone $baseQuery)->sum('cost');
-
-        $completedServices = (clone $baseQuery)->where('status', 'completed')->count();
-        $scheduledServices = (clone $baseQuery)->whereIn('status', ['scheduled', 'in_progress'])->count();
+        // Optimization: Use conditional aggregation to fetch all KPIs in a single query
+        // This reduces 4 separate queries into 1.
+        $stats = Maintenance::where('status', '!=', 'deleted')
+            ->whereBetween('maintenance_date', [$dateRange['start'], $dateRange['end']])
+            ->selectRaw('
+                COUNT(*) as total_services,
+                SUM(cost) as total_cost,
+                COUNT(CASE WHEN status = "completed" THEN 1 END) as completed_count,
+                COUNT(CASE WHEN status IN ("scheduled", "in_progress") THEN 1 END) as scheduled_count
+            ')
+            ->first();
 
         return [
-            'total_services'    => $totalServices,
-            'total_cost'        => $totalCost,
-            'completed_count'   => $completedServices,
-            'scheduled_count'   => $scheduledServices,
+            'total_services'    => (int) ($stats->total_services ?? 0),
+            'total_cost'        => (float) ($stats->total_cost ?? 0),
+            'completed_count'   => (int) ($stats->completed_count ?? 0),
+            'scheduled_count'   => (int) ($stats->scheduled_count ?? 0),
         ];
     }
 
@@ -79,7 +82,8 @@ class VehicleMaintenanceAnalyticsController extends Controller
             ->selectRaw(SqlDate::month('maintenance_date') . ' as month, COUNT(*) as count, SUM(cost) as cost')
             ->groupBy('month')
             ->orderBy('month')
-            ->get();
+            ->get()
+            ->keyBy('month'); // Optimization: Key results by month for O(1) lookup in the loop
 
         $months = [];
         $counts = [];
@@ -87,7 +91,7 @@ class VehicleMaintenanceAnalyticsController extends Controller
 
         // Distribute standard 1-12 array format.
         for ($i = 1; $i <= 12; $i++) {
-            $monthData = $data->where('month', $i)->first();
+            $monthData = $data->get($i);
             $months[] = Carbon::create()->month($i)->format('M');
             $counts[] = $monthData ? $monthData->count : 0;
             $costs[] = $monthData ? $monthData->cost : 0;
