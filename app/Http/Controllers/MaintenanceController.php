@@ -1,6 +1,9 @@
 <?php
 
 namespace App\Http\Controllers;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\MaintenanceDispatchMail;
 
 use App\Models\Maintenance;
 use App\Models\Vehicle;
@@ -23,7 +26,7 @@ class MaintenanceController extends Controller
             ->latest()
             ->paginate(15);
 
-        return view('vehicle-maintenance.index', compact('maintenanceRecords'));
+        return view('maintenance.index', compact('maintenanceRecords'));
     }
 
     /**
@@ -74,6 +77,8 @@ public function create($vehicleId = null)
                 'mileage_at_service' => 'nullable|integer|min:0',
                 'status' => 'required|in:scheduled,completed,cancelled,waiting,dispatched',
         ]);
+                "priority" => "nullable|in:low,medium,high,urgent",
+                "priority" => "nullable|in:low,medium,high,urgent",
 
         if ($validated['maintenance_type'] === 'other' && !empty($validated['other_maintenance_type'])) {
             $validated['maintenance_type'] = $validated['other_maintenance_type'];
@@ -111,7 +116,7 @@ public function create($vehicleId = null)
 
         Maintenance::create($validated);
 
-        return redirect()->route('vehicle-maintenance.index')
+        return redirect()->route('maintenance.index')
             ->with('success', 'Maintenance record created successfully.');
 
         }catch(\Exception $e){
@@ -132,7 +137,7 @@ public function create($vehicleId = null)
     /**
      * Show the form for editing the specified resource.
      */
-public function edit(Maintenance $maintenance)
+public function edit($id)
 {
     $vehicles = Vehicle::all();
     $drivers = \App\Models\Driver::where('status', '!=', 'deleted')->with('user')->get();
@@ -142,8 +147,10 @@ public function edit(Maintenance $maintenance)
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Maintenance $maintenance)
+    public function update(Request $request, $id)
     {
+        $maintenance = Maintenance::findOrFail($id);
+        $oldStatus = $maintenance->status;
         $validated = $request->validate([
             'vehicle_id' => 'required|exists:vehicles,id',
             'driver_id' => 'nullable|exists:drivers,id',
@@ -157,6 +164,7 @@ public function edit(Maintenance $maintenance)
             'service_provider' => 'nullable|string|max:255',
             'next_service_due' => 'nullable|date',
             'next_expected_mileage' => 'nullable|integer|min:0',
+            "priority" => "nullable|in:low,medium,high,urgent",
             'status' => 'required|in:scheduled,completed,cancelled,waiting,dispatched',
         ]);
 
@@ -165,22 +173,25 @@ public function edit(Maintenance $maintenance)
         $validated['modified_by'] = auth()->id();
 
         $maintenance->update($validated);
+        if ($oldStatus !== "dispatched" && $maintenance->status === "dispatched") {
+            $this->dispatchMaintenance($maintenance);
+        }
 
-        return redirect()->route('vehicle-maintenance.index')
+        return redirect()->route('maintenance.index')
             ->with('success', 'Maintenance record updated successfully.');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Maintenance $maintenance)
+    public function destroy($id)
     {
         $maintenance->update([
             'status' => 'deleted',
             'deleted_by' => auth()->id()
         ]);
 
-        return redirect()->route('vehicle-maintenance.index')
+        return redirect()->route('maintenance.index')
             ->with('success', 'Maintenance record deleted successfully.');
     }
 
@@ -279,5 +290,33 @@ public function edit(Maintenance $maintenance)
                 'message' => 'Failed to acknowledge alert.'
             ], 500);
         }
+    }
+    protected function dispatchMaintenance(Maintenance $maintenance)
+    {
+        try {
+            $pdfContent = $this->generateDispatchPdf($maintenance)->output();
+            if ($maintenance->driver && $maintenance->driver->user && $maintenance->driver->user->email) {
+                Mail::to($maintenance->driver->user->email)->send(new MaintenanceDispatchMail($maintenance, $pdfContent));
+            }
+            return true;
+        } catch (\Exception $e) {
+            \Log::error('Dispatch failed for Maintenance ID ' . $maintenance->id . ': ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function downloadDispatchNote($id)
+    {
+        $maintenance = Maintenance::with(['vehicle', 'driver.user'])->findOrFail($id);
+        return $this->generateDispatchPdf($maintenance)->download('Maintenance_Dispatch_Note_' . $maintenance->vehicle->registration_number . '.pdf');
+    }
+
+    protected function generateDispatchPdf(Maintenance $maintenance)
+    {
+        $vehicle = $maintenance->vehicle;
+        $region = $vehicle->region->name ?? 'Head Office';
+        $district = $vehicle->district->name ?? 'Accra';
+        $data = ['maintenance' => $maintenance, 'region' => $region, 'district' => $district, 'po_box' => '163'];
+        return Pdf::loadView('pdf.maintenance-dispatch', $data);
     }
 }

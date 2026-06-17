@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 use App\Models\FuelLog;
+use App\Models\Maintenance;
 use App\Models\VehicleMaintenance;
 use App\Models\MileageLog;
 use App\Models\Vehicle;
@@ -226,7 +227,7 @@ class FuelMileageController extends Controller
             }
             
             // Create maintenance record
-            $maintenance = VehicleMaintenance::create([
+            $maintenance = Maintenance::create([
                 'vehicle_id' => $vehicle->id,
                 'driver_id' => $driver->id,
                 'maintenance_date' => $validated['maintenance_date'],
@@ -648,7 +649,7 @@ class FuelMileageController extends Controller
 
             // Handle Maintenance Request
             if (in_array($request->log_type, ['maintenance', 'both'])) {
-                VehicleMaintenance::create([
+                Maintenance::create([
                     'vehicle_id' => $vehicle->id,
                     'driver_id' => $driver->id,
                     'maintenance_date' => $request->date,
