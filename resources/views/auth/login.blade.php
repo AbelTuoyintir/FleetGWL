@@ -25,7 +25,9 @@
     .fade-in{animation:fadeIn .8s ease forwards;}
     @keyframes fadeIn{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
   </style>
-   @vite('resources/css/app.css')
+  @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
+    @vite('resources/css/app.css')
+  @endif
 </head>
 <body class="gradient-bg min-h-screen flex items-center justify-center p-4 text-white fade-in">
 
