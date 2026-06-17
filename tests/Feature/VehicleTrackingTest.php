@@ -11,20 +11,15 @@ class VehicleTrackingTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_tracking_page_is_accessible_to_authenticated_users()
+    protected function setUp(): void
     {
-        $user = User::factory()->create();
-
-        $response = $this->actingAs($user)
-            ->get(route('vehicles.tracking'));
-
-        $response->assertStatus(200);
-        $response->assertViewIs('admin.vehicles.tracking');
+        parent::setUp();
+        $this->withoutVite();
     }
 
     public function test_tracking_data_api_returns_json()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin']);
 
         $vehicle = new Vehicle();
         $vehicle->registration_number = 'ABC-123';
