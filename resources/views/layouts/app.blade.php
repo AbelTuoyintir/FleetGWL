@@ -138,6 +138,7 @@
             </button>
             <div id="vehicles-submenu" class="hidden pl-5 space-y-1">
                 <a href="#" data-nav="all-vehicles" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-list-ul text-sm"></i><span>All Fleet Units</span></a>
+                <a href="#" data-nav="live-tracking" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-map-marked-alt text-sm"></i><span>Live Tracking</span></a>
                 <a href="#" data-nav="add-vehicle" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-plus-circle text-sm"></i><span>Register New Vehicle</span></a>
                 <a href="#" data-nav="vehicle-status" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-chart-simple text-sm"></i><span>Status Overview</span></a>
             </div>
@@ -302,6 +303,7 @@
         const navRouteMap = {
             'dashboard': '/dashboard',
             'all-vehicles': '/vehicles?tab=all-vehicles',
+            'live-tracking': '/vehicles/tracking',
             'add-vehicle': '/vehicles?tab=add-vehicle',
             'vehicle-status': '/vehicles?tab=status-overview',
             'locations': '/locations',

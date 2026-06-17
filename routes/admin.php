@@ -8,6 +8,7 @@ use App\Http\Controllers\DriverController;
 use App\Http\Controllers\DocumentController;
 Use App\Http\Controllers\LocationController;
 use App\Http\Controllers\MaintenanceController;
+use App\Http\Controllers\VehicleTrackingController;
 
 Route::middleware(['auth'])->prefix('vehicles')->name('vehicles.')->group(function () {
     Route::get('/', [VehicleController::class, 'index'])->name('index');
@@ -52,6 +53,10 @@ Route::middleware(['auth'])->prefix('vehicles')->name('vehicles.')->group(functi
     Route::put('/{vehicle}/job-orders/{maintenance}/status', [VehicleController::class, 'updateJobOrderStatus'])->name('maintenance.job-order.status');
     Route::get('/vehicles/maintenance/{id}/data', [VehicleController::class, 'getMaintenanceData'])->name('vehicles.maintenance.data');
     Route::get('/vehicles/maintenance/{id}/details', [VehicleController::class, 'maintenanceDetailsPage'])->name('vehicles.maintenance.details.page');
+
+    // Vehicle Tracking
+    Route::get('/tracking', [VehicleTrackingController::class, 'index'])->name('tracking');
+    Route::get('/tracking/data', [VehicleTrackingController::class, 'getVehiclesLocations'])->name('tracking.data');
 
     // Mileage Log Routes
     Route::get('/{id}/mileage-log', [VehicleController::class, 'getMileageLog'])->name('mileage.log');
