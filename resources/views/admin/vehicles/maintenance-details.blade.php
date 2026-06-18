@@ -85,11 +85,6 @@
             </button>
             <button onclick="exportToPDF()" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition flex items-center gap-2">
                 <i class="fas fa-download"></i> Export PDF
-            @if($maintenance->status === "dispatched")
-            <a href="{{ route("maintenance.dispatch.download", $maintenance->id) }}" class="px-4 py-2 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700 transition flex items-center gap-2">
-                <i class="fas fa-file-pdf"></i> Dispatch Note
-            </a>
-            @endif
             </button>
             <a href="{{ url()->previous() }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition flex items-center gap-2">
                 <i class="fas fa-arrow-left"></i> Back

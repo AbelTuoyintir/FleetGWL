@@ -17,14 +17,7 @@ jobs:
         php-version: '8.4'
     - uses: actions/checkout@v4
     - name: Copy .env
-      run: |
-        if [ ! -f .env ]; then
-            if [ -f .env.example ]; then
-                cp .env.example .env
-            else
-                echo "APP_KEY=" > .env
-            fi
-        fi
+      run: php -r "file_exists('.env') || copy('.env.example', '.env');"
     - name: Install Dependencies
       run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
     - name: Generate key
@@ -35,10 +28,6 @@ jobs:
       run: |
         mkdir -p database
         touch database/database.sqlite
-    - name: Install NPM dependencies
-      run: npm install
-    - name: Build assets
-      run: npm run build
     - name: Execute tests (Unit and Feature tests) via PHPUnit/Pest
       env:
         DB_CONNECTION: sqlite
