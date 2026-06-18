@@ -134,8 +134,8 @@
                 <p class="text-gray-500 text-sm mt-1">Manage all vehicle maintenance requests and service records</p>
             </div>
             <div class="flex gap-3">
-                <a href="{{ route('vehicle-maintenance.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition flex items-center gap-2">
-                    <i class="fas fa-plus"></i> Add Maintenance
+                <a href="{{ route('maintenance.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition">
+                        <i class="fas fa-plus"></i> Add Maintenance
                 </a>
                 <button onclick="window.print()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition">
                     <i class="fas fa-print"></i> Print
@@ -310,7 +310,7 @@
                             <td colspan="10" class="px-6 py-12 text-center text-gray-500">
                                 <i class="fas fa-tools text-gray-300 text-5xl mb-3 block"></i>
                                 <p>No maintenance records found</p>
-                                <a href="{{ route('vehicle-maintenance.create') }}" class="inline-block mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+                                <a href="{{ route('maintenance.create') }}" class="inline-block mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
                                     <i class="fas fa-plus mr-1"></i> Add First Maintenance Record
                                 </a>
                             </td>
@@ -415,7 +415,7 @@ $(document).ready(function() {
         $('#filterVehicle, #filterStatus, #filterPriority').val('');
         $('#filterDateFrom, #filterDateTo').val('');
         currentFilters = {};
-        window.location.href = '{{ route("vehicle-maintenance.index") }}';
+        window.location.href = '{{ route("maintenance.index") }}';
     });
     
     $('#refreshBtn').click(function() {
@@ -439,7 +439,7 @@ $(document).ready(function() {
 
 function loadStatistics() {
     $.ajax({
-        url: '{{ route("vehicle-maintenance.statistics") }}',
+        url: '{{ route("maintenance.statistics") }}',
         method: 'GET',
         success: function(response) {
             if (response.success) {
@@ -459,7 +459,7 @@ function applyFiltersAndReload() {
     if ($('#filterDateFrom').val()) params.append('date_from', $('#filterDateFrom').val());
     if ($('#filterDateTo').val()) params.append('date_to', $('#filterDateTo').val());
     
-    window.location.href = '{{ route("vehicle-maintenance.index") }}?' + params.toString();
+    window.location.href = '{{ route("maintenance.index") }}?' + params.toString();
 }
 
 function viewMaintenance(id) {

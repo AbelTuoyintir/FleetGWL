@@ -25,7 +25,9 @@
     .fade-in{animation:fadeIn .8s ease forwards;}
     @keyframes fadeIn{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
   </style>
-   @vite('resources/css/app.css')
+  @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
+    @vite('resources/css/app.css')
+  @endif
 </head>
 <body class="gradient-bg min-h-screen flex items-center justify-center p-4 text-white fade-in">
 
@@ -61,7 +63,7 @@
       <div class="relative">
         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white/60"><i class="fas fa-lock"></i></span>
         <input type="password" id="password" name="password" required class="w-full pl-10 pr-10 py-2 bg-white/10 border border-white/20 rounded-lg placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-white"/>
-        <button type="button" onclick="togglePassword()" class="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white">
+        <button type="button" onclick="togglePassword()" id="togglePasswordBtn" aria-label="Show password" class="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-300 rounded">
           <i id="eyeIcon" class="fas fa-eye"></i>
         </button>
       </div>
@@ -98,42 +100,43 @@
   function togglePassword() {
     const pwd = document.getElementById('password');
     const eye = document.getElementById('eyeIcon');
+    const btn = document.getElementById('togglePasswordBtn');
+
     if (pwd.type === 'password') {
       pwd.type = 'text';
       eye.classList.remove('fa-eye');
       eye.classList.add('fa-eye-slash');
+      btn.setAttribute('aria-label', 'Hide password');
     } else {
       pwd.type = 'password';
       eye.classList.remove('fa-eye-slash');
       eye.classList.add('fa-eye');
+      btn.setAttribute('aria-label', 'Show password');
     }
   }
 
-  /* ---------- Handle Login ---------- */
-  function handleLogin(e) {
-    e.preventDefault();
+  /* ---------- Handle Login Submission ---------- */
+  document.getElementById('loginForm').addEventListener('submit', function(e) {
     const btn = document.getElementById('submitBtn');
     const btnText = document.getElementById('btnText');
     const loader = document.getElementById('loader');
 
-    // Show loader
+    // Show loading state
     btnText.classList.add('hidden');
     loader.classList.remove('hidden');
     btn.disabled = true;
+    btn.classList.add('opacity-80', 'cursor-not-allowed');
 
-    // Simulate auth
-    setTimeout(() => {
-      // Save remember preference
-      if (document.getElementById('remember').checked) {
-        localStorage.setItem('gwcl_remember', document.getElementById('email').value);
-      } else {
-        localStorage.removeItem('gwcl_remember');
-      }
+    // Save remember preference
+    const email = document.getElementById('email').value;
+    if (document.getElementById('remember').checked) {
+      localStorage.setItem('gwcl_remember', email);
+    } else {
+      localStorage.removeItem('gwcl_remember');
+    }
 
-      // Redirect (replace with your dashboard URL)
-      window.location.href = 'vehicle-manage.html'; // ← change to your route
-    }, 1500);
-  }
+    // The form will now proceed with its default POST submission
+  });
 
   /* ---------- Auto-fill remembered email ---------- */
   window.addEventListener('DOMContentLoaded', () => {

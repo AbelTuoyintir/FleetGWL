@@ -218,7 +218,7 @@
                                 $pct = $total > 0 ? round(($count / $total) * 100, 1) : 0;
                             @endphp
                             <div class="flex justify-between items-center">
-                                <span class="text-gray-700 text-sm">{{ $r->region_name }}</span>
+                                <span class="text-gray-700 text-sm">{{ is_string($r->region_name ?? null) ? $r->region_name : (data_get($r, 'region.name') ?? '-') }}</span>
                                 <div class="flex items-center gap-2">
                                     <div class="w-32 h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600 rounded-full" style="width: {{ $pct }}%"></div></div>
                                     <span class="text-xs font-semibold">{{ $r->count }}</span>

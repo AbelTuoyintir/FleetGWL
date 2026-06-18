@@ -19,7 +19,7 @@ class MileageLogController extends Controller
     public function index()
     {
         $vehicles = Vehicle::where('status', 'active')->orderBy('registration_number')->get();
-        $drivers = Driver::where('status', 'active')->orderBy('name')->get();
+        $drivers = Driver::where('status', 'active')->orderBy('id', 'desc')->get();
         
         return view('admin.mileageLogs.index', compact('vehicles', 'drivers'));
     }

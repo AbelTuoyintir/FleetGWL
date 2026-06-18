@@ -20,7 +20,7 @@ use App\Http\Controllers\DriverController;
 // Guest routes (only accessible when not logged in)
 Route::middleware('guest')->group(function () {
     // Login routes
-    Route::get('/login', [AuthenticationController::class, 'showLoginForm'])->name('login');
+    Route::get('/', [AuthenticationController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthenticationController::class, 'login'])->name('login.submit');
     
     // Password reset routes
@@ -102,14 +102,4 @@ Route::middleware('auth')->group(function () {
     Route::post('/dashboard/clear-cache', [DashboardController::class, 'clearCache'])->name('dashboard.clear-cache');
 });
 
-/*
-|--------------------------------------------------------------------------
-| Home/Redirect Route
-|--------------------------------------------------------------------------
-*/
-Route::get('/', function () {
-    if (Auth::check()) {
-        return redirect()->route('dashboard');
-    }
-    return redirect()->route('login');
-})->name('home');
+
