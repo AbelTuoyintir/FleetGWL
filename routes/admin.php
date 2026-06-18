@@ -11,6 +11,11 @@ use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\VehicleTrackingController;
 
 Route::middleware(['auth'])->prefix('vehicles')->name('vehicles.')->group(function () {
+    // Vehicle Tracking (Moved up to avoid collision with /{id})
+    Route::get('/tracking', [VehicleTrackingController::class, 'index'])->name('tracking');
+    Route::get('/tracking/data', [VehicleTrackingController::class, 'getVehiclesLocations'])->name('tracking.data');
+    Route::get('/tracking/{id}/history', [VehicleTrackingController::class, 'getVehicleHistory'])->name('tracking.history');
+
     Route::get('/', [VehicleController::class, 'index'])->name('index');
     Route::post('/', [VehicleController::class, 'store'])->name('store');
     Route::get('/data', [VehicleController::class, 'getVehiclesData'])->name('data');
@@ -54,9 +59,6 @@ Route::middleware(['auth'])->prefix('vehicles')->name('vehicles.')->group(functi
     Route::get('/vehicles/maintenance/{id}/data', [VehicleController::class, 'getMaintenanceData'])->name('vehicles.maintenance.data');
     Route::get('/vehicles/maintenance/{id}/details', [VehicleController::class, 'maintenanceDetailsPage'])->name('vehicles.maintenance.details.page');
 
-    // Vehicle Tracking
-    Route::get('/tracking', [VehicleTrackingController::class, 'index'])->name('tracking');
-    Route::get('/tracking/data', [VehicleTrackingController::class, 'getVehiclesLocations'])->name('tracking.data');
 
     // Mileage Log Routes
     Route::get('/{id}/mileage-log', [VehicleController::class, 'getMileageLog'])->name('mileage.log');
