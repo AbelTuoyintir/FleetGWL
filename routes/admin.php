@@ -7,7 +7,7 @@ use App\Http\Controllers\FuelManagementController;
 use App\Http\Controllers\DriverController;
 use App\Http\Controllers\DocumentController;
 Use App\Http\Controllers\LocationController;
-use App\Http\Controllers\MaintenanceController;
+use App\Http\Controllers\MaintenanceController as AdminMaintenanceController;
 use App\Http\Controllers\VehicleTrackingController;
 
 Route::middleware(['auth'])->prefix('vehicles')->name('vehicles.')->group(function () {
@@ -185,7 +185,7 @@ Route::middleware(['auth'])->prefix('reports')->name('reports.')->group(function
 
 // Maintenance Alert Routes
 Route::middleware(['auth'])->prefix('maintenance')->name('maintenance.')->group(function () {
-    Route::get('/vehicles-needing', [\App\Http\Controllers\MaintenanceController::class, 'vehiclesNeedingPage'])->name('vehicles-needing');
+    Route::get('/vehicles-needing', [AdminMaintenanceController::class, 'vehiclesNeedingPage'])->name('vehicles-needing');
     Route::get('/vehicles-needing/data', [\App\Http\Controllers\MaintenanceController::class, 'getVehiclesNeedingMaintenance'])->name('vehicles-needing.data');
     Route::post('/vehicle/{id}/acknowledge', [\App\Http\Controllers\MaintenanceController::class, 'acknowledgeAlert'])->name('acknowledge');
     Route::get('/schedule/{vehicleId}', [\App\Http\Controllers\MaintenanceController::class, 'create'])->name('schedule');
