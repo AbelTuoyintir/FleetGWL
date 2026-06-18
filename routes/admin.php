@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\Admin\MileageLogController;
 use App\Http\Controllers\FuelManagementController;
@@ -189,14 +190,15 @@ Route::middleware(['auth'])->prefix('maintenance')->name('maintenance.')->group(
     Route::get('/vehicles-needing/data', [\App\Http\Controllers\MaintenanceController::class, 'getVehiclesNeedingMaintenance'])->name('vehicles-needing.data');
     Route::post('/vehicle/{id}/acknowledge', [\App\Http\Controllers\MaintenanceController::class, 'acknowledgeAlert'])->name('acknowledge');
     Route::get('/schedule/{vehicleId}', [\App\Http\Controllers\MaintenanceController::class, 'create'])->name('schedule');
-    Route::get('/', [MaintenanceController::class, 'index'])->name('index');
-    Route::get('/create', [MaintenanceController::class, 'create'])->name('create');
-    Route::post('/store', [MaintenanceController::class, 'store'])->name('store');
-    Route::get('/{id}', [MaintenanceController::class, 'show'])->name('show');
-    Route::get('/{id}/edit', [MaintenanceController::class, 'edit'])->name('edit');
-    Route::put('/{id}', [MaintenanceController::class, 'update'])->name('update');
-    Route::delete('/{id}', [MaintenanceController::class, 'destroy'])->name('destroy');
-    Route::get('/statistics', [MaintenanceController::class, 'statistics'])->name('statistics');
+    Route::get('/', [\App\Http\Controllers\MaintenanceController::class, 'index'])->name('index');
+    Route::get('/create', [\App\Http\Controllers\MaintenanceController::class, 'create'])->name('create');
+    Route::post('/store', [\App\Http\Controllers\MaintenanceController::class, 'store'])->name('store');
+    Route::get('/{id}', [\App\Http\Controllers\MaintenanceController::class, 'show'])->name('show');
+    Route::get('/{id}/edit', [\App\Http\Controllers\MaintenanceController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [\App\Http\Controllers\MaintenanceController::class, 'update'])->name('update');
+    Route::delete('/{id}', [\App\Http\Controllers\MaintenanceController::class, 'destroy'])->name('destroy');
+    Route::get("/{id}/download-dispatch", [\App\Http\Controllers\MaintenanceController::class, "downloadDispatchNote"])->name("maintenance.dispatch.download");
+    Route::get('/statistics', [\App\Http\Controllers\MaintenanceController::class, 'statistics'])->name('statistics');
 });
 
 

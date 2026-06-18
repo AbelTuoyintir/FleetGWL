@@ -55,15 +55,16 @@ class VehicleMaintenanceAnalyticsController extends Controller
 
     private function getKpis($dateRange)
     {
-        // Consolidate multiple aggregate queries into a single query using conditional aggregation
+        // Optimization: Use conditional aggregation to fetch all KPIs in a single query
+        // This reduces 4 separate queries into 1.
         $stats = Maintenance::where('status', '!=', 'deleted')
             ->whereBetween('maintenance_date', [$dateRange['start'], $dateRange['end']])
-            ->selectRaw("
+            ->selectRaw('
                 COUNT(*) as total_services,
-                SUM(COALESCE(cost, 0)) as total_cost,
-                SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_count,
-                SUM(CASE WHEN status IN ('scheduled', 'in_progress') THEN 1 ELSE 0 END) as scheduled_count
-            ")
+                SUM(cost) as total_cost,
+                COUNT(CASE WHEN status = "completed" THEN 1 END) as completed_count,
+                COUNT(CASE WHEN status IN ("scheduled", "in_progress") THEN 1 END) as scheduled_count
+            ')
             ->first();
 
         return [
@@ -82,7 +83,7 @@ class VehicleMaintenanceAnalyticsController extends Controller
             ->groupBy('month')
             ->orderBy('month')
             ->get()
-            ->keyBy('month'); // Use keyBy for O(1) lookup inside the loop
+            ->keyBy('month'); // Optimization: Key results by month for O(1) lookup in the loop
 
         $months = [];
         $counts = [];
