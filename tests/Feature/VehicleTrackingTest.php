@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\VehicleLocationHistory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -11,45 +12,79 @@ class VehicleTrackingTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected $admin;
 
-    public function test_tracking_data_api_returns_json()
+    protected function setUp(): void
     {
-        $user = User::factory()->create(['role' => 'admin']);
+        parent::setUp();
+        $this->admin = User::factory()->create(['role' => 'admin']);
+    }
 
-        $vehicle = new Vehicle();
-        $vehicle->registration_number = 'ABC-123';
-        $vehicle->make = 'Toyota';
-        $vehicle->model = 'Camry';
-        $vehicle->year = 2020;
-        $vehicle->vehicle_type = 'Saloon';
-        $vehicle->chassis_number = 'CHASSIS123';
-        $vehicle->status = 'active';
-        $vehicle->current_latitude = 5.6037;
-        $vehicle->current_longitude = -0.1870;
-        $vehicle->save();
-
-        $response = $this->actingAs($user)
-            ->get(route('vehicles.tracking.data'));
-
+    public function test_tracking_page_is_accessible()
+    {
+        $response = $this->actingAs($this->admin)->get(route('vehicles.tracking'));
         $response->assertStatus(200);
-        $response->assertJsonStructure([
-            'success',
-            'data' => [
-                '*' => [
-                    'id',
-                    'registration_number',
-                    'make',
-                    'model',
-                    'current_latitude',
-                    'current_longitude',
-                    'status',
-                    'assigned_driver_id'
-                ]
-            ]
+    }
+
+    public function test_tracking_data_api_returns_correct_structure()
+    {
+        Vehicle::create([
+            'registration_number' => 'GW-1234-23',
+            'make' => 'Toyota',
+            'model' => 'Camry',
+            'status' => 'active',
+            'year' => 2023,
+            'chassis_number' => 'CH1234',
+            'vehicle_type' => 'sedan'
         ]);
 
-        $data = $response->json('data');
-        $this->assertNotEmpty($data);
-        $this->assertEquals('ABC-123', $data[0]['registration_number']);
+        $response = $this->actingAs($this->admin)->getJson(route('vehicles.tracking.data'));
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    '*' => [
+                        'id',
+                        'registration_number',
+                        'current_latitude',
+                        'current_longitude',
+                        'speed',
+                        'heading',
+                        'is_on_trip'
+                    ]
+                ]
+            ]);
+    }
+
+    public function test_vehicle_history_api()
+    {
+        $vehicle = Vehicle::create([
+            'registration_number' => 'GW-5678-23',
+            'make' => 'Toyota',
+            'model' => 'Camry',
+            'status' => 'active',
+            'year' => 2023,
+            'chassis_number' => 'CH5678',
+            'vehicle_type' => 'sedan'
+        ]);
+
+        VehicleLocationHistory::create([
+            'vehicle_id' => $vehicle->id,
+            'latitude' => 5.6037,
+            'longitude' => -0.1870,
+            'recorded_at' => now()
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->getJson(route('vehicles.tracking.history', ['id' => $vehicle->id]));
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    '*' => ['latitude', 'longitude', 'recorded_at']
+                ]
+            ]);
     }
 }

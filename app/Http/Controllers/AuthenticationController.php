@@ -431,11 +431,15 @@ class AuthenticationController extends Controller
         $cacheKey = "typical_hours_{$user->id}";
         
         return Cache::remember($cacheKey, 86400, function() use ($user) {
+            $hourFunction = config('database.default') === 'sqlite'
+                ? "strftime('%H', created_at)"
+                : "HOUR(created_at)";
+
             $hours = \DB::table('security_events')
                 ->where('user_identifier', $user->email)
                 ->where('event_type', 'successful_login')
                 ->where('created_at', '>=', now()->subDays(30))
-                ->selectRaw('HOUR(created_at) as hour, COUNT(*) as count')
+                ->selectRaw("$hourFunction as hour, COUNT(*) as count")
                 ->groupBy('hour')
                 ->orderBy('count', 'desc')
                 ->limit(3)

@@ -17,10 +17,10 @@ class AdminUserSeeder extends Seeder
     public function run(): void
     {
         User::updateOrCreate(
-            ['email' => 'admin@fleetgwl.com'],
+            ['email' => 'admin@gwc.com'],
             [
                 'name' => 'System Administrator',
-                'email' => 'admin@fleetgwl.com',
+                'email' => 'admin@gwc.com',
                 'phone' => '0240000000',
                 'role' => 'admin',
                 'photo' => null,
