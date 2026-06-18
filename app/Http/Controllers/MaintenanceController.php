@@ -1,9 +1,6 @@
 <?php
 
 namespace App\Http\Controllers;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\MaintenanceDispatchMail;
 
 use App\Models\Maintenance;
 use App\Models\Vehicle;
@@ -26,7 +23,7 @@ class MaintenanceController extends Controller
             ->latest()
             ->paginate(15);
 
-        return view('maintenance.index', compact('maintenanceRecords'));
+        return view('vehicle-maintenance.index', compact('maintenanceRecords'));
     }
 
     /**
@@ -89,8 +86,6 @@ $maintenance = new Maintenance();
                 'mileage_at_service' => 'nullable|integer|min:0',
                 'status' => 'required|in:scheduled,completed,cancelled,waiting,dispatched',
         ]);
-                "priority" => "nullable|in:low,medium,high,urgent",
-                "priority" => "nullable|in:low,medium,high,urgent",
 
         if ($validated['maintenance_type'] === 'other' && !empty($validated['other_maintenance_type'])) {
             $validated['maintenance_type'] = $validated['other_maintenance_type'];
@@ -186,7 +181,7 @@ $maintenance = new Maintenance();
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy($id)
+    public function destroy(Maintenance $maintenance)
     {
         $maintenance->update([
             'status' => 'deleted',
@@ -292,33 +287,5 @@ $maintenance = new Maintenance();
                 'message' => 'Failed to acknowledge alert.'
             ], 500);
         }
-    }
-    protected function dispatchMaintenance(Maintenance $maintenance)
-    {
-        try {
-            $pdfContent = $this->generateDispatchPdf($maintenance)->output();
-            if ($maintenance->driver && $maintenance->driver->user && $maintenance->driver->user->email) {
-                Mail::to($maintenance->driver->user->email)->send(new MaintenanceDispatchMail($maintenance, $pdfContent));
-            }
-            return true;
-        } catch (\Exception $e) {
-            \Log::error('Dispatch failed for Maintenance ID ' . $maintenance->id . ': ' . $e->getMessage());
-            return false;
-        }
-    }
-
-    public function downloadDispatchNote($id)
-    {
-        $maintenance = Maintenance::with(['vehicle', 'driver.user'])->findOrFail($id);
-        return $this->generateDispatchPdf($maintenance)->download('Maintenance_Dispatch_Note_' . $maintenance->vehicle->registration_number . '.pdf');
-    }
-
-    protected function generateDispatchPdf(Maintenance $maintenance)
-    {
-        $vehicle = $maintenance->vehicle;
-        $region = $vehicle->region->name ?? 'Head Office';
-        $district = $vehicle->district->name ?? 'Accra';
-        $data = ['maintenance' => $maintenance, 'region' => $region, 'district' => $district, 'po_box' => '163'];
-        return Pdf::loadView('pdf.maintenance-dispatch', $data);
     }
 }

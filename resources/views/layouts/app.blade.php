@@ -79,11 +79,6 @@
 
 <!-- STICKY HEADER -->
 <header class="sticky top-0 z-30 glass-card shadow-sm flex items-center justify-end px-5 py-3 border-b border-white/60">
-    <!-- Mobile Toggle -->
-    <button id="menuToggleBtn" type="button" class="lg:hidden p-2 mr-auto text-gray-600 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg" aria-label="Open sidebar navigation">
-        <i class="fas fa-bars text-xl"></i>
-    </button>
-
     <div class="relative">
         @php
             $userName = Auth::user()->name ?? 'Kwame Asare';
