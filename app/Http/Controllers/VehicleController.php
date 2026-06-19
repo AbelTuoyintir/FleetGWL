@@ -520,24 +520,40 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
                     : (Schema::hasColumn($maintenanceTable, 'maintenance_date') ? 'maintenance_date' : null))
                 : null;
 
+            $now = now();
+            $thirtyDaysFromNow = $now->copy()->addDays(30);
+
+            // Optimization: Consolidate multiple count queries into a single query using conditional aggregation
+            $baseStats = Vehicle::where('status', '!=', 'deleted')
+                ->selectRaw("
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+                    SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END) as inactive,
+                    SUM(CASE WHEN status = 'maintenance' THEN 1 ELSE 0 END) as maintenance,
+                    SUM(CASE WHEN status = 'disposed' THEN 1 ELSE 0 END) as disposed,
+                    SUM(CASE WHEN assigned_driver_id IS NULL THEN 1 ELSE 0 END) as unassigned,
+                    SUM(CASE WHEN assigned_driver_id IS NOT NULL THEN 1 ELSE 0 END) as assigned,
+                    SUM(CASE WHEN insurance_expiry_date <= ? AND insurance_expiry_date >= ? THEN 1 ELSE 0 END) as expiring_insurance,
+                    SUM(CASE WHEN insurance_expiry_date < ? THEN 1 ELSE 0 END) as expired_insurance,
+                    SUM(CASE WHEN mileage >= 100000 THEN 1 ELSE 0 END) as high_mileage
+                ", [
+                    $thirtyDaysFromNow->toDateString(),
+                    $now->toDateString(),
+                    $now->toDateString()
+                ])
+                ->first();
+
             $stats = [
-                'total' => Vehicle::where('status', '!=', 'deleted')->count(),
-                'active' => Vehicle::where('status', 'active')->count(),
-                'inactive' => Vehicle::where('status', 'inactive')->count(),
-                'maintenance' => Vehicle::where('status', 'maintenance')->count(),
-                'disposed' => Vehicle::where('status', 'disposed')->count(),
-                'unassigned' => Vehicle::whereNull('assigned_driver_id')->where('status', '!=', 'deleted')->count(),
-                'assigned' => Vehicle::whereNotNull('assigned_driver_id')->where('status', '!=', 'deleted')->count(),
-                'expiring_insurance' => Vehicle::where('insurance_expiry_date', '<=', now()->addDays(30))
-                    ->where('insurance_expiry_date', '>=', now())
-                    ->where('status', '!=', 'deleted')
-                    ->count(),
-                'expired_insurance' => Vehicle::where('insurance_expiry_date', '<', now())
-                    ->where('status', '!=', 'deleted')
-                    ->count(),
-                'high_mileage' => Vehicle::where('mileage', '>=', 100000)
-                    ->where('status', '!=', 'deleted')
-                    ->count(),
+                'total' => (int) ($baseStats->total ?? 0),
+                'active' => (int) ($baseStats->active ?? 0),
+                'inactive' => (int) ($baseStats->inactive ?? 0),
+                'maintenance' => (int) ($baseStats->maintenance ?? 0),
+                'disposed' => (int) ($baseStats->disposed ?? 0),
+                'unassigned' => (int) ($baseStats->unassigned ?? 0),
+                'assigned' => (int) ($baseStats->assigned ?? 0),
+                'expiring_insurance' => (int) ($baseStats->expiring_insurance ?? 0),
+                'expired_insurance' => (int) ($baseStats->expired_insurance ?? 0),
+                'high_mileage' => (int) ($baseStats->high_mileage ?? 0),
             ];
             
             // Vehicle type distribution
@@ -549,9 +565,9 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
             // Maintenance due this month
             $stats['maintenance_due'] = 0;
             if ($hasVehicleMaintenanceTable && $maintenanceDueColumn) {
-                $stats['maintenance_due'] = Vehicle::whereHas('maintenances', function($q) use ($maintenanceDueColumn) {
+                $stats['maintenance_due'] = Vehicle::whereHas('maintenances', function($q) use ($maintenanceDueColumn, $thirtyDaysFromNow) {
                     $q->whereIn('status', ['pending', 'scheduled', 'waiting', 'dispatched'])
-                    ->where($maintenanceDueColumn, '<=', now()->addDays(30));
+                    ->where($maintenanceDueColumn, '<=', $thirtyDaysFromNow);
                 })->count();
             }
             
