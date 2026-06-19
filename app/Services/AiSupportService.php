@@ -37,7 +37,23 @@ class AiSupportService
             return "The 'Driver Hub' is where you can manage driver information and assign them to specific vehicles.";
         }
 
-        return "I'm your 24/7 AI support agent for the GWL Fleet Management system. How can I assist you with your fleet, fuel, or maintenance needs today?";
+        if (str_contains($lowerMsg, 'location') || str_contains($lowerMsg, 'region') || str_contains($lowerMsg, 'station')) {
+            return "Manage operational areas under 'Location Management'. You can define Regions, Districts, and Stations for better fleet organization.";
+        }
+
+        if (str_contains($lowerMsg, 'report') || str_contains($lowerMsg, 'analytics') || str_contains($lowerMsg, 'stat')) {
+            return "You can access detailed 'Fleet Reports' including Utilization, Cost Analysis, and Fuel Efficiency from the sidebar menu.";
+        }
+
+        if (str_contains($lowerMsg, 'mileage') || str_contains($lowerMsg, 'odometer') || str_contains($lowerMsg, 'distance')) {
+            return "Track vehicle mileage and view odometer logs in the 'Mileage Management' section. This helps monitor usage and plan servicing.";
+        }
+
+        if (str_contains($lowerMsg, 'document') || str_contains($lowerMsg, 'insurance') || str_contains($lowerMsg, 'license')) {
+            return "Manage vehicle insurance, registration, and other critical documents in the 'Insurance & Docs' section to ensure compliance.";
+        }
+
+        return "I'm your 24/7 AI support agent for the GWL Fleet Management system. I can help you with vehicle tracking, fuel management, maintenance schedules, reports, and more. What would you like to know?";
     }
 
     public function processMessage(int $userId, string $messageText)

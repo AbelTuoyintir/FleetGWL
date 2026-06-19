@@ -145,7 +145,6 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({ message: message })
         })
-        .then(res => res.json())
         .then(async (res) => {
             if (!res.ok) {
                 const text = await res.text().catch(() => '');
