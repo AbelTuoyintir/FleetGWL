@@ -146,17 +146,25 @@ document.addEventListener('DOMContentLoaded', function() {
             body: JSON.stringify({ message: message })
         })
         .then(res => res.json())
+        .then(async (res) => {
+            if (!res.ok) {
+                const text = await res.text().catch(() => '');
+                throw new Error(`HTTP ${res.status}: ${text || 'Request failed'}`);
+            }
+            return res.json();
+        })
         .then(data => {
             chatMessages.removeChild(loadingDiv);
             if (data.status === 'success') {
                 appendMessage('ai', data.ai_message);
             } else {
-                appendMessage('ai', 'Sorry, I encountered an error. Please try again.');
+                appendMessage('ai', data.message || 'Sorry, I encountered an error. Please try again.');
             }
         })
-        .catch(() => {
+        .catch((err) => {
             chatMessages.removeChild(loadingDiv);
-            appendMessage('ai', 'Connection error. Please check your network.');
+            console.error('AI chat fetch failed:', err);
+            appendMessage('ai', `Request failed: ${err?.message || 'Please check your network/server.'}`);
         });
     });
 });
