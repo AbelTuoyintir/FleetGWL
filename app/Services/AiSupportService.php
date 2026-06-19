@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\SupportChat;
 use App\Models\SupportMessage;
-use Illuminate\Support\Facades\Auth;
 
 class AiSupportService
 {

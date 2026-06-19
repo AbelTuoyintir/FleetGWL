@@ -78,6 +78,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatInput = document.getElementById('chat-input');
     const chatMessages = document.getElementById('chat-messages');
 
+    const historyRoute = "{{ route('ai-support.history') }}";
+    const chatRoute = "{{ route('ai-support.chat') }}";
+
     // Toggle Chat
     chatToggle.addEventListener('click', () => {
         const isOpen = chatWindow.classList.contains('chat-window-open');
@@ -97,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadHistory() {
         if (chatMessages.children.length > 0) return; // Only load once
 
-        fetch('/ai-support/history')
+        fetch(historyRoute)
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {
@@ -109,6 +112,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                     }
                 }
+            })
+            .catch(err => {
+                console.error('Failed to load history:', err);
             });
     }
 
@@ -137,15 +143,22 @@ document.addEventListener('DOMContentLoaded', function() {
         chatMessages.appendChild(loadingDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
-        fetch('/ai-support/chat', {
+        fetch(chatRoute, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
             },
             body: JSON.stringify({ message: message })
         })
-        .then(res => res.json())
+        .then(async res => {
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.message || 'Server error');
+            }
+            return data;
+        })
         .then(data => {
             chatMessages.removeChild(loadingDiv);
             if (data.status === 'success') {
@@ -154,9 +167,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 appendMessage('ai', 'Sorry, I encountered an error. Please try again.');
             }
         })
-        .catch(() => {
-            chatMessages.removeChild(loadingDiv);
-            appendMessage('ai', 'Connection error. Please check your network.');
+        .catch(err => {
+            if (chatMessages.contains(loadingDiv)) {
+                chatMessages.removeChild(loadingDiv);
+            }
+            appendMessage('ai', 'Error: ' + err.message);
         });
     });
 });
