@@ -1,6 +1,6 @@
 <div id="ai-chat-widget" class="fixed bottom-6 right-6 z-50">
     <!-- Chat Toggle Button -->
-    <button id="chat-toggle" class="w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-blue-700 transition-all duration-300 focus:outline-none">
+    <button id="chat-toggle" aria-label="Open support chat" class="w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-blue-700 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2">
         <i class="fas fa-comment-dots text-2xl"></i>
     </button>
 
@@ -20,13 +20,13 @@
                     </p>
                 </div>
             </div>
-            <button id="close-chat" class="text-white/80 hover:text-white">
+            <button id="close-chat" aria-label="Close support chat" class="text-white/80 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-1 rounded-sm">
                 <i class="fas fa-times"></i>
             </button>
         </div>
 
         <!-- Messages Area -->
-        <div id="chat-messages" class="flex-1 p-4 overflow-y-auto max-h-96 space-y-4 bg-gray-50 min-h-[300px]">
+        <div id="chat-messages" aria-live="polite" class="flex-1 p-4 overflow-y-auto max-h-96 space-y-4 bg-gray-50 min-h-[300px]">
             <!-- Messages will be loaded here -->
         </div>
 
@@ -34,7 +34,7 @@
         <div class="p-4 bg-white border-t border-gray-100">
             <form id="chat-form" class="flex gap-2">
                 <input type="text" id="chat-input" placeholder="Ask me anything..." class="flex-1 bg-gray-100 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" autocomplete="off">
-                <button type="submit" class="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center hover:bg-blue-700 transition">
+                <button type="submit" aria-label="Send message" class="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center hover:bg-blue-700 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2">
                     <i class="fas fa-paper-plane text-sm"></i>
                 </button>
             </form>
@@ -43,6 +43,13 @@
 </div>
 
 <style>
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-out forwards;
+    }
     .chat-window-open {
         display: flex !important;
         transform: scale(1) !important;
@@ -145,7 +152,6 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({ message: message })
         })
-        .then(res => res.json())
         .then(async (res) => {
             if (!res.ok) {
                 const text = await res.text().catch(() => '');
