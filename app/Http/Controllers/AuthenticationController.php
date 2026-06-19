@@ -41,14 +41,11 @@ class AuthenticationController extends Controller
         // Find the user
         $user = \App\Models\User::where('email', $credentials['email'])->first();
 
-        if (!$user) {
-            throw ValidationException::withMessages([
-                'email' => 'Account is disabled or does not exist.',
-            ]);
-        }
+        // Verify user exists and password matches
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            // Log the failed attempt (always use the submitted email)
+            $this->logSecurityEvent($credentials['email'], 'failed_login', $request);
 
-        if (!Hash::check($request->password, $user->password)) {
-            $this->logSecurityEvent($user->email, 'failed_login', $request);
             throw ValidationException::withMessages([
                 'email' => 'Invalid credentials.',
             ]);
@@ -56,8 +53,11 @@ class AuthenticationController extends Controller
 
         // Check if account is active
         if (isset($user->status) && $user->status === 'inactive') {
+            // Log account-disabled event
+            $this->logSecurityEvent($user->email, 'disabled_account_login_attempt', $request);
+
             throw ValidationException::withMessages([
-                'email' => 'Your account has been deactivated. Please contact administrator.',
+                'email' => 'Invalid credentials.',
             ]);
         }
 
