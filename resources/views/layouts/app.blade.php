@@ -236,6 +236,9 @@
     </div>
 </main>
 
+<!-- AI SUPPORT CHAT BOT -->
+@include('components.ai-chat-bot')
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
