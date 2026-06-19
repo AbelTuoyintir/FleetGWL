@@ -24,7 +24,7 @@ class VehicleTrackingController extends Controller
     public function getVehiclesLocations()
     {
         $vehicles = Vehicle::where('status', '!=', 'deleted')
-            ->with(['assignedDriver:id,name,online_status'])
+            ->with(['assignedDriver.user:id,name,online_status'])
             ->select([
                 'id',
                 'registration_number',
@@ -46,15 +46,12 @@ class VehicleTrackingController extends Controller
                 $vehicle->current_longitude = -0.1870;
             }
 
-            // SIMULATED DRIFT: For the "live feel" without saving to DB on every GET
-            // This makes the icons move slightly on every refresh even if data is static
-            $vehicle->current_latitude += (mt_rand(-20, 20) / 100000);
-            $vehicle->current_longitude += (mt_rand(-20, 20) / 100000);
-
             // Dynamic properties for UI
-            $vehicle->speed = rand(0, 65);
+            $isOperational = in_array($vehicle->status, ['active', 'operational']);
+
+            $vehicle->is_on_trip = $isOperational && (bool)rand(0, 1);
+            $vehicle->speed = $vehicle->is_on_trip ? rand(15, 75) : ($isOperational ? rand(0, 5) : 0);
             $vehicle->heading = rand(0, 360);
-            $vehicle->is_on_trip = (bool)rand(0, 1);
 
             return $vehicle;
         });

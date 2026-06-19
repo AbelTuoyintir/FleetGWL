@@ -33,7 +33,11 @@
     }
 
     .uber-marker {
-        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .leaflet-marker-icon {
+        transition: transform 4.8s linear !important;
     }
 
     .marker-label {
@@ -182,12 +186,31 @@
             zoomControl: false
         }).setView([5.6037, -0.1870], 13);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        const light = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
             subdomains: 'abcd',
             maxZoom: 20
-        }).addTo(map);
+        });
 
+        const dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        });
+
+        const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EBP, and the GIS User Community'
+        });
+
+        light.addTo(map);
+
+        const baseMaps = {
+            "Light Mode": light,
+            "Dark Mode": dark,
+            "Satellite": satellite
+        };
+
+        L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
     }
 
@@ -208,8 +231,9 @@
         const status = document.getElementById('statusFilter').value;
 
         const filtered = vehiclesData.filter(v => {
+            const driverName = (v.assigned_driver && v.assigned_driver.user) ? v.assigned_driver.user.name : '';
             const matchesSearch = v.registration_number.toLowerCase().includes(query) ||
-                                (v.assigned_driver && v.assigned_driver.name.toLowerCase().includes(query));
+                                driverName.toLowerCase().includes(query);
             const matchesStatus = status === 'all' || v.status === status;
             return matchesSearch && matchesStatus;
         });
@@ -226,24 +250,48 @@
 
     function updateVehicleList(vehicles) {
         const container = document.getElementById('vehicleList');
-        container.innerHTML = vehicles.map(v => `
-            <div class="vehicle-list-item p-3 ${selectedVehicleId === v.id ? 'active' : ''}" onclick="focusVehicle(${v.id})">
-                <div class="flex justify-between items-start mb-1">
-                    <span class="font-bold text-gray-900">${v.registration_number}</span>
-                    <span class="text-[10px] font-black ${v.is_on_trip ? 'text-blue-600' : 'text-green-500'} uppercase">
+
+        const badgeClasses = {
+            blue: 'bg-blue-50 text-blue-700 border-blue-100',
+            emerald: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+            gray: 'bg-gray-50 text-gray-700 border-gray-100'
+        };
+
+        container.innerHTML = vehicles.map(v => {
+            const driverName = (v.assigned_driver && v.assigned_driver.user) ? v.assigned_driver.user.name : 'Unassigned';
+            const initials = driverName !== 'Unassigned'
+                ? driverName.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase()
+                : '?';
+            const statusColor = v.is_on_trip ? 'blue' : 'emerald';
+
+            return `
+            <div class="vehicle-list-item p-4 ${selectedVehicleId === v.id ? 'active' : ''}" onclick="focusVehicle(${v.id})">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <span class="font-bold text-gray-900 text-sm tracking-tight">${v.registration_number}</span>
+                        <p class="text-[10px] text-gray-400 uppercase font-semibold">${v.make} ${v.model}</p>
+                    </div>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${badgeClasses[statusColor] || badgeClasses.gray} border uppercase">
                         ${v.is_on_trip ? 'On Trip' : 'Available'}
                     </span>
                 </div>
-                <div class="flex justify-between items-center text-[11px] mb-1">
-                    <span class="text-gray-500">${v.make} ${v.model}</span>
-                    <span class="text-gray-900 font-bold">${v.speed} km/h</span>
-                </div>
-                <div class="flex items-center text-[10px]">
-                    <i class="fas fa-user-circle mr-1 ${v.assigned_driver && v.assigned_driver.online_status === 'online' ? 'text-green-500' : 'text-gray-400'}"></i>
-                    <span class="text-gray-400 truncate">${v.assigned_driver ? v.assigned_driver.name : 'Unassigned'}</span>
+
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-[9px] font-bold text-gray-600 border border-gray-200">
+                            ${initials}
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[11px] font-medium text-gray-700 truncate max-w-[100px]">${driverName}</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs font-black text-gray-900">${v.speed}</span>
+                        <span class="text-[9px] text-gray-400 font-bold uppercase">km/h</span>
+                    </div>
                 </div>
             </div>
-        `).join('');
+        `;}).join('');
     }
 
     function updateMarkers(vehicles) {
@@ -268,16 +316,23 @@
                         <div class="relative">
                             <div class="pulse"></div>
                             <div class="uber-marker" style="transform: rotate(${v.heading}deg)">
-                                <svg width="36" height="36" viewBox="0 0 100 100">
-                                    <circle cx="50" cy="50" r="40" fill="${v.is_on_trip ? '#2563eb' : '#10b981'}" stroke="white" stroke-width="8" />
-                                    <path d="M50 20 L70 70 L50 60 L30 70 Z" fill="white" />
+                                <svg width="42" height="42" viewBox="0 0 100 100">
+                                    <g>
+                                        <rect x="30" y="20" width="40" height="60" rx="10" fill="${v.is_on_trip ? '#3b82f6' : '#10b981'}" stroke="white" stroke-width="4" />
+                                        <rect x="35" y="30" width="30" height="18" rx="3" fill="white" fill-opacity="0.4" />
+                                        <rect x="35" y="58" width="30" height="10" rx="1" fill="white" fill-opacity="0.2" />
+                                        <rect x="26" y="28" width="6" height="12" rx="2" fill="#1f2937" />
+                                        <rect x="68" y="28" width="6" height="12" rx="2" fill="#1f2937" />
+                                        <rect x="26" y="60" width="6" height="12" rx="2" fill="#1f2937" />
+                                        <rect x="68" y="60" width="6" height="12" rx="2" fill="#1f2937" />
+                                    </g>
                                 </svg>
                             </div>
-                            <div class="absolute -top-8 left-1/2 -translate-x-1/2 marker-label">${v.registration_number}</div>
+                            <div class="absolute -top-6 left-1/2 -translate-x-1/2 marker-label shadow-sm">${v.registration_number}</div>
                         </div>
                     `,
-                    iconSize: [36, 36],
-                    iconAnchor: [18, 18]
+                    iconSize: [42, 42],
+                    iconAnchor: [21, 21]
                 });
 
                 markers[v.id] = L.marker(pos, { icon: icon }).addTo(map)
@@ -308,7 +363,7 @@
         document.getElementById('cardSpeed').innerHTML = `${v.speed} <span class="text-[10px] font-normal">km/h</span>`;
         document.getElementById('cardStatus').innerText = v.is_on_trip ? 'On Trip' : 'Available';
         document.getElementById('cardStatus').parentElement.className = `p-2 rounded-lg ${v.is_on_trip ? 'bg-blue-50 text-blue-900' : 'bg-green-50 text-green-900'}`;
-        document.getElementById('cardDriver').innerText = v.assigned_driver ? v.assigned_driver.name : 'Unassigned';
+        document.getElementById('cardDriver').innerText = (v.assigned_driver && v.assigned_driver.user) ? v.assigned_driver.user.name : 'Unassigned';
         document.getElementById('detailsLink').href = `/vehicles/${v.id}`;
 
         document.getElementById('historyBtn').onclick = () => loadHistory(v.id);
