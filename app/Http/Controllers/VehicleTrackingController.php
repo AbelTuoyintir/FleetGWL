@@ -24,7 +24,7 @@ class VehicleTrackingController extends Controller
     public function getVehiclesLocations()
     {
         $vehicles = Vehicle::where('status', '!=', 'deleted')
-            ->with(['assignedDriver:id,name,online_status'])
+            ->with(['assignedDriver.user'])
             ->select([
                 'id',
                 'registration_number',
