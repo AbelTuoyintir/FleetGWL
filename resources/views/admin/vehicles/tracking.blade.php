@@ -5,65 +5,76 @@
 @section('content')
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <style>
-    #map { height: 700px; width: 100%; border-radius: 12px; z-index: 10; background: #f8fafc; }
-    .vehicle-list-item { cursor: pointer; transition: all 0.2s; border-left: 4px solid transparent; }
-    .vehicle-list-item:hover { background-color: #f8fafc; }
-    .vehicle-list-item.active { background-color: #eff6ff; border-left-color: #3b82f6; }
-
-    .status-active { color: #10b981; }
-    .status-inactive { color: #6b7280; }
-    .status-maintenance { color: #f59e0b; }
+    #map { height: 750px; width: 100%; border-radius: 16px; z-index: 10; background: #f1f5f9; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+    .vehicle-list-item { cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); border-left: 4px solid transparent; margin: 4px 8px; border-radius: 8px; }
+    .vehicle-list-item:hover { background-color: #f1f5f9; transform: translateX(2px); }
+    .vehicle-list-item.active { background-color: #f0f7ff; border-left-color: #2563eb; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 
     .pulse {
         border-radius: 50%;
-        height: 14px;
-        width: 14px;
+        height: 20px;
+        width: 20px;
         position: absolute;
         left: -2px;
         top: -2px;
         animation: pulsate 2s ease-out infinite;
         opacity: 0;
-        border: 3px solid #3b82f6;
+        border: 4px solid #3b82f6;
     }
 
     @keyframes pulsate {
         0% { transform: scale(0.1, 0.1); opacity: 0.0; }
-        50% { opacity: 1.0; }
-        100% { transform: scale(1.2, 1.2); opacity: 0.0; }
+        50% { opacity: 0.8; }
+        100% { transform: scale(1.5, 1.5); opacity: 0.0; }
     }
 
-    .uber-marker {
-        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    .car-marker-container {
+        transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15));
     }
 
     .marker-label {
-        background: white;
-        border: 1px solid #e2e8f0;
+        background: rgba(15, 23, 42, 0.9);
+        color: white;
         border-radius: 4px;
-        padding: 2px 6px;
-        font-weight: 600;
-        font-size: 10px;
+        padding: 2px 8px;
+        font-weight: 700;
+        font-size: 11px;
         white-space: nowrap;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255,255,255,0.1);
+        pointer-events: none;
+    }
+
+    /* Custom Leaflet Control Layer Styling */
+    .leaflet-control-layers {
+        border: none !important;
+        border-radius: 12px !important;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+    }
+    .leaflet-control-layers-expanded {
+        padding: 10px !important;
+        background: rgba(255,255,255,0.95) !important;
+        backdrop-filter: blur(8px);
     }
 </style>
 
 <div class="space-y-6">
-    <div class="flex justify-between items-center">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900">Fleet Command Center</h1>
-            <p class="text-gray-500 text-sm">Real-time telematics and live vehicle positioning</p>
+            <h1 class="text-3xl font-black text-slate-900 tracking-tight">Fleet Intelligence</h1>
+            <p class="text-slate-500 font-medium">Real-time global positioning & telematics dashboard</p>
         </div>
-        <div class="flex gap-3">
-            <div id="connectionStatus" class="flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                <span class="relative flex h-2 w-2 mr-2">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+        <div class="flex items-center gap-3 w-full md:w-auto">
+            <div id="connectionStatus" class="flex items-center px-4 py-2 bg-indigo-50 text-indigo-700 rounded-xl text-xs font-bold border border-indigo-100 shadow-sm">
+                <span class="relative flex h-3 w-3 mr-3">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3 w-3 bg-indigo-600"></span>
                 </span>
-                LIVE UPDATING
+                LIVE TELEMETRY
             </div>
-            <button onclick="refreshMap()" class="bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition shadow-sm">
-                <i class="fas fa-sync-alt mr-2"></i>Sync
+            <button onclick="refreshMap()" class="bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 transition shadow-sm flex items-center">
+                <i class="fas fa-sync-alt mr-2 text-indigo-500"></i>Sync
             </button>
         </div>
     </div>
@@ -178,16 +189,30 @@
     });
 
     function initMap() {
+        const street = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CARTO'
+        });
+
+        const dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CARTO'
+        });
+
+        const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri'
+        });
+
         map = L.map('map', {
-            zoomControl: false
+            zoomControl: false,
+            layers: [street]
         }).setView([5.6037, -0.1870], 13);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-            subdomains: 'abcd',
-            maxZoom: 20
-        }).addTo(map);
+        const baseMaps = {
+            "<span class='text-xs font-bold'><i class='fas fa-map mr-1'></i> Street</span>": street,
+            "<span class='text-xs font-bold'><i class='fas fa-moon mr-1'></i> Dark</span>": dark,
+            "<span class='text-xs font-bold'><i class='fas fa-satellite mr-1'></i> Satellite</span>": satellite
+        };
 
+        L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
     }
 
@@ -227,20 +252,31 @@
     function updateVehicleList(vehicles) {
         const container = document.getElementById('vehicleList');
         container.innerHTML = vehicles.map(v => `
-            <div class="vehicle-list-item p-3 ${selectedVehicleId === v.id ? 'active' : ''}" onclick="focusVehicle(${v.id})">
-                <div class="flex justify-between items-start mb-1">
-                    <span class="font-bold text-gray-900">${v.registration_number}</span>
-                    <span class="text-[10px] font-black ${v.is_on_trip ? 'text-blue-600' : 'text-green-500'} uppercase">
-                        ${v.is_on_trip ? 'On Trip' : 'Available'}
+            <div class="vehicle-list-item p-4 shadow-sm border border-slate-100 ${selectedVehicleId === v.id ? 'active ring-2 ring-indigo-500 ring-inset' : ''}" onclick="focusVehicle(${v.id})">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="font-black text-slate-900 text-base">${v.registration_number}</span>
+                    <span class="flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full ${v.is_on_trip ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100 text-emerald-700'}">
+                        <span class="h-1.5 w-1.5 rounded-full mr-1.5 ${v.is_on_trip ? 'bg-indigo-500' : 'bg-emerald-500'}"></span>
+                        ${v.is_on_trip ? 'ON TRIP' : 'IDLE'}
                     </span>
                 </div>
-                <div class="flex justify-between items-center text-[11px] mb-1">
-                    <span class="text-gray-500">${v.make} ${v.model}</span>
-                    <span class="text-gray-900 font-bold">${v.speed} km/h</span>
+                <div class="flex justify-between items-center text-xs mb-3">
+                    <span class="text-slate-500 font-medium">${v.make} ${v.model}</span>
+                    <div class="text-slate-900 font-black bg-slate-100 px-2 py-0.5 rounded">${v.speed} <span class="text-[9px] font-normal text-slate-500">km/h</span></div>
                 </div>
-                <div class="flex items-center text-[10px]">
-                    <i class="fas fa-user-circle mr-1 ${v.assigned_driver && v.assigned_driver.online_status === 'online' ? 'text-green-500' : 'text-gray-400'}"></i>
-                    <span class="text-gray-400 truncate">${v.assigned_driver ? v.assigned_driver.name : 'Unassigned'}</span>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center text-[11px] font-semibold text-slate-600">
+                        <div class="relative mr-2">
+                             <i class="fas fa-user-circle text-lg ${v.assigned_driver && v.assigned_driver.online_status === 'online' ? 'text-emerald-500' : 'text-slate-300'}"></i>
+                             ${v.assigned_driver && v.assigned_driver.online_status === 'online' ? '<span class="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-500 border border-white rounded-full"></span>' : ''}
+                        </div>
+                        <span class="truncate max-w-[100px]">${v.assigned_driver ? v.assigned_driver.name : 'No Driver'}</span>
+                    </div>
+                    <div class="flex gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-slate-200"></span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-slate-200"></span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-slate-200"></span>
+                    </div>
                 </div>
             </div>
         `).join('');
@@ -251,33 +287,34 @@
             if (!v.current_latitude) return;
 
             const pos = [v.current_latitude, v.current_longitude];
+            const color = v.is_on_trip ? '#6366f1' : '#10b981';
 
             if (markers[v.id]) {
-                // Smooth transition
                 markers[v.id].setLatLng(pos);
-                // Update rotation if we had a heading (simulated)
                 const markerEl = markers[v.id].getElement();
                 if (markerEl) {
-                    const icon = markerEl.querySelector('.uber-marker');
+                    const icon = markerEl.querySelector('.car-marker-container');
                     if (icon) icon.style.transform = `rotate(${v.heading}deg)`;
+
+                    const svg = markerEl.querySelector('svg path');
+                    if (svg) svg.setAttribute('fill', color);
                 }
             } else {
                 const icon = L.divIcon({
                     className: 'custom-div-icon',
                     html: `
                         <div class="relative">
-                            <div class="pulse"></div>
-                            <div class="uber-marker" style="transform: rotate(${v.heading}deg)">
-                                <svg width="36" height="36" viewBox="0 0 100 100">
-                                    <circle cx="50" cy="50" r="40" fill="${v.is_on_trip ? '#2563eb' : '#10b981'}" stroke="white" stroke-width="8" />
-                                    <path d="M50 20 L70 70 L50 60 L30 70 Z" fill="white" />
+                            <div class="pulse" style="border-color: ${color}"></div>
+                            <div class="car-marker-container" style="transform: rotate(${v.heading}deg)">
+                                <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M50,10 L85,90 L50,75 L15,90 Z" fill="${color}" stroke="#ffffff" stroke-width="6" stroke-linejoin="round" />
                                 </svg>
                             </div>
-                            <div class="absolute -top-8 left-1/2 -translate-x-1/2 marker-label">${v.registration_number}</div>
+                            <div class="absolute -top-10 left-1/2 -translate-x-1/2 marker-label">${v.registration_number}</div>
                         </div>
                     `,
-                    iconSize: [36, 36],
-                    iconAnchor: [18, 18]
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 20]
                 });
 
                 markers[v.id] = L.marker(pos, { icon: icon }).addTo(map)

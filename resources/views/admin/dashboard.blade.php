@@ -35,7 +35,16 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            <a href="{{ route('vehicles.tracking') }}" class="stat-card rounded-xl p-4 flex items-center justify-between bg-indigo-600 border-indigo-500 group hover:bg-indigo-700 transition-colors">
+                <div>
+                    <p class="text-indigo-100 text-xs uppercase tracking-wide font-bold">Live Tracking</p>
+                    <p class="text-white text-xs mt-1">Monitor Fleet Live</p>
+                </div>
+                <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <i class="fas fa-map-marked-alt text-white text-xl"></i>
+                </div>
+            </a>
             <div class="stat-card rounded-xl p-4 flex items-center justify-between">
                 <div>
                     <p class="text-gray-500 text-xs uppercase tracking-wide">Overdue Maint</p>

@@ -31,11 +31,19 @@ class Driver extends Model
         'deleted_by',
     ];
 
-    protected $appends = ['name'];
+    protected $appends = ['name', 'online_status'];
 
     public function getNameAttribute()
     {
         return $this->user ? $this->user->name : 'N/A';
+    }
+
+    /**
+     * Proxy the online status from the User model.
+     */
+    public function getOnlineStatusAttribute()
+    {
+        return $this->user ? $this->user->online_status : 'offline';
     }
 
     protected $casts = [
