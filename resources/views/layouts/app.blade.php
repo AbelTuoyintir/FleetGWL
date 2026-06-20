@@ -70,15 +70,34 @@
         .user-menu-dropdown a:hover, .user-menu-dropdown button:hover {
             background-color: #f8fafc;
         }
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: #2563eb;
+            color: white;
+            padding: 8px;
+            z-index: 100;
+            transition: top 0.2s;
+        }
+        .skip-link:focus {
+            top: 0;
+        }
     </style>
 </head>
 <body class="text-gray-800 antialiased text-sm">
+
+<a href="#mainContentArea" class="skip-link">Skip to content</a>
 
 <!-- MOBILE OVERLAY -->
 <div id="mobileOverlay" class="overlay-fleet"></div>
 
 <!-- STICKY HEADER -->
 <header class="sticky top-0 z-30 glass-card shadow-sm flex items-center justify-end px-5 py-3 border-b border-white/60">
+    <button id="menuToggleBtn" type="button" aria-label="Open sidebar menu" class="lg:hidden mr-auto text-gray-600 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg p-1">
+        <i class="fas fa-bars text-xl"></i>
+    </button>
+
     <div class="relative">
         @php
             $userName = Auth::user()->name ?? 'Kwame Asare';
@@ -122,7 +141,9 @@
                 <p class="text-[10px] text-gray-500 uppercase tracking-wide">Vehicle fleet intelligence</p>
             </div>
         </div>
-        <button id="closeSidebarBtn" class="lg:hidden text-gray-500 hover:text-blue-600"><i class="fas fa-times text-lg"></i></button>
+        <button id="closeSidebarBtn" type="button" aria-label="Close sidebar menu" class="lg:hidden text-gray-500 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg p-1">
+            <i class="fas fa-times text-lg"></i>
+        </button>
     </div>
 
     <!-- navigation menu -->
