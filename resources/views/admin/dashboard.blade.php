@@ -214,14 +214,15 @@
 @forelse($vehiclesByRegion as $r)
                             @php
                                 $total = (int)($totalVehicles ?? 0);
-                                $count = (int)($r->count ?? 0);
+                                $count = (int)(data_get($r, 'count', 0));
+                                $regionName = is_string($r) ? $r : data_get($r, 'region_name', 'Unknown');
                                 $pct = $total > 0 ? round(($count / $total) * 100, 1) : 0;
                             @endphp
                             <div class="flex justify-between items-center">
-                                <span class="text-gray-700 text-sm">{{ $r->region_name }}</span>
+                                <span class="text-gray-700 text-sm">{{ $regionName }}</span>
                                 <div class="flex items-center gap-2">
                                     <div class="w-32 h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600 rounded-full" style="width: {{ $pct }}%"></div></div>
-                                    <span class="text-xs font-semibold">{{ $r->count }}</span>
+                                    <span class="text-xs font-semibold">{{ $count }}</span>
                                 </div>
                             </div>
                         @empty
@@ -235,9 +236,14 @@
                     <h3 class="font-semibold text-gray-800 mb-2"><i class="fas fa-file-signature mr-1 text-amber-600"></i>Expiring Documents (60 days)</h3>
                     <div class="space-y-2" id="expiringDocumentsList">
                         @forelse($expiringDocuments as $doc)
+                            @php
+                                $docType = is_string($doc) ? $doc : data_get($doc, 'document_type', 'N/A');
+                                $plate = data_get($doc, 'vehicle.plate_number', 'N/A');
+                                $expiry = data_get($doc, 'expiry_date');
+                            @endphp
                             <div class="flex justify-between items-center border-b border-slate-100 pb-1 text-xs">
-                                <div><span class="font-medium">{{ $doc->document_type }}</span> <span class="text-gray-500">{{ optional($doc->vehicle)->plate_number ?? 'N/A' }}</span></div>
-                                <span class="badge-warning px-2 py-0.5 rounded-full text-[10px]">{{ \Carbon\Carbon::parse($doc->expiry_date)->format('M j, Y') }}</span>
+                                <div><span class="font-medium">{{ $docType }}</span> <span class="text-gray-500">{{ $plate }}</span></div>
+                                <span class="badge-warning px-2 py-0.5 rounded-full text-[10px]">{{ $expiry ? \Carbon\Carbon::parse($expiry)->format('M j, Y') : 'TBD' }}</span>
                             </div>
                         @empty
                             <p class="text-xs text-gray-400">No expiring documents</p>
