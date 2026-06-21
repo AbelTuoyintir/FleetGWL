@@ -10,6 +10,10 @@
     .vehicle-list-item:hover { background-color: #f8fafc; }
     .vehicle-list-item.active { background-color: #eff6ff; border-left-color: #3b82f6; }
 
+    /* Map Controls Customization */
+    .leaflet-control-layers { border: none !important; border-radius: 12px !important; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important; overflow: hidden; }
+    .leaflet-control-layers-list { padding: 8px; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; }
+
     .status-active { color: #10b981; }
     .status-inactive { color: #6b7280; }
     .status-maintenance { color: #f59e0b; }
@@ -33,7 +37,12 @@
     }
 
     .uber-marker {
-        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 4.8s linear; /* Slightly less than polling interval for smoothness */
+        filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));
+    }
+
+    .uber-marker svg {
+        transition: transform 0.5s ease-out;
     }
 
     .marker-label {
@@ -54,7 +63,12 @@
             <h1 class="text-2xl font-bold text-gray-900">Fleet Command Center</h1>
             <p class="text-gray-500 text-sm">Real-time telematics and live vehicle positioning</p>
         </div>
-        <div class="flex gap-3">
+        <div class="flex items-center gap-3">
+            <div id="themeSwitcher" class="bg-white border border-gray-200 p-1 rounded-lg flex shadow-sm">
+                <button onclick="setMapTheme('light')" id="btn-theme-light" class="px-3 py-1.5 rounded-md text-[10px] font-bold transition theme-btn-active">LIGHT</button>
+                <button onclick="setMapTheme('dark')" id="btn-theme-dark" class="px-3 py-1.5 rounded-md text-[10px] font-bold transition text-gray-400 hover:text-gray-600">DARK</button>
+                <button onclick="setMapTheme('satellite')" id="btn-theme-satellite" class="px-3 py-1.5 rounded-md text-[10px] font-bold transition text-gray-400 hover:text-gray-600">SATELLITE</button>
+            </div>
             <div id="connectionStatus" class="flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
                 <span class="relative flex h-2 w-2 mr-2">
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -114,14 +128,30 @@
                         </div>
                         <button onclick="closeDetailCard()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
                     </div>
-                    <div class="grid grid-cols-2 gap-3 mb-4">
-                        <div class="bg-blue-50 p-2 rounded-lg">
-                            <p class="text-[10px] text-blue-600 font-bold uppercase">Speed</p>
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div class="bg-blue-50 p-2 rounded-lg border border-blue-100">
+                            <p class="text-[9px] text-blue-600 font-bold uppercase">Speed</p>
                             <p id="cardSpeed" class="text-lg font-black text-blue-900">0 <span class="text-[10px] font-normal">km/h</span></p>
                         </div>
-                        <div class="bg-green-50 p-2 rounded-lg">
-                            <p class="text-[10px] text-green-600 font-bold uppercase">Status</p>
-                            <p id="cardStatus" class="text-sm font-bold text-green-900">Available</p>
+                        <div class="bg-emerald-50 p-2 rounded-lg border border-emerald-100">
+                            <p class="text-[9px] text-emerald-600 font-bold uppercase">Ignition</p>
+                            <p id="cardIgnition" class="text-sm font-bold text-emerald-900">On</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div class="bg-gray-50 p-2 rounded-lg border border-gray-100">
+                            <p class="text-[9px] text-gray-500 font-bold uppercase">Fuel Level</p>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <div class="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                    <div id="cardFuelBar" class="h-full bg-orange-500" style="width: 0%"></div>
+                                </div>
+                                <span id="cardFuelText" class="text-[10px] font-bold text-gray-700">0%</span>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 p-2 rounded-lg border border-gray-100">
+                            <p class="text-[9px] text-gray-500 font-bold uppercase">Battery</p>
+                            <p id="cardBattery" class="text-sm font-bold text-gray-800">12.4V</p>
                         </div>
                     </div>
                     <div class="space-y-2 text-xs text-gray-600">
@@ -129,6 +159,10 @@
                             <span>Driver:</span>
                             <span id="cardDriver" class="font-bold text-gray-900">---</span>
                         </div>
+                    <div class="flex justify-between">
+                        <span>Est. Arrival:</span>
+                        <span id="cardETA" class="font-bold text-gray-900">---</span>
+                    </div>
                         <div class="flex justify-between">
                             <span>Last Update:</span>
                             <span id="cardLastSeen" class="text-gray-400">Just now</span>
@@ -160,6 +194,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
     let map;
+    let tileLayers = {};
     let markers = {};
     let vehiclesData = [];
     let historyPolyline = null;
@@ -179,16 +214,41 @@
 
     function initMap() {
         map = L.map('map', {
-            zoomControl: false
+            zoomControl: false,
+            attributionControl: false
         }).setView([5.6037, -0.1870], 13);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        tileLayers.light = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             subdomains: 'abcd',
             maxZoom: 20
-        }).addTo(map);
+        });
 
+        tileLayers.dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            subdomains: 'abcd',
+            maxZoom: 20
+        });
+
+        tileLayers.satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19
+        });
+
+        tileLayers.light.addTo(map);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
+    }
+
+    function setMapTheme(theme) {
+        Object.values(tileLayers).forEach(layer => map.removeLayer(layer));
+        tileLayers[theme].addTo(map);
+
+        // Update buttons
+        ['light', 'dark', 'satellite'].forEach(t => {
+            const btn = document.getElementById(`btn-theme-${t}`);
+            if (t === theme) {
+                btn.className = 'px-3 py-1.5 rounded-md text-[10px] font-bold transition bg-blue-600 text-white shadow-sm';
+            } else {
+                btn.className = 'px-3 py-1.5 rounded-md text-[10px] font-bold transition text-gray-400 hover:text-gray-600';
+            }
+        });
     }
 
     function fetchData() {
@@ -229,18 +289,29 @@
         container.innerHTML = vehicles.map(v => `
             <div class="vehicle-list-item p-3 ${selectedVehicleId === v.id ? 'active' : ''}" onclick="focusVehicle(${v.id})">
                 <div class="flex justify-between items-start mb-1">
-                    <span class="font-bold text-gray-900">${v.registration_number}</span>
-                    <span class="text-[10px] font-black ${v.is_on_trip ? 'text-blue-600' : 'text-green-500'} uppercase">
-                        ${v.is_on_trip ? 'On Trip' : 'Available'}
-                    </span>
+                    <div class="flex flex-col">
+                        <span class="font-bold text-gray-900 leading-tight">${v.registration_number}</span>
+                        <span class="text-[10px] text-gray-500 uppercase font-medium">${v.make} ${v.model}</span>
+                    </div>
+                    <div class="flex flex-col items-end">
+                        <span class="text-[10px] font-black ${v.ignition === 'on' ? 'text-emerald-600' : 'text-gray-400'} uppercase">
+                            ${v.ignition === 'on' ? 'Ignition On' : 'Ignition Off'}
+                        </span>
+                        <span class="text-[11px] font-bold text-gray-900">${v.speed} km/h</span>
+                    </div>
                 </div>
-                <div class="flex justify-between items-center text-[11px] mb-1">
-                    <span class="text-gray-500">${v.make} ${v.model}</span>
-                    <span class="text-gray-900 font-bold">${v.speed} km/h</span>
-                </div>
-                <div class="flex items-center text-[10px]">
-                    <i class="fas fa-user-circle mr-1 ${v.assigned_driver && v.assigned_driver.online_status === 'online' ? 'text-green-500' : 'text-gray-400'}"></i>
-                    <span class="text-gray-400 truncate">${v.assigned_driver ? v.assigned_driver.name : 'Unassigned'}</span>
+
+                <div class="mt-2 flex items-center justify-between">
+                    <div class="flex items-center text-[10px]">
+                        <i class="fas fa-user-circle mr-1 ${v.assigned_driver && v.assigned_driver.online_status === 'online' ? 'text-green-500' : 'text-gray-400'}"></i>
+                        <span class="text-gray-400 truncate max-w-[80px]">${v.assigned_driver ? v.assigned_driver.name : 'Unassigned'}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-12 h-1 bg-gray-100 rounded-full overflow-hidden">
+                            <div class="h-full ${v.fuel_level < 20 ? 'bg-red-500' : 'bg-emerald-500'}" style="width: ${v.fuel_level}%"></div>
+                        </div>
+                        <span class="text-[9px] font-bold text-gray-500">${v.fuel_level}%</span>
+                    </div>
                 </div>
             </div>
         `).join('');
@@ -251,33 +322,46 @@
             if (!v.current_latitude) return;
 
             const pos = [v.current_latitude, v.current_longitude];
+            const markerColor = v.is_on_trip ? '#2563eb' : '#10b981';
 
             if (markers[v.id]) {
                 // Smooth transition
                 markers[v.id].setLatLng(pos);
-                // Update rotation if we had a heading (simulated)
+                // Update rotation and color
                 const markerEl = markers[v.id].getElement();
                 if (markerEl) {
-                    const icon = markerEl.querySelector('.uber-marker');
-                    if (icon) icon.style.transform = `rotate(${v.heading}deg)`;
+                    const iconContainer = markerEl.querySelector('.uber-marker');
+                    if (iconContainer) iconContainer.style.transform = `rotate(${v.heading}deg)`;
+
+                    const carBody = markerEl.querySelector('.car-body');
+                    if (carBody) carBody.setAttribute('fill', markerColor);
                 }
             } else {
                 const icon = L.divIcon({
                     className: 'custom-div-icon',
                     html: `
                         <div class="relative">
-                            <div class="pulse"></div>
+                            <div class="pulse" style="border-color: ${markerColor}"></div>
                             <div class="uber-marker" style="transform: rotate(${v.heading}deg)">
-                                <svg width="36" height="36" viewBox="0 0 100 100">
-                                    <circle cx="50" cy="50" r="40" fill="${v.is_on_trip ? '#2563eb' : '#10b981'}" stroke="white" stroke-width="8" />
-                                    <path d="M50 20 L70 70 L50 60 L30 70 Z" fill="white" />
+                                <svg width="40" height="40" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                                    <!-- Car Shadow -->
+                                    <ellipse cx="50" cy="55" rx="30" ry="15" fill="rgba(0,0,0,0.1)" />
+                                    <!-- Car Body -->
+                                    <path class="car-body" d="M30,20 L70,20 C85,20 90,30 90,50 C90,70 85,80 70,80 L30,80 C15,80 10,70 10,50 C10,30 15,20 30,20 Z" fill="${markerColor}" stroke="white" stroke-width="4" />
+                                    <!-- Windshield -->
+                                    <path d="M35,30 L65,30 C70,30 72,35 72,40 L72,40 C72,45 70,50 65,50 L35,50 C30,50 28,45 28,40 L28,40 C28,35 30,30 35,30 Z" fill="rgba(255,255,255,0.3)" />
+                                    <!-- Roof Line -->
+                                    <path d="M30,55 L70,55" stroke="rgba(255,255,255,0.2)" stroke-width="2" />
+                                    <!-- Headlights -->
+                                    <circle cx="82" cy="35" r="5" fill="white" opacity="0.8" />
+                                    <circle cx="82" cy="65" r="5" fill="white" opacity="0.8" />
                                 </svg>
                             </div>
                             <div class="absolute -top-8 left-1/2 -translate-x-1/2 marker-label">${v.registration_number}</div>
                         </div>
                     `,
-                    iconSize: [36, 36],
-                    iconAnchor: [18, 18]
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 20]
                 });
 
                 markers[v.id] = L.marker(pos, { icon: icon }).addTo(map)
@@ -306,8 +390,19 @@
         document.getElementById('cardReg').innerText = v.registration_number;
         document.getElementById('cardModel').innerText = `${v.make} ${v.model}`;
         document.getElementById('cardSpeed').innerHTML = `${v.speed} <span class="text-[10px] font-normal">km/h</span>`;
-        document.getElementById('cardStatus').innerText = v.is_on_trip ? 'On Trip' : 'Available';
-        document.getElementById('cardStatus').parentElement.className = `p-2 rounded-lg ${v.is_on_trip ? 'bg-blue-50 text-blue-900' : 'bg-green-50 text-green-900'}`;
+
+        const ignitionEl = document.getElementById('cardIgnition');
+        ignitionEl.innerText = v.ignition === 'on' ? 'Ignition On' : 'Ignition Off';
+        ignitionEl.parentElement.className = `p-2 rounded-lg border ${v.ignition === 'on' ? 'bg-emerald-50 text-emerald-900 border-emerald-100' : 'bg-gray-100 text-gray-600 border-gray-200'}`;
+
+        document.getElementById('cardFuelText').innerText = `${v.fuel_level}%`;
+        const fuelBar = document.getElementById('cardFuelBar');
+        fuelBar.style.width = `${v.fuel_level}%`;
+        fuelBar.className = `h-full ${v.fuel_level < 20 ? 'bg-red-500' : (v.fuel_level < 50 ? 'bg-orange-500' : 'bg-green-500')}`;
+
+        document.getElementById('cardBattery').innerText = `${v.battery}V`;
+        document.getElementById('cardETA').innerText = v.is_on_trip ? `${v.eta} mins` : 'N/A';
+
         document.getElementById('cardDriver').innerText = v.assigned_driver ? v.assigned_driver.name : 'Unassigned';
         document.getElementById('detailsLink').href = `/vehicles/${v.id}`;
 

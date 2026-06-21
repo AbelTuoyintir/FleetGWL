@@ -24,7 +24,7 @@ class VehicleTrackingController extends Controller
     public function getVehiclesLocations()
     {
         $vehicles = Vehicle::where('status', '!=', 'deleted')
-            ->with(['assignedDriver:id,name,online_status'])
+            ->with(['assignedDriver.user'])
             ->select([
                 'id',
                 'registration_number',
@@ -55,6 +55,10 @@ class VehicleTrackingController extends Controller
             $vehicle->speed = rand(0, 65);
             $vehicle->heading = rand(0, 360);
             $vehicle->is_on_trip = (bool)rand(0, 1);
+            $vehicle->fuel_level = rand(15, 95); // Simulated fuel percentage
+            $vehicle->ignition = $vehicle->speed > 0 ? 'on' : (rand(0, 10) > 2 ? 'on' : 'off'); // Simulated ignition status
+            $vehicle->battery = (rand(118, 142) / 10); // Simulated 12V battery voltage
+            $vehicle->eta = rand(5, 45); // Simulated ETA in minutes
 
             return $vehicle;
         });
