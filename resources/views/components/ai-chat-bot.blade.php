@@ -1,7 +1,7 @@
 <div id="ai-chat-widget" class="fixed bottom-6 right-6 z-50">
     <!-- Chat Toggle Button -->
-    <button id="chat-toggle" class="w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-blue-700 transition-all duration-300 focus:outline-none">
-        <i class="fas fa-comment-dots text-2xl"></i>
+    <button id="chat-toggle" aria-label="Toggle AI Support Chat" class="w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-blue-700 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2">
+        <i class="fas fa-comment-dots text-2xl" aria-hidden="true"></i>
     </button>
 
     <!-- Chat Window -->
@@ -20,22 +20,22 @@
                     </p>
                 </div>
             </div>
-            <button id="close-chat" class="text-white/80 hover:text-white">
-                <i class="fas fa-times"></i>
+            <button id="close-chat" aria-label="Close Chat" class="text-white/80 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-lg">
+                <i class="fas fa-times" aria-hidden="true"></i>
             </button>
         </div>
 
         <!-- Messages Area -->
-        <div id="chat-messages" class="flex-1 p-4 overflow-y-auto max-h-96 space-y-4 bg-gray-50 min-h-[300px]">
+        <div id="chat-messages" aria-live="polite" class="flex-1 p-4 overflow-y-auto max-h-96 space-y-4 bg-gray-50 min-h-[300px]">
             <!-- Messages will be loaded here -->
         </div>
 
         <!-- Input Area -->
         <div class="p-4 bg-white border-t border-gray-100">
             <form id="chat-form" class="flex gap-2">
-                <input type="text" id="chat-input" placeholder="Ask me anything..." class="flex-1 bg-gray-100 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" autocomplete="off">
-                <button type="submit" class="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center hover:bg-blue-700 transition">
-                    <i class="fas fa-paper-plane text-sm"></i>
+                <input type="text" id="chat-input" aria-label="Chat Message" placeholder="Ask me anything..." class="flex-1 bg-gray-100 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" autocomplete="off">
+                <button type="submit" aria-label="Send Message" class="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center hover:bg-blue-700 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400">
+                    <i class="fas fa-paper-plane text-sm" aria-hidden="true"></i>
                 </button>
             </form>
         </div>
@@ -66,6 +66,28 @@
         color: #374151;
         border-bottom-left-radius: 4px;
         border: 1px solid #e5e7eb;
+    }
+    .typing-dots span {
+        display: inline-block;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: #9ca3af;
+        margin: 0 1px;
+        animation: bounce 1.4s infinite ease-in-out both;
+    }
+    .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes bounce {
+        0%, 80%, 100% { transform: scale(0); }
+        40% { transform: scale(1.0); }
+    }
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-out forwards;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 </style>
 
@@ -132,8 +154,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Add loading state
         const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'message-bubble ai-message italic text-gray-400';
-        loadingDiv.innerText = 'Typing...';
+        loadingDiv.className = 'message-bubble ai-message flex items-center gap-1';
+        loadingDiv.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
         chatMessages.appendChild(loadingDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -145,7 +167,6 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({ message: message })
         })
-        .then(res => res.json())
         .then(async (res) => {
             if (!res.ok) {
                 const text = await res.text().catch(() => '');
