@@ -1,41 +1,41 @@
 <div id="ai-chat-widget" class="fixed bottom-6 right-6 z-50">
     <!-- Chat Toggle Button -->
-    <button id="chat-toggle" class="w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-blue-700 transition-all duration-300 focus:outline-none">
-        <i class="fas fa-comment-dots text-2xl"></i>
+    <button id="chat-toggle" aria-label="Open AI Support Chat" aria-expanded="false" aria-controls="chat-window" class="w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-blue-700 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
+        <i class="fas fa-comment-dots text-2xl" aria-hidden="true"></i>
     </button>
 
     <!-- Chat Window -->
-    <div id="chat-window" class="hidden absolute bottom-16 right-0 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden transition-all duration-300 origin-bottom-right transform scale-95 opacity-0">
+    <div id="chat-window" role="dialog" aria-label="AI Support Chat Window" class="hidden absolute bottom-16 right-0 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden transition-all duration-300 origin-bottom-right transform scale-95 opacity-0">
         <!-- Header -->
         <div class="bg-blue-600 p-4 text-white flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                    <i class="fas fa-robot"></i>
+                    <i class="fas fa-robot" aria-hidden="true"></i>
                 </div>
                 <div>
                     <h3 class="font-bold text-sm">System Support</h3>
                     <p class="text-[10px] text-blue-100 flex items-center gap-1">
-                        <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                        <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse" aria-hidden="true"></span>
                         AI Agent Online 24/7
                     </p>
                 </div>
             </div>
-            <button id="close-chat" class="text-white/80 hover:text-white">
-                <i class="fas fa-times"></i>
+            <button id="close-chat" aria-label="Close chat" class="text-white/80 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white rounded">
+                <i class="fas fa-times" aria-hidden="true"></i>
             </button>
         </div>
 
         <!-- Messages Area -->
-        <div id="chat-messages" class="flex-1 p-4 overflow-y-auto max-h-96 space-y-4 bg-gray-50 min-h-[300px]">
+        <div id="chat-messages" aria-live="polite" class="flex-1 p-4 overflow-y-auto max-h-96 space-y-4 bg-gray-50 min-h-[300px]">
             <!-- Messages will be loaded here -->
         </div>
 
         <!-- Input Area -->
         <div class="p-4 bg-white border-t border-gray-100">
             <form id="chat-form" class="flex gap-2">
-                <input type="text" id="chat-input" placeholder="Ask me anything..." class="flex-1 bg-gray-100 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" autocomplete="off">
-                <button type="submit" class="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center hover:bg-blue-700 transition">
-                    <i class="fas fa-paper-plane text-sm"></i>
+                <input type="text" id="chat-input" aria-label="Type your message" placeholder="Ask me anything..." class="flex-1 bg-gray-100 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" autocomplete="off">
+                <button type="submit" aria-label="Send message" class="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center hover:bg-blue-700 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                    <i class="fas fa-paper-plane text-sm" aria-hidden="true"></i>
                 </button>
             </form>
         </div>
@@ -47,6 +47,13 @@
         display: flex !important;
         transform: scale(1) !important;
         opacity: 1 !important;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-out forwards;
     }
     .message-bubble {
         max-width: 85%;
@@ -83,14 +90,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const isOpen = chatWindow.classList.contains('chat-window-open');
         if (!isOpen) {
             chatWindow.classList.add('chat-window-open');
+            chatToggle.setAttribute('aria-expanded', 'true');
             loadHistory();
         } else {
             chatWindow.classList.remove('chat-window-open');
+            chatToggle.setAttribute('aria-expanded', 'false');
         }
     });
 
     closeChat.addEventListener('click', () => {
         chatWindow.classList.remove('chat-window-open');
+        chatToggle.setAttribute('aria-expanded', 'false');
     });
 
     // Load Chat History
@@ -98,7 +108,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (chatMessages.children.length > 0) return; // Only load once
 
         fetch('/ai-support/history')
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to load history');
+                return res.json();
+            })
             .then(data => {
                 if (data.status === 'success') {
                     if (data.history.length === 0) {
@@ -109,6 +122,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                     }
                 }
+            })
+            .catch(err => {
+                console.error('History load error:', err);
+                appendMessage('ai', 'Welcome! How can I assist you today?');
             });
     }
 
@@ -145,11 +162,11 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({ message: message })
         })
-        .then(res => res.json())
-        .then(async (res) => {
+        .then(res => {
             if (!res.ok) {
-                const text = await res.text().catch(() => '');
-                throw new Error(`HTTP ${res.status}: ${text || 'Request failed'}`);
+                return res.text().then(text => {
+                    throw new Error(`HTTP ${res.status}: ${text || 'Request failed'}`);
+                });
             }
             return res.json();
         })
@@ -162,7 +179,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch((err) => {
-            chatMessages.removeChild(loadingDiv);
+            if (chatMessages.contains(loadingDiv)) {
+                chatMessages.removeChild(loadingDiv);
+            }
             console.error('AI chat fetch failed:', err);
             appendMessage('ai', `Request failed: ${err?.message || 'Please check your network/server.'}`);
         });

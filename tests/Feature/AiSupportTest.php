@@ -43,6 +43,29 @@ class AiSupportTest extends TestCase
         ]);
     }
 
+    public function test_ai_responds_to_new_keywords()
+    {
+        $user = User::factory()->create();
+
+        $keywords = [
+            'track' => 'Live Tracking',
+            'report' => 'Fleet Reports',
+            'mileage' => 'Mileage Management',
+            'insurance' => 'Insurance & Docs',
+            'setting' => 'Fleet Settings'
+        ];
+
+        foreach ($keywords as $keyword => $expectedSnippet) {
+            $response = $this->actingAs($user)
+                ->postJson(route('ai-support.chat'), ['message' => "Tell me about $keyword"]);
+
+            $response->assertStatus(200)
+                ->assertJsonFragment(['status' => 'success']);
+
+            $this->assertStringContainsString($expectedSnippet, $response->json('ai_message'));
+        }
+    }
+
     public function test_user_can_get_chat_history()
     {
         $user = User::factory()->create();
