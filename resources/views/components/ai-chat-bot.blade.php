@@ -1,6 +1,6 @@
 <div id="ai-chat-widget" class="fixed bottom-6 right-6 z-50">
     <!-- Chat Toggle Button -->
-    <button id="chat-toggle" class="w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-blue-700 transition-all duration-300 focus:outline-none">
+    <button id="chat-toggle" class="w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-blue-700 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2" aria-label="Open support chat" aria-expanded="false">
         <i class="fas fa-comment-dots text-2xl"></i>
     </button>
 
@@ -20,13 +20,13 @@
                     </p>
                 </div>
             </div>
-            <button id="close-chat" class="text-white/80 hover:text-white">
+            <button id="close-chat" class="text-white/80 hover:text-white focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 rounded-md outline-none" aria-label="Close chat">
                 <i class="fas fa-times"></i>
             </button>
         </div>
 
         <!-- Messages Area -->
-        <div id="chat-messages" class="flex-1 p-4 overflow-y-auto max-h-96 space-y-4 bg-gray-50 min-h-[300px]">
+        <div id="chat-messages" class="flex-1 p-4 overflow-y-auto max-h-96 space-y-4 bg-gray-50 min-h-[300px]" aria-live="polite">
             <!-- Messages will be loaded here -->
         </div>
 
@@ -34,7 +34,7 @@
         <div class="p-4 bg-white border-t border-gray-100">
             <form id="chat-form" class="flex gap-2">
                 <input type="text" id="chat-input" placeholder="Ask me anything..." class="flex-1 bg-gray-100 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" autocomplete="off">
-                <button type="submit" class="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center hover:bg-blue-700 transition">
+                <button type="submit" class="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center hover:bg-blue-700 transition focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 outline-none" aria-label="Send message">
                     <i class="fas fa-paper-plane text-sm"></i>
                 </button>
             </form>
@@ -67,6 +67,31 @@
         border-bottom-left-radius: 4px;
         border: 1px solid #e5e7eb;
     }
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-out forwards;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .dot-bounce {
+        display: inline-flex;
+        gap: 4px;
+        align-items: center;
+    }
+    .dot-bounce span {
+        width: 6px;
+        height: 6px;
+        background-color: #9ca3af;
+        border-radius: 50%;
+        animation: dot-bounce 1.4s infinite ease-in-out both;
+    }
+    .dot-bounce span:nth-child(1) { animation-delay: -0.32s; }
+    .dot-bounce span:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes dot-bounce {
+        0%, 80%, 100% { transform: scale(0); }
+        40% { transform: scale(1); }
+    }
 </style>
 
 <script>
@@ -83,14 +108,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const isOpen = chatWindow.classList.contains('chat-window-open');
         if (!isOpen) {
             chatWindow.classList.add('chat-window-open');
+            chatToggle.setAttribute('aria-expanded', 'true');
             loadHistory();
         } else {
             chatWindow.classList.remove('chat-window-open');
+            chatToggle.setAttribute('aria-expanded', 'false');
         }
     });
 
     closeChat.addEventListener('click', () => {
         chatWindow.classList.remove('chat-window-open');
+        chatToggle.setAttribute('aria-expanded', 'false');
     });
 
     // Load Chat History
@@ -132,8 +160,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Add loading state
         const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'message-bubble ai-message italic text-gray-400';
-        loadingDiv.innerText = 'Typing...';
+        loadingDiv.className = 'message-bubble ai-message';
+        loadingDiv.innerHTML = '<div class="dot-bounce"><span></span><span></span><span></span></div>';
         chatMessages.appendChild(loadingDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -145,7 +173,6 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({ message: message })
         })
-        .then(res => res.json())
         .then(async (res) => {
             if (!res.ok) {
                 const text = await res.text().catch(() => '');
