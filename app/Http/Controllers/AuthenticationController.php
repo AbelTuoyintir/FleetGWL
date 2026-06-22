@@ -647,6 +647,8 @@ class AuthenticationController extends Controller
                 return redirect()->route('driver.fuel-mileage.dashboard');
             case 'technician':
                 return redirect()->route('technician.dashboard');
+            case 'student':
+                return redirect()->route('student.dashboard');
             default:
                 return redirect('/dashboard');
         }

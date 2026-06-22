@@ -188,17 +188,17 @@ Route::middleware(['auth'])->prefix('reports')->name('reports.')->group(function
 // Maintenance Alert Routes
 Route::middleware(['auth'])->prefix('maintenance')->name('maintenance.')->group(function () {
     Route::get('/vehicles-needing', [AdminMaintenanceController::class, 'vehiclesNeedingPage'])->name('vehicles-needing');
-    Route::get('/vehicles-needing/data', [\App\Http\Controllers\MaintenanceController::class, 'getVehiclesNeedingMaintenance'])->name('vehicles-needing.data');
-    Route::post('/vehicle/{id}/acknowledge', [\App\Http\Controllers\MaintenanceController::class, 'acknowledgeAlert'])->name('acknowledge');
-    Route::get('/schedule/{vehicleId}', [\App\Http\Controllers\MaintenanceController::class, 'create'])->name('schedule');
-    Route::get('/', [MaintenanceController::class, 'index'])->name('index');
-    Route::get('/create', [MaintenanceController::class, 'create'])->name('create');
-    Route::post('/store', [MaintenanceController::class, 'store'])->name('store');
-    Route::get('/{id}', [MaintenanceController::class, 'show'])->name('show');
-    Route::get('/{id}/edit', [MaintenanceController::class, 'edit'])->name('edit');
-    Route::put('/{id}', [MaintenanceController::class, 'update'])->name('update');
-    Route::delete('/{id}', [MaintenanceController::class, 'destroy'])->name('destroy');
-    Route::get('/statistics', [MaintenanceController::class, 'statistics'])->name('statistics');
+    Route::get('/vehicles-needing/data', [AdminMaintenanceController::class, 'getVehiclesNeedingMaintenance'])->name('vehicles-needing.data');
+    Route::post('/vehicle/{id}/acknowledge', [AdminMaintenanceController::class, 'acknowledgeAlert'])->name('acknowledge');
+    Route::get('/schedule/{vehicleId}', [AdminMaintenanceController::class, 'create'])->name('schedule');
+    Route::get('/', [AdminMaintenanceController::class, 'index'])->name('index');
+    Route::get('/create', [AdminMaintenanceController::class, 'create'])->name('create');
+    Route::post('/store', [AdminMaintenanceController::class, 'store'])->name('store');
+    Route::get('/{id}', [AdminMaintenanceController::class, 'show'])->name('show');
+    Route::get('/{id}/edit', [AdminMaintenanceController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [AdminMaintenanceController::class, 'update'])->name('update');
+    Route::delete('/{id}', [AdminMaintenanceController::class, 'destroy'])->name('destroy');
+    Route::get('/statistics', [AdminMaintenanceController::class, 'statistics'])->name('statistics');
 });
 
 
