@@ -8,6 +8,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use OpenAI\Laravel\Facades\OpenAI;
 use OpenAI\Responses\Chat\CreateResponse;
+use Illuminate\Support\Facades\Http;
+use Exception;
 
 class AiSupportTest extends TestCase
 {
@@ -57,6 +59,42 @@ class AiSupportTest extends TestCase
 
         $this->assertDatabaseHas('support_messages', [
             'message' => 'To log fuel, go to the Fuel Management section.',
+            'sender_type' => 'ai'
+        ]);
+    }
+
+    public function test_user_can_fallback_to_ollama_if_openai_fails()
+    {
+        config(['openai.api_key' => 'test-key']);
+        config(['services.ollama.base_url' => 'http://localhost:11434']);
+
+        // Mock OpenAI failure
+        OpenAI::fake([
+            new Exception('OpenAI API Down'),
+        ]);
+
+        // Mock Ollama success
+        Http::fake([
+            'http://localhost:11434/api/chat' => Http::response([
+                'message' => [
+                    'content' => 'Ollama response: You can track vehicles in Live Tracking.',
+                ],
+            ], 200),
+        ]);
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->postJson(route('ai-support.chat'), ['message' => 'how to track?']);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'status' => 'success',
+                'ai_message' => 'Ollama response: You can track vehicles in Live Tracking.',
+            ]);
+
+        $this->assertDatabaseHas('support_messages', [
+            'message' => 'Ollama response: You can track vehicles in Live Tracking.',
             'sender_type' => 'ai'
         ]);
     }

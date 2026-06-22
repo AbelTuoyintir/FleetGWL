@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use OpenAI\Laravel\Facades\OpenAI;
 use Exception;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 
 class AiSupportService
 {
@@ -21,42 +22,71 @@ class AiSupportService
 
     public function generateAiResponse(string $userMessage, int $userId): string
     {
+        $history = $this->getChatHistory($userId)->slice(-10);
+        $systemPrompt = "You are a 24/7 AI support agent for the Ghana Water Limited (GWL) Fleet Management system.
+        You help users with fleet unit registration, live tracking, fuel management, maintenance schedules, driver hub assignments, reports, analytics, and document compliance.
+        Be helpful, professional, and concise. If you don't know something about the specific system implementation, refer them to the system administrator.
+        Current date: " . now()->toDateTimeString();
+
+        $messages = [['role' => 'system', 'content' => $systemPrompt]];
+        foreach ($history as $msg) {
+            $messages[] = [
+                'role' => $msg->sender_type === 'user' ? 'user' : 'assistant',
+                'content' => $msg->message
+            ];
+        }
+        $messages[] = ['role' => 'user', 'content' => $userMessage];
+
+        // 1. Try OpenAI
+        $response = $this->generateOpenAiResponse($messages);
+        if ($response) return $response;
+
+        // 2. Try Ollama (Local LLM)
+        $response = $this->generateOllamaResponse($messages);
+        if ($response) return $response;
+
+        // 3. Fallback to Simulated Keyword Matching
+        return $this->generateSimulatedResponse($userMessage);
+    }
+
+    protected function generateOpenAiResponse(array $messages): ?string
+    {
         $apiKey = config('openai.api_key');
+        if (!$apiKey) return null;
 
-        if ($apiKey) {
-            try {
-                $history = $this->getChatHistory($userId)->slice(-10);
-                $messages = [
-                    ['role' => 'system', 'content' => "You are a 24/7 AI support agent for the Ghana Water Limited (GWL) Fleet Management system.
-                    You help users with fleet unit registration, live tracking, fuel management, maintenance schedules, driver hub assignments, reports, analytics, and document compliance.
-                    Be helpful, professional, and concise. If you don't know something about the specific system implementation, refer them to the system administrator.
-                    Current date: " . now()->toDateTimeString()]
-                ];
+        try {
+            $response = OpenAI::chat()->create([
+                'model' => config('openai.model', 'gpt-4o'),
+                'messages' => $messages,
+            ]);
 
-                foreach ($history as $msg) {
-                    $messages[] = [
-                        'role' => $msg->sender_type === 'user' ? 'user' : 'assistant',
-                        'content' => $msg->message
-                    ];
-                }
+            return $response->choices[0]->message->content;
+        } catch (Exception $e) {
+            Log::error("OpenAI Error: " . $e->getMessage());
+            return null;
+        }
+    }
 
-                // Add current message if not already in history (history is loaded before this call in processMessage usually)
-                // But let's assume history doesn't have it yet since it's being processed
-                $messages[] = ['role' => 'user', 'content' => $userMessage];
+    protected function generateOllamaResponse(array $messages): ?string
+    {
+        $baseUrl = config('services.ollama.base_url');
+        if (!$baseUrl) return null;
 
-                $response = OpenAI::chat()->create([
-                    'model' => config('openai.model', 'gpt-4o'),
-                    'messages' => $messages,
-                ]);
+        try {
+            $response = Http::timeout(30)->post("{$baseUrl}/api/chat", [
+                'model' => config('services.ollama.model', 'llama3'),
+                'messages' => $messages,
+                'stream' => false,
+            ]);
 
-                return $response->choices[0]->message->content;
-            } catch (Exception $e) {
-                Log::error("OpenAI Error: " . $e->getMessage());
-                // Fallback to keyword matching
+            if ($response->successful()) {
+                return $response->json('message.content');
             }
+        } catch (Exception $e) {
+            Log::error("Ollama Error: " . $e->getMessage());
         }
 
-        return $this->generateSimulatedResponse($userMessage);
+        return null;
     }
 
     protected function generateSimulatedResponse(string $userMessage): string
