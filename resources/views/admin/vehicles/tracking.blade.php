@@ -10,30 +10,11 @@
     .vehicle-list-item:hover { background-color: #f8fafc; }
     .vehicle-list-item.active { background-color: #eff6ff; border-left-color: #3b82f6; }
 
-    .status-active { color: #10b981; }
-    .status-inactive { color: #6b7280; }
-    .status-maintenance { color: #f59e0b; }
-
-    .pulse {
-        border-radius: 50%;
-        height: 14px;
-        width: 14px;
-        position: absolute;
-        left: -2px;
-        top: -2px;
-        animation: pulsate 2s ease-out infinite;
-        opacity: 0;
-        border: 3px solid #3b82f6;
+    .leaflet-marker-icon {
+        transition: transform 0.8s linear;
     }
-
-    @keyframes pulsate {
-        0% { transform: scale(0.1, 0.1); opacity: 0.0; }
-        50% { opacity: 1.0; }
-        100% { transform: scale(1.2, 1.2); opacity: 0.0; }
-    }
-
-    .uber-marker {
-        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    .car-marker {
+        transition: transform 0.4s ease-in-out;
     }
 
     .marker-label {
@@ -49,18 +30,23 @@
 </style>
 
 <div class="space-y-6">
-    <div class="flex justify-between items-center">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Fleet Command Center</h1>
             <p class="text-gray-500 text-sm">Real-time telematics and live vehicle positioning</p>
         </div>
-        <div class="flex gap-3">
+        <div class="flex flex-wrap gap-3">
             <div id="connectionStatus" class="flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
                 <span class="relative flex h-2 w-2 mr-2">
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                     <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                 </span>
                 LIVE UPDATING
+            </div>
+            <div class="flex bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
+                <button onclick="setMapTheme('light')" class="px-3 py-1 text-xs font-medium rounded-md hover:bg-gray-100 transition" id="theme-light">Light</button>
+                <button onclick="setMapTheme('dark')" class="px-3 py-1 text-xs font-medium rounded-md hover:bg-gray-100 transition" id="theme-dark">Dark</button>
+                <button onclick="setMapTheme('satellite')" class="px-3 py-1 text-xs font-medium rounded-md hover:bg-gray-100 transition" id="theme-satellite">Satellite</button>
             </div>
             <button onclick="refreshMap()" class="bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition shadow-sm">
                 <i class="fas fa-sync-alt mr-2"></i>Sync
@@ -105,7 +91,7 @@
             <div class="bg-white p-1 rounded-xl shadow-md border border-gray-200 relative">
                 <div id="map"></div>
 
-                <!-- Map Overlay: Vehicle Detail Card (Hidden by default) -->
+                <!-- Map Overlay: Vehicle Detail Card -->
                 <div id="miniDetailCard" class="absolute bottom-6 left-6 z-[1000] bg-white rounded-xl shadow-2xl border border-gray-100 p-4 w-72 hidden transform transition-all duration-300">
                     <div class="flex justify-between items-start mb-3">
                         <div>
@@ -134,17 +120,22 @@
                             <span id="cardLastSeen" class="text-gray-400">Just now</span>
                         </div>
                     </div>
-                    <div class="mt-4 pt-4 border-t border-gray-100 flex gap-2">
-                        <button id="historyBtn" class="flex-1 bg-gray-900 text-white py-2 rounded-lg text-xs font-bold hover:bg-black transition">
-                            <i class="fas fa-route mr-1"></i> History
-                        </button>
-                        <a id="detailsLink" href="#" class="flex-1 bg-white border border-gray-200 text-center py-2 rounded-lg text-xs font-bold hover:bg-gray-50 transition">
-                            Details
+                    <div class="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-2">
+                        <div class="flex gap-2">
+                            <button id="historyBtn" class="flex-1 bg-gray-900 text-white py-2 rounded-lg text-xs font-bold hover:bg-black transition">
+                                <i class="fas fa-route mr-1"></i> History
+                            </button>
+                            <button id="followBtn" onclick="toggleFollow()" class="flex-1 bg-blue-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-blue-700 transition">
+                                <i class="fas fa-crosshairs mr-1"></i> Follow
+                            </button>
+                        </div>
+                        <a id="detailsLink" href="#" class="w-full bg-white border border-gray-200 text-center py-2 rounded-lg text-xs font-bold hover:bg-gray-50 transition">
+                            View Full Profile
                         </a>
                     </div>
                 </div>
 
-                <!-- History Legend (Hidden) -->
+                <!-- History Legend -->
                 <div id="historyLegend" class="absolute top-6 right-6 z-[1000] bg-white/90 backdrop-blur-md rounded-lg shadow-lg border border-gray-200 p-3 hidden">
                     <div class="flex items-center gap-2 mb-2">
                         <div class="h-1 w-8 bg-blue-500 rounded"></div>
@@ -165,12 +156,19 @@
     let historyPolyline = null;
     let updateInterval;
     let selectedVehicleId = null;
+    let following = false;
+    let activeTileLayer;
+
+    const mapThemes = {
+        light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+        dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+    };
 
     document.addEventListener('DOMContentLoaded', function() {
         initMap();
         fetchData();
 
-        // Polling every 5 seconds for smooth updates
         updateInterval = setInterval(fetchData, 5000);
 
         document.getElementById('vehicleSearch').addEventListener('input', e => filterVehicles());
@@ -179,16 +177,32 @@
 
     function initMap() {
         map = L.map('map', {
-            zoomControl: false
+            zoomControl: false,
+            preferCanvas: true
         }).setView([5.6037, -0.1870], 13);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-            subdomains: 'abcd',
+        setMapTheme('light');
+
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+    }
+
+    function setMapTheme(theme) {
+        if (activeTileLayer) map.removeLayer(activeTileLayer);
+
+        activeTileLayer = L.tileLayer(mapThemes[theme], {
+            attribution: '&copy; OpenStreetMap contributors',
             maxZoom: 20
         }).addTo(map);
 
-        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        // Update UI buttons
+        ['light', 'dark', 'satellite'].forEach(t => {
+            const btn = document.getElementById(`theme-${t}`);
+            if (t === theme) {
+                btn.classList.add('bg-blue-50', 'text-blue-600');
+            } else {
+                btn.classList.remove('bg-blue-50', 'text-blue-600');
+            }
+        });
     }
 
     function fetchData() {
@@ -220,7 +234,12 @@
 
         if (selectedVehicleId) {
             const selected = vehiclesData.find(v => v.id === selectedVehicleId);
-            if (selected) updateDetailCard(selected);
+            if (selected) {
+                updateDetailCard(selected);
+                if (following) {
+                    map.panTo([selected.current_latitude, selected.current_longitude]);
+                }
+            }
         }
     }
 
@@ -253,31 +272,33 @@
             const pos = [v.current_latitude, v.current_longitude];
 
             if (markers[v.id]) {
-                // Smooth transition
                 markers[v.id].setLatLng(pos);
-                // Update rotation if we had a heading (simulated)
                 const markerEl = markers[v.id].getElement();
                 if (markerEl) {
-                    const icon = markerEl.querySelector('.uber-marker');
+                    const icon = markerEl.querySelector('.car-marker');
                     if (icon) icon.style.transform = `rotate(${v.heading}deg)`;
                 }
             } else {
                 const icon = L.divIcon({
                     className: 'custom-div-icon',
                     html: `
-                        <div class="relative">
-                            <div class="pulse"></div>
-                            <div class="uber-marker" style="transform: rotate(${v.heading}deg)">
-                                <svg width="36" height="36" viewBox="0 0 100 100">
-                                    <circle cx="50" cy="50" r="40" fill="${v.is_on_trip ? '#2563eb' : '#10b981'}" stroke="white" stroke-width="8" />
-                                    <path d="M50 20 L70 70 L50 60 L30 70 Z" fill="white" />
+                        <div class="relative car-marker-container">
+                            <div class="car-marker" style="transform: rotate(${v.heading}deg)">
+                                <svg width="40" height="40" viewBox="0 0 100 100">
+                                    <!-- Car Top View -->
+                                    <rect x="30" y="20" width="40" height="60" rx="10" fill="${v.is_on_trip ? '#2563eb' : '#10b981'}" stroke="white" stroke-width="4" />
+                                    <rect x="35" y="30" width="30" height="20" rx="2" fill="rgba(255,255,255,0.4)" /> <!-- Windshield -->
+                                    <rect x="35" y="55" width="30" height="15" rx="2" fill="rgba(255,255,255,0.2)" /> <!-- Rear window -->
+                                    <!-- Headlights -->
+                                    <circle cx="35" cy="22" r="3" fill="yellow" />
+                                    <circle cx="65" cy="22" r="3" fill="yellow" />
                                 </svg>
                             </div>
                             <div class="absolute -top-8 left-1/2 -translate-x-1/2 marker-label">${v.registration_number}</div>
                         </div>
                     `,
-                    iconSize: [36, 36],
-                    iconAnchor: [18, 18]
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 20]
                 });
 
                 markers[v.id] = L.marker(pos, { icon: icon }).addTo(map)
@@ -288,15 +309,30 @@
 
     function focusVehicle(id) {
         selectedVehicleId = id;
+        following = false;
         const vehicle = vehiclesData.find(v => v.id === id);
         if (!vehicle) return;
 
-        map.flyTo([vehicle.current_latitude, vehicle.current_longitude], 16, {
+        map.flyTo([vehicle.current_latitude, vehicle.current_longitude], 17, {
             duration: 1.5
         });
 
         updateDetailCard(vehicle);
-        updateUI(); // Refresh list styles
+        updateUI();
+    }
+
+    function toggleFollow() {
+        following = !following;
+        const btn = document.getElementById('followBtn');
+        if (following) {
+            btn.innerHTML = '<i class="fas fa-stop-circle mr-1"></i> Stop Following';
+            btn.classList.replace('bg-blue-600', 'bg-red-600');
+            btn.classList.replace('hover:bg-blue-700', 'hover:bg-red-700');
+        } else {
+            btn.innerHTML = '<i class="fas fa-crosshairs mr-1"></i> Follow';
+            btn.classList.replace('bg-red-600', 'bg-blue-600');
+            btn.classList.replace('hover:bg-red-700', 'hover:bg-blue-700');
+        }
     }
 
     function updateDetailCard(v) {
@@ -317,6 +353,7 @@
     function closeDetailCard() {
         document.getElementById('miniDetailCard').classList.add('hidden');
         selectedVehicleId = null;
+        following = false;
         updateUI();
         clearHistory();
     }
