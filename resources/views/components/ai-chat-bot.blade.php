@@ -1,7 +1,7 @@
 <div id="ai-chat-widget" class="fixed bottom-6 right-6 z-50">
     <!-- Chat Toggle Button -->
-    <button id="chat-toggle" aria-label="Open AI Support Chat" aria-expanded="false" aria-controls="chat-window" class="w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-blue-700 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
-        <i class="fas fa-comment-dots text-2xl" aria-hidden="true"></i>
+    <button id="chat-toggle" aria-label="Toggle AI Support Chat" aria-expanded="false" class="w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-blue-700 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2">
+        <i class="fas fa-comment-dots text-2xl"></i>
     </button>
 
     <!-- Chat Window -->
@@ -20,8 +20,8 @@
                     </p>
                 </div>
             </div>
-            <button id="close-chat" aria-label="Close chat" class="text-white/80 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white rounded">
-                <i class="fas fa-times" aria-hidden="true"></i>
+            <button id="close-chat" aria-label="Close Chat" class="text-white/80 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded">
+                <i class="fas fa-times"></i>
             </button>
         </div>
 
@@ -33,9 +33,9 @@
         <!-- Input Area -->
         <div class="p-4 bg-white border-t border-gray-100">
             <form id="chat-form" class="flex gap-2">
-                <input type="text" id="chat-input" aria-label="Type your message" placeholder="Ask me anything..." class="flex-1 bg-gray-100 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" autocomplete="off">
-                <button type="submit" aria-label="Send message" class="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center hover:bg-blue-700 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
-                    <i class="fas fa-paper-plane text-sm" aria-hidden="true"></i>
+                <input type="text" id="chat-input" placeholder="Ask me anything..." aria-label="Type your message" class="flex-1 bg-gray-100 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" autocomplete="off">
+                <button type="submit" aria-label="Send Message" class="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center hover:bg-blue-700 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                    <i class="fas fa-paper-plane text-sm"></i>
                 </button>
             </form>
         </div>
@@ -61,6 +61,7 @@
         border-radius: 18px;
         font-size: 13px;
         line-height: 1.5;
+        animation: fadeIn 0.3s ease-out;
     }
     .user-message {
         background: #2563eb;
@@ -74,6 +75,25 @@
         border-bottom-left-radius: 4px;
         border: 1px solid #e5e7eb;
     }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .dot-bounce {
+        display: inline-block;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: currentColor;
+        margin: 0 1px;
+        animation: dotBounce 1.4s infinite ease-in-out both;
+    }
+    .dot-bounce:nth-child(1) { animation-delay: -0.32s; }
+    .dot-bounce:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes dotBounce {
+        0%, 80%, 100% { transform: scale(0); }
+        40% { transform: scale(1); }
+    }
 </style>
 
 <script>
@@ -85,31 +105,36 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatInput = document.getElementById('chat-input');
     const chatMessages = document.getElementById('chat-messages');
 
+    const historyRoute = "{{ route('ai-support.history') }}";
+    const chatRoute = "{{ route('ai-support.chat') }}";
+
     // Toggle Chat
-    chatToggle.addEventListener('click', () => {
+    function toggleChat(forceClose = false) {
         const isOpen = chatWindow.classList.contains('chat-window-open');
-        if (!isOpen) {
+        if (isOpen || forceClose) {
+            chatWindow.classList.remove('chat-window-open');
+            chatToggle.setAttribute('aria-expanded', 'false');
+        } else {
             chatWindow.classList.add('chat-window-open');
             chatToggle.setAttribute('aria-expanded', 'true');
             loadHistory();
-        } else {
-            chatWindow.classList.remove('chat-window-open');
-            chatToggle.setAttribute('aria-expanded', 'false');
+            setTimeout(() => chatInput.focus(), 300);
         }
-    });
+    }
 
-    closeChat.addEventListener('click', () => {
-        chatWindow.classList.remove('chat-window-open');
-        chatToggle.setAttribute('aria-expanded', 'false');
-    });
+    chatToggle.addEventListener('click', () => toggleChat());
+    closeChat.addEventListener('click', () => toggleChat(true));
 
     // Load Chat History
     function loadHistory() {
         if (chatMessages.children.length > 0) return; // Only load once
 
-        fetch('/ai-support/history')
-            .then(res => {
-                if (!res.ok) throw new Error('Failed to load history');
+        fetch(historyRoute)
+            .then(async (res) => {
+                if (!res.ok) {
+                    const text = await res.text().catch(() => '');
+                    throw new Error(`HTTP ${res.status}: ${text || 'Request failed'}`);
+                }
                 return res.json();
             })
             .then(data => {
@@ -124,8 +149,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(err => {
-                console.error('History load error:', err);
-                appendMessage('ai', 'Welcome! How can I assist you today?');
+                console.error('Failed to load history:', err);
             });
     }
 
@@ -149,26 +173,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Add loading state
         const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'message-bubble ai-message italic text-gray-400';
-        loadingDiv.innerText = 'Typing...';
+        loadingDiv.className = 'message-bubble ai-message flex items-center gap-1';
+        loadingDiv.innerHTML = '<span class="dot-bounce"></span><span class="dot-bounce"></span><span class="dot-bounce"></span>';
         chatMessages.appendChild(loadingDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
-        fetch('/ai-support/chat', {
+        fetch(chatRoute, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
             },
             body: JSON.stringify({ message: message })
         })
-        .then(res => {
-            if (!res.ok) {
-                return res.text().then(text => {
-                    throw new Error(`HTTP ${res.status}: ${text || 'Request failed'}`);
-                });
+        .then(async (res) => {
+            const rawText = await res.text().catch(() => '');
+            let parsed = null;
+            try {
+                parsed = rawText ? JSON.parse(rawText) : null;
+            } catch (e) {
+                parsed = null;
             }
-            return res.json();
+
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}: ${rawText || 'Request failed'}`);
+            }
+
+            return parsed || { status: 'error', message: rawText || 'Invalid server response' };
         })
         .then(data => {
             chatMessages.removeChild(loadingDiv);
@@ -179,9 +211,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch((err) => {
-            if (chatMessages.contains(loadingDiv)) {
-                chatMessages.removeChild(loadingDiv);
-            }
+            if (loadingDiv.parentNode) chatMessages.removeChild(loadingDiv);
             console.error('AI chat fetch failed:', err);
             appendMessage('ai', `Request failed: ${err?.message || 'Please check your network/server.'}`);
         });
