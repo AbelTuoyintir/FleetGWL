@@ -18,8 +18,9 @@ class MaintenanceController extends Controller
      */
     public function index()
     {
+        // Bolt: Eager load driver.user to fix N+1 query issue in the maintenance list
         $maintenanceRecords = Maintenance::where('status', '!=', 'deleted')
-            ->with(['vehicle', 'driver'])
+            ->with(['vehicle', 'driver.user'])
             ->latest()
             ->paginate(15);
 
