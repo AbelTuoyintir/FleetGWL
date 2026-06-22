@@ -240,7 +240,6 @@
 @include('components.ai-chat-bot')
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     // Keep sidebar controls working even when a page doesn't define its own handlers.
     function toggleSubMenu(menuId) {
