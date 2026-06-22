@@ -100,14 +100,30 @@
                         </div>
                         <button onclick="closeDetailCard()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
                     </div>
-                    <div class="grid grid-cols-2 gap-3 mb-4">
-                        <div class="bg-blue-50 p-2 rounded-lg">
-                            <p class="text-[10px] text-blue-600 font-bold uppercase">Speed</p>
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div class="bg-blue-50 p-2 rounded-lg border border-blue-100">
+                            <p class="text-[9px] text-blue-600 font-bold uppercase">Speed</p>
                             <p id="cardSpeed" class="text-lg font-black text-blue-900">0 <span class="text-[10px] font-normal">km/h</span></p>
                         </div>
-                        <div class="bg-green-50 p-2 rounded-lg">
-                            <p class="text-[10px] text-green-600 font-bold uppercase">Status</p>
-                            <p id="cardStatus" class="text-sm font-bold text-green-900">Available</p>
+                        <div class="bg-emerald-50 p-2 rounded-lg border border-emerald-100">
+                            <p class="text-[9px] text-emerald-600 font-bold uppercase">Ignition</p>
+                            <p id="cardIgnition" class="text-sm font-bold text-emerald-900">On</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div class="bg-gray-50 p-2 rounded-lg border border-gray-100">
+                            <p class="text-[9px] text-gray-500 font-bold uppercase">Fuel Level</p>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <div class="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                    <div id="cardFuelBar" class="h-full bg-orange-500" style="width: 0%"></div>
+                                </div>
+                                <span id="cardFuelText" class="text-[10px] font-bold text-gray-700">0%</span>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 p-2 rounded-lg border border-gray-100">
+                            <p class="text-[9px] text-gray-500 font-bold uppercase">Battery</p>
+                            <p id="cardBattery" class="text-sm font-bold text-gray-800">12.4V</p>
                         </div>
                     </div>
                     <div class="space-y-2 text-xs text-gray-600">
@@ -115,6 +131,10 @@
                             <span>Driver:</span>
                             <span id="cardDriver" class="font-bold text-gray-900">---</span>
                         </div>
+                    <div class="flex justify-between">
+                        <span>Est. Arrival:</span>
+                        <span id="cardETA" class="font-bold text-gray-900">---</span>
+                    </div>
                         <div class="flex justify-between">
                             <span>Last Update:</span>
                             <span id="cardLastSeen" class="text-gray-400">Just now</span>
@@ -151,6 +171,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
     let map;
+    let tileLayers = {};
     let markers = {};
     let vehiclesData = [];
     let historyPolyline = null;
@@ -192,7 +213,16 @@
         activeTileLayer = L.tileLayer(mapThemes[theme], {
             attribution: '&copy; OpenStreetMap contributors',
             maxZoom: 20
-        }).addTo(map);
+        });
+
+        tileLayers.dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            subdomains: 'abcd',
+            maxZoom: 20
+        });
+
+        tileLayers.satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19
+        });
 
         // Update UI buttons
         ['light', 'dark', 'satellite'].forEach(t => {
@@ -201,6 +231,21 @@
                 btn.classList.add('bg-blue-50', 'text-blue-600');
             } else {
                 btn.classList.remove('bg-blue-50', 'text-blue-600');
+            }
+        });
+    }
+
+    function setMapTheme(theme) {
+        Object.values(tileLayers).forEach(layer => map.removeLayer(layer));
+        tileLayers[theme].addTo(map);
+
+        // Update buttons
+        ['light', 'dark', 'satellite'].forEach(t => {
+            const btn = document.getElementById(`btn-theme-${t}`);
+            if (t === theme) {
+                btn.className = 'px-3 py-1.5 rounded-md text-[10px] font-bold transition bg-blue-600 text-white shadow-sm';
+            } else {
+                btn.className = 'px-3 py-1.5 rounded-md text-[10px] font-bold transition text-gray-400 hover:text-gray-600';
             }
         });
     }
@@ -248,18 +293,29 @@
         container.innerHTML = vehicles.map(v => `
             <div class="vehicle-list-item p-3 ${selectedVehicleId === v.id ? 'active' : ''}" onclick="focusVehicle(${v.id})">
                 <div class="flex justify-between items-start mb-1">
-                    <span class="font-bold text-gray-900">${v.registration_number}</span>
-                    <span class="text-[10px] font-black ${v.is_on_trip ? 'text-blue-600' : 'text-green-500'} uppercase">
-                        ${v.is_on_trip ? 'On Trip' : 'Available'}
-                    </span>
+                    <div class="flex flex-col">
+                        <span class="font-bold text-gray-900 leading-tight">${v.registration_number}</span>
+                        <span class="text-[10px] text-gray-500 uppercase font-medium">${v.make} ${v.model}</span>
+                    </div>
+                    <div class="flex flex-col items-end">
+                        <span class="text-[10px] font-black ${v.ignition === 'on' ? 'text-emerald-600' : 'text-gray-400'} uppercase">
+                            ${v.ignition === 'on' ? 'Ignition On' : 'Ignition Off'}
+                        </span>
+                        <span class="text-[11px] font-bold text-gray-900">${v.speed} km/h</span>
+                    </div>
                 </div>
-                <div class="flex justify-between items-center text-[11px] mb-1">
-                    <span class="text-gray-500">${v.make} ${v.model}</span>
-                    <span class="text-gray-900 font-bold">${v.speed} km/h</span>
-                </div>
-                <div class="flex items-center text-[10px]">
-                    <i class="fas fa-user-circle mr-1 ${v.assigned_driver && v.assigned_driver.online_status === 'online' ? 'text-green-500' : 'text-gray-400'}"></i>
-                    <span class="text-gray-400 truncate">${v.assigned_driver ? v.assigned_driver.name : 'Unassigned'}</span>
+
+                <div class="mt-2 flex items-center justify-between">
+                    <div class="flex items-center text-[10px]">
+                        <i class="fas fa-user-circle mr-1 ${v.assigned_driver && v.assigned_driver.online_status === 'online' ? 'text-green-500' : 'text-gray-400'}"></i>
+                        <span class="text-gray-400 truncate max-w-[80px]">${v.assigned_driver ? v.assigned_driver.name : 'Unassigned'}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-12 h-1 bg-gray-100 rounded-full overflow-hidden">
+                            <div class="h-full ${v.fuel_level < 20 ? 'bg-red-500' : 'bg-emerald-500'}" style="width: ${v.fuel_level}%"></div>
+                        </div>
+                        <span class="text-[9px] font-bold text-gray-500">${v.fuel_level}%</span>
+                    </div>
                 </div>
             </div>
         `).join('');
@@ -270,6 +326,7 @@
             if (!v.current_latitude) return;
 
             const pos = [v.current_latitude, v.current_longitude];
+            const markerColor = v.is_on_trip ? '#2563eb' : '#10b981';
 
             if (markers[v.id]) {
                 markers[v.id].setLatLng(pos);
@@ -342,8 +399,19 @@
         document.getElementById('cardReg').innerText = v.registration_number;
         document.getElementById('cardModel').innerText = `${v.make} ${v.model}`;
         document.getElementById('cardSpeed').innerHTML = `${v.speed} <span class="text-[10px] font-normal">km/h</span>`;
-        document.getElementById('cardStatus').innerText = v.is_on_trip ? 'On Trip' : 'Available';
-        document.getElementById('cardStatus').parentElement.className = `p-2 rounded-lg ${v.is_on_trip ? 'bg-blue-50 text-blue-900' : 'bg-green-50 text-green-900'}`;
+
+        const ignitionEl = document.getElementById('cardIgnition');
+        ignitionEl.innerText = v.ignition === 'on' ? 'Ignition On' : 'Ignition Off';
+        ignitionEl.parentElement.className = `p-2 rounded-lg border ${v.ignition === 'on' ? 'bg-emerald-50 text-emerald-900 border-emerald-100' : 'bg-gray-100 text-gray-600 border-gray-200'}`;
+
+        document.getElementById('cardFuelText').innerText = `${v.fuel_level}%`;
+        const fuelBar = document.getElementById('cardFuelBar');
+        fuelBar.style.width = `${v.fuel_level}%`;
+        fuelBar.className = `h-full ${v.fuel_level < 20 ? 'bg-red-500' : (v.fuel_level < 50 ? 'bg-orange-500' : 'bg-green-500')}`;
+
+        document.getElementById('cardBattery').innerText = `${v.battery}V`;
+        document.getElementById('cardETA').innerText = v.is_on_trip ? `${v.eta} mins` : 'N/A';
+
         document.getElementById('cardDriver').innerText = v.assigned_driver ? v.assigned_driver.name : 'Unassigned';
         document.getElementById('detailsLink').href = `/vehicles/${v.id}`;
 
