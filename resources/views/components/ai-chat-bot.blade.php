@@ -78,6 +78,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatInput = document.getElementById('chat-input');
     const chatMessages = document.getElementById('chat-messages');
 
+    const historyRoute = "{{ route('ai-support.history') }}";
+    const chatRoute = "{{ route('ai-support.chat') }}";
+
     // Toggle Chat
     chatToggle.addEventListener('click', () => {
         const isOpen = chatWindow.classList.contains('chat-window-open');
@@ -97,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadHistory() {
         if (chatMessages.children.length > 0) return; // Only load once
 
-        fetch('/ai-support/history')
+        fetch(historyRoute)
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {
@@ -109,6 +112,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                     }
                 }
+            })
+            .catch(err => {
+                console.error('Failed to load history:', err);
             });
     }
 
@@ -137,11 +143,12 @@ document.addEventListener('DOMContentLoaded', function() {
         chatMessages.appendChild(loadingDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
-        fetch('/ai-support/chat', {
+        fetch(chatRoute, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
             },
             body: JSON.stringify({ message: message })
         })
