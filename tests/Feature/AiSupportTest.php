@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Models\SupportChat;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use OpenAI\Laravel\Facades\OpenAI;
+use OpenAI\Responses\Chat\CreateResponse;
 
 class AiSupportTest extends TestCase
 {
@@ -22,6 +24,21 @@ class AiSupportTest extends TestCase
 
     public function test_user_can_send_message_and_get_ai_response()
     {
+        config(['openai.api_key' => 'test-key']);
+        config(['services.openai.api_key' => 'test-key']);
+
+        OpenAI::fake([
+            CreateResponse::fake([
+                'choices' => [
+                    [
+                        'message' => [
+                            'content' => 'To log fuel, go to the Fuel Management section.',
+                        ],
+                    ],
+                ],
+            ]),
+        ]);
+
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)
@@ -30,8 +47,8 @@ class AiSupportTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'status' => 'success',
-            ])
-            ->assertJsonStructure(['ai_message']);
+                'ai_message' => 'To log fuel, go to the Fuel Management section.',
+            ]);
 
         $this->assertDatabaseHas('support_messages', [
             'message' => 'How to log fuel?',
@@ -39,6 +56,7 @@ class AiSupportTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('support_messages', [
+            'message' => 'To log fuel, go to the Fuel Management section.',
             'sender_type' => 'ai'
         ]);
     }

@@ -5,6 +5,9 @@ namespace App\Services;
 use App\Models\SupportChat;
 use App\Models\SupportMessage;
 use Illuminate\Support\Facades\Auth;
+use OpenAI\Laravel\Facades\OpenAI;
+use Exception;
+use Illuminate\Support\Facades\Log;
 
 class AiSupportService
 {
@@ -16,7 +19,47 @@ class AiSupportService
         );
     }
 
-    public function generateAiResponse(string $userMessage): string
+    public function generateAiResponse(string $userMessage, int $userId): string
+    {
+        $apiKey = config('openai.api_key');
+
+        if ($apiKey) {
+            try {
+                $history = $this->getChatHistory($userId)->slice(-10);
+                $messages = [
+                    ['role' => 'system', 'content' => "You are a 24/7 AI support agent for the Ghana Water Limited (GWL) Fleet Management system.
+                    You help users with fleet unit registration, live tracking, fuel management, maintenance schedules, driver hub assignments, reports, analytics, and document compliance.
+                    Be helpful, professional, and concise. If you don't know something about the specific system implementation, refer them to the system administrator.
+                    Current date: " . now()->toDateTimeString()]
+                ];
+
+                foreach ($history as $msg) {
+                    $messages[] = [
+                        'role' => $msg->sender_type === 'user' ? 'user' : 'assistant',
+                        'content' => $msg->message
+                    ];
+                }
+
+                // Add current message if not already in history (history is loaded before this call in processMessage usually)
+                // But let's assume history doesn't have it yet since it's being processed
+                $messages[] = ['role' => 'user', 'content' => $userMessage];
+
+                $response = OpenAI::chat()->create([
+                    'model' => config('openai.model', 'gpt-4o'),
+                    'messages' => $messages,
+                ]);
+
+                return $response->choices[0]->message->content;
+            } catch (Exception $e) {
+                Log::error("OpenAI Error: " . $e->getMessage());
+                // Fallback to keyword matching
+            }
+        }
+
+        return $this->generateSimulatedResponse($userMessage);
+    }
+
+    protected function generateSimulatedResponse(string $userMessage): string
     {
         // Simulated AI logic for now
         $lowerMsg = strtolower($userMessage);
@@ -76,7 +119,7 @@ class AiSupportService
         ]);
 
         // Generate and save AI response
-        $aiResponseText = $this->generateAiResponse($messageText);
+        $aiResponseText = $this->generateAiResponse($messageText, $userId);
 
         return SupportMessage::create([
             'support_chat_id' => $chat->id,
