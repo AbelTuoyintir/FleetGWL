@@ -58,23 +58,23 @@
                     </div>
                     <span class="text-white font-bold tracking-wide">AI Concept Explainer</span>
                 </div>
-                <div class="p-5">
-                    <p class="text-blue-100 text-xs mb-4 leading-relaxed">
-                        Difficult concept? Paste it here and I'll explain it simply.
-                    </p>
-                    <div class="space-y-3">
-                        <input type="text" id="aiConceptInput" placeholder="e.g. Eloquent"
-                               class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-blue-300/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-sm">
-                        <button onclick="askAI()" id="aiAskBtn"
-                                class="w-full bg-cyan-400 hover:bg-cyan-300 text-indigo-950 font-bold py-2 rounded-lg transition text-sm flex items-center justify-center">
-                            <span id="aiBtnText">Explain Concept</span>
-                            <i id="aiBtnLoader" class="fas fa-circle-notch fa-spin hidden"></i>
-                        </button>
+                <div class="p-5 flex flex-col h-[400px]">
+                    <div id="aiChatBox" class="flex-1 overflow-y-auto mb-4 space-y-4 pr-2 custom-scrollbar">
+                        <div class="text-blue-100 text-xs leading-relaxed opacity-70">
+                            Hi! I'm your AI assistant. Ask me anything about this module or technical concepts you find difficult.
+                        </div>
                     </div>
 
-                    <div id="aiResponse" class="mt-6 hidden animate-fadeIn">
-                        <div class="text-[10px] uppercase tracking-widest text-cyan-400 font-bold mb-2">Explanation:</div>
-                        <div id="aiResponseText" class="text-sm text-blue-50 leading-relaxed italic border-l-2 border-cyan-400 pl-3">
+                    <div class="mt-auto">
+                        <div class="relative">
+                            <input type="text" id="aiConceptInput" placeholder="Ask a question..."
+                                   class="w-full pl-4 pr-10 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-blue-300/50 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-sm"
+                                   onkeydown="if(event.key==='Enter') askAI()">
+                            <button onclick="askAI()" id="aiAskBtn"
+                                    class="absolute right-2 top-1.5 text-cyan-400 hover:text-cyan-300 transition disabled:opacity-50">
+                                <i id="aiBtnText" class="fas fa-paper-plane"></i>
+                                <i id="aiBtnLoader" class="fas fa-circle-notch fa-spin hidden"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -84,6 +84,22 @@
 </div>
 
 <script>
+    function appendMessage(role, text) {
+        const chatBox = document.getElementById('aiChatBox');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `animate-fadeIn ${role === 'user' ? 'text-right' : ''}`;
+
+        const inner = document.createElement('div');
+        inner.className = `inline-block p-3 rounded-xl text-sm ${role === 'user'
+            ? 'bg-white/20 text-white rounded-br-none'
+            : 'bg-cyan-400/10 text-blue-50 italic border-l-2 border-cyan-400 rounded-bl-none'}`;
+
+        inner.innerText = text;
+        msgDiv.appendChild(inner);
+        chatBox.appendChild(msgDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
     function askAI() {
         const input = document.getElementById('aiConceptInput');
         const concept = input.value.trim();
@@ -92,8 +108,10 @@
         const btn = document.getElementById('aiAskBtn');
         const btnText = document.getElementById('aiBtnText');
         const loader = document.getElementById('aiBtnLoader');
-        const responseDiv = document.getElementById('aiResponse');
-        const responseText = document.getElementById('aiResponseText');
+
+        // Append user message
+        appendMessage('user', concept);
+        input.value = '';
 
         // Loading state
         btn.disabled = true;
@@ -114,9 +132,12 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                responseText.innerText = data.explanation;
-                responseDiv.classList.remove('hidden');
+                appendMessage('ai', data.explanation);
             }
+        })
+        .catch(err => {
+            console.error(err);
+            appendMessage('ai', 'Sorry, I encountered an error connecting to the brain. Please try again.');
         })
         .finally(() => {
             btn.disabled = false;
@@ -127,6 +148,10 @@
 </script>
 
 <style>
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(10px); }
         to { opacity: 1; transform: translateY(0); }

@@ -3,30 +3,70 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class AiSupportService
 {
     /**
-     * Get an explanation for a concept.
-     *
-     * @param string $concept
-     * @param string|null $context
-     * @return string
+     * Get an explanation for a concept using a real LLM if configured.
      */
     public function explainConcept(string $concept, string $context = null): string
     {
-        $cacheKey = 'ai_explanation_' . md5($concept . ($context ?? ''));
+        $apiKey = config('services.ai.key');
+        $baseUrl = config('services.ai.base_url', 'https://api.openai.com/v1');
+        $model = config('services.ai.model', 'gpt-3.5-turbo');
 
-        return Cache::remember($cacheKey, 3600, function () use ($concept, $context) {
-            // In a real scenario, this would call an AI API like OpenAI or Gemini.
-            // For this project, we'll simulate a helpful AI response.
+        if (!$apiKey) {
+            return $this->generateMockExplanation($concept, $context);
+        }
+
+        $cacheKey = 'ai_llm_explanation_' . md5($concept . ($context ?? ''));
+
+        return Cache::remember($cacheKey, 3600, function () use ($concept, $context, $apiKey, $baseUrl, $model) {
+            try {
+                $response = Http::withToken($apiKey)
+                    ->timeout(10)
+                    ->post("{$baseUrl}/chat/completions", [
+                        'model' => $model,
+                        'messages' => [
+                            [
+                                'role' => 'system',
+                                'content' => "You are an empathetic, human-like teaching assistant for the GWCL Asset Portal learning platform.
+                                The platform is a vehicle maintenance and fuel management system with an integrated learning section.
+                                Your goal is to explain complex technical concepts to students simply and warmly.
+
+                                System Rules You Should Know:
+                                - Module Quizzes: 60 random questions.
+                                - Final Exams: 200 random questions (requires passing all modules first).
+                                - Lockout Rule: 4 failed attempts on a module quiz denies access until further study.
+                                - Tracking: We have a live vehicle tracking dashboard.
+
+                                If asked about these, respond like a helpful staff member. Always be encouraging and relatable."
+                            ],
+                            [
+                                'role' => 'user',
+                                'content' => "Explain this concept to me: '{$concept}'" . ($context ? " in the context of {$context}." : ".")
+                            ]
+                        ],
+                        'temperature' => 0.7,
+                    ]);
+
+                if ($response->successful()) {
+                    return $response->json('choices.0.message.content');
+                }
+
+                Log::error('AI API Error: ' . $response->body());
+            } catch (\Exception $e) {
+                Log::error('AI Service Exception: ' . $e->getMessage());
+            }
 
             return $this->generateMockExplanation($concept, $context);
         });
     }
 
     /**
-     * Generate a mock explanation.
+     * Generate a mock explanation (fallback).
      */
     protected function generateMockExplanation(string $concept, string $context = null): string
     {
