@@ -23,8 +23,9 @@ class VehicleTrackingController extends Controller
      */
     public function getVehiclesLocations()
     {
+        // Bolt: Eager load assignedDriver.user to prevent N+1 queries when accessing driver names/status
         $vehicles = Vehicle::where('status', '!=', 'deleted')
-            ->with(['assignedDriver:id,name,online_status'])
+            ->with(['assignedDriver.user:id,name,online_status'])
             ->select([
                 'id',
                 'registration_number',
