@@ -272,9 +272,10 @@ class DashboardController extends Controller
         // Get upcoming maintenance with vehicle details
         $upcomingVehicleMaintenance = collect();
         if ($hasVehicleMaintenanceTable && $maintenanceDueColumn) {
+            // Eager load nested user relation to fix N+1 query issue when displaying driver names
             $upcomingVehicleMaintenance = Maintenance::where('status', '!=', 'deleted')
                 ->with(['vehicle' => function($q) {
-                    $q->select('id', 'plate_number', 'make', 'model', 'make_model');
+                    $q->select('id', 'plate_number', 'make', 'model')->with('assignedDriver.user:id,name');
                 }])
                 ->where('status', '!=', 'completed')
                 ->where($maintenanceDueColumn, '<=', $thirtyDaysFromNow)
@@ -316,8 +317,9 @@ class DashboardController extends Controller
         }
 
         // 7. Recent Vehicles
+        // Bolt: Eager loading assignedDriver.user to avoid N+1 queries in the dashboard table
         $recentVehicles = Vehicle::where('status', '!=', 'deleted')
-            ->with(['region:id,name', 'assignedDriver:id,name'])
+            ->with(['region:id,name', 'assignedDriver.user:id,name'])
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get()

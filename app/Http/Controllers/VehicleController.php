@@ -457,8 +457,9 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
     public function getVehiclesData(Request $request)
     {
         try {
+            // Bolt: Eager load assignedDriver.user to avoid N+1 queries in the vehicles table
             $query = Vehicle::where('vehicles.status', '!=', 'deleted')
-                ->with(['region', 'district', 'station', 'assignedDriver']);
+                ->with(['region', 'district', 'station', 'assignedDriver.user']);
             
             // Apply filters
             if ($request->filled('status')) {
@@ -1055,7 +1056,8 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
     public function getVehicleDetails($id)
     {
         try {
-            $vehicle = Vehicle::with(['assignedDriver:id,name', 'region:id,name'])
+            // Bolt: Eager load driver user data
+            $vehicle = Vehicle::with(['assignedDriver.user', 'region:id,name'])
                 ->findOrFail($id);
             
             return response()->json([
