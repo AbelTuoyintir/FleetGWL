@@ -1059,7 +1059,7 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
             // Bolt: Eager load driver user data
             $vehicle = Vehicle::with(['assignedDriver.user', 'region:id,name'])
                 ->findOrFail($id);
-            
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -1073,14 +1073,121 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
                     'fuel_type' => $vehicle->fuel_type ?? 'petrol',
                     'driver_id' => $vehicle->assigned_driver_id,
                     'driver_name' => $vehicle->assignedDriver ? $vehicle->assignedDriver->name : null,
-                    'status' => $vehicle->status
+                    'status' => $vehicle->status,
                 ]
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Vehicle not found'
+                'message' => 'Vehicle not found',
             ], 404);
         }
     }
+
+    /**
+     * Create a Job Order form for a vehicle.
+     *
+     * NOTE: Your app already uses the Maintenance model for dispatch/approval.
+     * These routes expect job-order methods on this controller, so we map
+     * job orders to Maintenance records.
+     */
+    public function createJobOrder(Vehicle $vehicle)
+    {
+        // If you later add a dedicated Blade, you can swap this view.
+        return redirect()
+            ->route('maintenance.show', ['id' => $vehicle->id])
+            ->with('info', 'Job order creation is handled via Maintenance scheduling UI.');
+    }
+
+    /**
+     * Store a Job Order (mapped to a Maintenance record).
+     */
+    public function storeJobOrder(Request $request, Vehicle $vehicle)
+    {
+        try {
+            $validated = $request->validate([
+                'maintenance_type' => 'required|string|max:255',
+                'other_maintenance_type' => 'nullable|string|max:255',
+                'maintenance_date' => 'required|date',
+                'mileage_at_service' => 'nullable|integer|min:0',
+                'driver_id' => 'nullable|exists:drivers,id',
+                'checklist' => 'nullable|array',
+                'maintenance_notes' => 'nullable|string|max:1000',
+                'status' => 'nullable|in:waiting,dispatched,scheduled,completed,cancelled',
+            ]);
+
+            if (($validated['maintenance_type'] ?? null) === 'other' && !empty($validated['other_maintenance_type'])) {
+                $validated['maintenance_type'] = $validated['other_maintenance_type'];
+            }
+
+            // Driver role requests should go into waiting state
+            $user = auth()->user();
+            if ($user && method_exists($user, 'isDriver') && $user->isDriver()) {
+                $validated['status'] = 'waiting';
+                $validated['driver_id'] = $validated['driver_id'] ?? optional($user->driver)->id;
+            } else {
+                $validated['status'] = $validated['status'] ?? 'dispatched';
+            }
+
+            $validated['vehicle_id'] = $vehicle->id;
+            $validated['date'] = $validated['maintenance_date'];
+            $validated['description'] = $validated['maintenance_notes'] ?? ($validated['description'] ?? null);
+            $validated['created_by'] = auth()->id();
+
+            $maintenance = Maintenance::create($validated);
+
+            // Update vehicle status to reflect maintenance
+            $vehicle->update(['status' => 'maintenance']);
+
+            return redirect()
+                ->back()
+                ->with('success', 'Job order created successfully. Maintenance record #' . $maintenance->id . ' created.');
+        } catch (\Throwable $e) {
+            return back()->withErrors(['error' => 'Failed to store job order: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * List job orders for a vehicle.
+     */
+    public function jobOrders(Vehicle $vehicle)
+    {
+        $jobOrders = $vehicle->maintenances()
+            ->where('status', '!=', 'deleted')
+            ->orderByDesc('created_at')
+            ->paginate(15);
+
+        return view('vehicle-maintenance.index', [
+            'maintenanceRecords' => $jobOrders,
+        ]);
+    }
+
+    /**
+     * Update job order status.
+     */
+    public function updateJobOrderStatus(
+        Request $request,
+        Vehicle $vehicle,
+        Maintenance $maintenance
+    ) {
+        $validated = $request->validate([
+            'status' => 'required|in:waiting,dispatched,scheduled,completed,cancelled',
+        ]);
+
+        if ($maintenance->vehicle_id !== $vehicle->id) {
+            abort(404);
+        }
+
+        $maintenance->update([
+            'status' => $validated['status'],
+            'modified_by' => auth()->id(),
+        ]);
+
+        if ($validated['status'] === 'completed') {
+            $vehicle->update(['status' => 'active']);
+        }
+
+        return redirect()->back()->with('success', 'Job order status updated successfully.');
+    }
 }
+
