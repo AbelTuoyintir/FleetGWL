@@ -5,17 +5,17 @@
     </button>
 
     <!-- Chat Window -->
-    <div id="chat-window" class="hidden absolute bottom-16 right-0 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden transition-all duration-300 origin-bottom-right transform scale-95 opacity-0">
+    <div id="chat-window" role="dialog" aria-label="AI Support Chat Window" class="hidden absolute bottom-16 right-0 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden transition-all duration-300 origin-bottom-right transform scale-95 opacity-0">
         <!-- Header -->
         <div class="bg-blue-600 p-4 text-white flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                    <i class="fas fa-robot"></i>
+                    <i class="fas fa-robot" aria-hidden="true"></i>
                 </div>
                 <div>
                     <h3 class="font-bold text-sm">System Support</h3>
                     <p class="text-[10px] text-blue-100 flex items-center gap-1">
-                        <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                        <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse" aria-hidden="true"></span>
                         AI Agent Online 24/7
                     </p>
                 </div>
@@ -47,6 +47,13 @@
         display: flex !important;
         transform: scale(1) !important;
         opacity: 1 !important;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-out forwards;
     }
     .message-bubble {
         max-width: 85%;
