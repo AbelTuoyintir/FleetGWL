@@ -98,7 +98,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (chatMessages.children.length > 0) return; // Only load once
 
         fetch('/ai-support/history')
-            .then(res => res.json())
+            .then(async (res) => {
+                if (!res.ok) {
+                    const text = await res.text().catch(() => '');
+                    throw new Error(`HTTP ${res.status}: ${text || 'Request failed'}`);
+                }
+                return res.json();
+            })
             .then(data => {
                 if (data.status === 'success') {
                     if (data.history.length === 0) {
@@ -109,6 +115,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                     }
                 }
+            })
+            .catch((err) => {
+                console.error('AI history fetch failed:', err);
+                appendMessage('ai', `Request failed: ${err?.message || 'Please check your network/server.'}`);
             });
     }
 
@@ -145,13 +155,20 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({ message: message })
         })
-        .then(res => res.json())
         .then(async (res) => {
-            if (!res.ok) {
-                const text = await res.text().catch(() => '');
-                throw new Error(`HTTP ${res.status}: ${text || 'Request failed'}`);
+            const rawText = await res.text().catch(() => '');
+            let parsed = null;
+            try {
+                parsed = rawText ? JSON.parse(rawText) : null;
+            } catch (e) {
+                parsed = null;
             }
-            return res.json();
+
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}: ${rawText || 'Request failed'}`);
+            }
+
+            return parsed || { status: 'error', message: rawText || 'Invalid server response' };
         })
         .then(data => {
             chatMessages.removeChild(loadingDiv);

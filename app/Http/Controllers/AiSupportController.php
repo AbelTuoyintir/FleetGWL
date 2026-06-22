@@ -21,12 +21,21 @@ class AiSupportController extends Controller
             'message' => 'required|string|max:1000',
         ]);
 
-        $aiMessage = $this->aiSupportService->processMessage(Auth::id(), $request->message);
+        try {
+            $aiMessage = $this->aiSupportService->processMessage(Auth::id(), $request->message);
 
-        return response()->json([
-            'status' => 'success',
-            'ai_message' => $aiMessage->message,
-        ]);
+            return response()->json([
+                'status' => 'success',
+                'ai_message' => (is_object($aiMessage) && isset($aiMessage->message))
+                    ? (string) $aiMessage->message
+                    : (string) ($aiMessage->message ?? $aiMessage ?? 'Sorry, I could not generate a response.'),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'AI chat failed.',
+            ], 500);
+        }
     }
 
     public function getHistory()

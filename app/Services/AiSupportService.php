@@ -10,11 +10,18 @@ class AiSupportService
 {
     public function getOrCreateChat(int $userId)
     {
-        return SupportChat::firstOrCreate(
-            ['user_id' => $userId, 'status' => 'active'],
-            ['subject' => 'AI System Support']
-        );
+        // If the required tables were never migrated (e.g. support_chats/support_messages),
+        // don't crash the whole app.
+        try {
+            return SupportChat::firstOrCreate(
+                ['user_id' => $userId, 'status' => 'active'],
+                ['subject' => 'AI System Support']
+            );
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
+
 
     public function generateAiResponse(string $userMessage): string
     {
@@ -44,6 +51,14 @@ class AiSupportService
     {
         $chat = $this->getOrCreateChat($userId);
 
+        // If DB tables are missing, degrade gracefully.
+        if (!$chat) {
+            $aiResponseText = $this->generateAiResponse($messageText);
+            return (object) [
+                'message' => $aiResponseText
+            ];
+        }
+
         // Save user message
         SupportMessage::create([
             'support_chat_id' => $chat->id,
@@ -61,9 +76,15 @@ class AiSupportService
         ]);
     }
 
+
     public function getChatHistory(int $userId)
     {
         $chat = $this->getOrCreateChat($userId);
+        if (!$chat) {
+            return collect();
+        }
+
         return $chat->messages()->orderBy('created_at', 'asc')->get();
     }
+
 }
