@@ -29,6 +29,9 @@
                 <p class="text-gray-500 text-xs mt-0.5">Ghana Water Company Limited - Real-time fleet intelligence</p>
             </div>
             <div class="flex gap-2 mt-2 sm:mt-0">
+                <a href="{{ route('vehicles.tracking') }}" class="bg-blue-600 text-white rounded-lg px-4 py-1.5 text-xs font-bold hover:bg-blue-700 transition flex items-center shadow-sm">
+                    <i class="fas fa-map-marked-alt mr-2"></i> Live Fleet Map
+                </a>
                 <span class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs">
                     <i class="far fa-calendar-alt mr-1"></i> <span id="dashboardDate">{{ now()->format('F j, Y') }}</span>
                 </span>
@@ -216,12 +219,17 @@
                                 $total = (int)($totalVehicles ?? 0);
                                 $count = (int)($r->count ?? 0);
                                 $pct = $total > 0 ? round(($count / $total) * 100, 1) : 0;
+
+                                // $r is sometimes a plain string (e.g. region name) rather than an object.
+                                $regionName = is_object($r)
+                                    ? ($r->region_name ?? ($r->region?->name ?? $r->name ?? '-'))
+                                    : (is_string($r) ? $r : '-');
                             @endphp
                             <div class="flex justify-between items-center">
-                                <span class="text-gray-700 text-sm">{{ $r->region_name }}</span>
+                                <span class="text-gray-700 text-sm">{{ $regionName }}</span>
                                 <div class="flex items-center gap-2">
                                     <div class="w-32 h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-blue-600 rounded-full" style="width: {{ $pct }}%"></div></div>
-                                    <span class="text-xs font-semibold">{{ $r->count }}</span>
+                                    <span class="text-xs font-semibold">{{ $count }}</span>
                                 </div>
                             </div>
                         @empty

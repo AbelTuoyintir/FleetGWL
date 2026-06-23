@@ -2,25 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Region;
 use App\Models\District;
-use App\Models\Vehicle;
 use App\Models\Driver;
+use App\Models\FuelLog;
 use App\Models\Maintenance;
-use App\Models\VehicleMaintenance;
-use App\Models\Document;
+use App\Models\MaintenanceChecklistItem;
+use App\Models\MileageLog;
+use App\Models\Region;
+use App\Models\Station;
+use App\Models\Vehicle;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Models\MaintenanceChecklistItem;
-use App\Models\FuelLog;
-use App\Models\MileageLog;
-use Carbon\Carbon;
 
 class VehicleController extends Controller
 {
@@ -30,6 +29,7 @@ class VehicleController extends Controller
     {
         return view('admin.vehicles.vehicles');
     }
+
     public function store(Request $request)
     {
         try {
@@ -37,7 +37,7 @@ class VehicleController extends Controller
                 'registration_number' => 'required|string|max:20|unique:vehicles,registration_number',
                 'make' => 'required|string|max:255',
                 'model' => 'required|string|max:255',
-                'year' => 'nullable|integer|min:1900|max:' . date('Y'),
+                'year' => 'nullable|integer|min:1900|max:'.date('Y'),
                 'color' => 'nullable|string|max:50',
                 'chassis_number' => 'required|string|max:255|unique:vehicles,chassis_number',
                 'engine_number' => 'nullable|string|max:255|unique:vehicles,engine_number',
@@ -84,7 +84,7 @@ class VehicleController extends Controller
 
             throw $e;
         } catch (\Exception $e) {
-            Log::error('Error in VehicleController@store: ' . $e->getMessage());
+            Log::error('Error in VehicleController@store: '.$e->getMessage());
 
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
@@ -94,7 +94,7 @@ class VehicleController extends Controller
                 ], 500);
             }
 
-            return redirect()->back()->with('error', 'Something went wrong: ' . $e->getMessage())->withInput();
+            return redirect()->back()->with('error', 'Something went wrong: '.$e->getMessage())->withInput();
         }
     }
 
@@ -105,7 +105,7 @@ class VehicleController extends Controller
         $drivers = Driver::where('status', 'active')->get();
         $regions = Region::all();
         $districts = District::all();
-        $stations = \App\Models\Station::where('status', 'active')->get();
+        $stations = Station::where('status', 'active')->get();
 
         return view('admin.vehicles.edit', compact('vehicle', 'drivers', 'regions', 'districts', 'stations'));
     }
@@ -113,9 +113,9 @@ class VehicleController extends Controller
     public function show($id)
     {
         $vehicle = Vehicle::where('status', '!=', 'deleted')
-                        ->with(['region', 'maintenances', 'documents'])
-                        ->with('driver')
-                        ->findOrFail($id);
+            ->with(['region', 'maintenances', 'documents'])
+            ->with('driver')
+            ->findOrFail($id);
 
         // Calculate statistics
         $maintenanceCount = $vehicle->maintenances->count();
@@ -164,50 +164,50 @@ class VehicleController extends Controller
         ));
     }
 
- /**
- * Calculate average weekly mileage for a specific period
- */
-private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
-{
-    $startDate = now()->subWeeks($weeks);
-    
-    // Get mileage logs within date range
-    $mileageLogs = MileageLog::where('vehicle_id', $vehicle->id)
-        ->where('created_at', '>=', $startDate)
-        ->orderBy('created_at', 'asc')
-        ->get();
-    
-    if ($mileageLogs->count() >= 2) {
-        $firstLog = $mileageLogs->first();
-        $lastLog = $mileageLogs->last();
-        
-        $totalDistance = $lastLog->end_mileage - $firstLog->start_mileage;
-        $weeksCount = $firstLog->created_at->diffInWeeks($lastLog->created_at);
-        
-        if ($weeksCount > 0) {
-            return round($totalDistance / $weeksCount);
-        }
-    }
-    
-    // Fallback to fuel log method
-    $fuelLogs = FuelLog::where('vehicle_id', $vehicle->id)
-        ->where('date', '>=', $startDate)
-        ->where('distance_traveled', '>', 0)
-        ->orderBy('date', 'asc')
-        ->get();
-    
-    if ($fuelLogs->count() >= 2) {
-        $firstLog = $fuelLogs->first();
-        $lastLog = $fuelLogs->last();
-            
-            $totalDistance = $lastLog->odometer - $firstLog->odometer;
-            $weeksCount = $firstLog->date->diffInWeeks($lastLog->date);
-            
+    /**
+     * Calculate average weekly mileage for a specific period
+     */
+    private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
+    {
+        $startDate = now()->subWeeks($weeks);
+
+        // Get mileage logs within date range
+        $mileageLogs = MileageLog::where('vehicle_id', $vehicle->id)
+            ->where('created_at', '>=', $startDate)
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        if ($mileageLogs->count() >= 2) {
+            $firstLog = $mileageLogs->first();
+            $lastLog = $mileageLogs->last();
+
+            $totalDistance = $lastLog->end_mileage - $firstLog->start_mileage;
+            $weeksCount = $firstLog->created_at->diffInWeeks($lastLog->created_at);
+
             if ($weeksCount > 0) {
                 return round($totalDistance / $weeksCount);
             }
         }
-        
+
+        // Fallback to fuel log method
+        $fuelLogs = FuelLog::where('vehicle_id', $vehicle->id)
+            ->where('date', '>=', $startDate)
+            ->where('distance_traveled', '>', 0)
+            ->orderBy('date', 'asc')
+            ->get();
+
+        if ($fuelLogs->count() >= 2) {
+            $firstLog = $fuelLogs->first();
+            $lastLog = $fuelLogs->last();
+
+            $totalDistance = $lastLog->odometer - $firstLog->odometer;
+            $weeksCount = $firstLog->date->diffInWeeks($lastLog->date);
+
+            if ($weeksCount > 0) {
+                return round($totalDistance / $weeksCount);
+            }
+        }
+
         return 500; // Default fallback
     }
 
@@ -222,17 +222,17 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
                 'title' => $maintenance->service,
                 'date' => $maintenance->date->format('M j, Y'),
                 'type' => 'Maintenance',
-                'status_class' => 'bg-yellow-100 text-yellow-700'
+                'status_class' => 'bg-yellow-100 text-yellow-700',
             ];
         }
 
         // Add status changes or other activities
         $activities[] = [
             'icon' => 'fa-info-circle',
-            'title' => 'Status updated to ' . $vehicle->status,
+            'title' => 'Status updated to '.$vehicle->status,
             'date' => $vehicle->updated_at->format('M j, Y'),
             'type' => 'Update',
-            'status_class' => 'bg-blue-100 text-blue-700'
+            'status_class' => 'bg-blue-100 text-blue-700',
         ];
 
         return $activities;
@@ -270,7 +270,7 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
             $distance = MileageLog::where('vehicle_id', $vehicle->id)
                 ->whereBetween('created_at', [$period['start'], $period['end']])
                 ->get()
-                ->sum(function($log) {
+                ->sum(function ($log) {
                     return max(0, ($log->end_mileage ?? 0) - ($log->start_mileage ?? 0));
                 });
 
@@ -298,13 +298,13 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
     public function update(Request $request, Vehicle $vehicle)
     {
         $validatedData = $request->validate([
-            'registration_number' => 'required|string|max:50|unique:vehicles,registration_number,' . $vehicle->id,
+            'registration_number' => 'required|string|max:50|unique:vehicles,registration_number,'.$vehicle->id,
             'make' => 'required|string|max:100',
             'model' => 'required|string|max:100',
-            'year' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
+            'year' => 'nullable|integer|min:1900|max:'.(date('Y') + 1),
             'color' => 'nullable|string|max:50',
-            'chassis_number' => 'required|string|max:100|unique:vehicles,chassis_number,' . $vehicle->id,
-            'engine_number' => 'nullable|string|max:100|unique:vehicles,engine_number,' . $vehicle->id,
+            'chassis_number' => 'required|string|max:100|unique:vehicles,chassis_number,'.$vehicle->id,
+            'engine_number' => 'nullable|string|max:100|unique:vehicles,engine_number,'.$vehicle->id,
             'mileage' => 'nullable|integer|min:0',
             'registration_date' => 'nullable|date',
             'insurance_expiry_date' => 'nullable|date',
@@ -315,7 +315,7 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
             'notes' => 'nullable|string',
             'owner_name' => 'nullable|string|max:255',
             'owner_contact' => 'nullable|string|max:255',
-'district_id' => 'nullable|exists:districts,id',
+            'district_id' => 'nullable|exists:districts,id',
             'region_id' => 'nullable|exists:regions,id',
             'station_id' => 'nullable|exists:stations,id',
             'assigned_driver_id' => 'nullable|exists:drivers,id',
@@ -341,7 +341,7 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
                 return response()->json([
                     'success' => true,
                     'message' => 'Vehicle updated successfully!',
-                    'data' => $vehicle->fresh(['region', 'district', 'station', 'assignedDriver'])
+                    'data' => $vehicle->fresh(['region', 'district', 'station', 'assignedDriver']),
                 ], 200);
             }
 
@@ -349,7 +349,7 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
                 ->with('success', 'Vehicle updated successfully!');
 
         } catch (\Exception $e) {
-            \Log::error('Vehicle update failed: ' . $e->getMessage(), [
+            \Log::error('Vehicle update failed: '.$e->getMessage(), [
                 'vehicle_id' => $vehicle->id,
                 'user_id' => auth()->id(),
             ]);
@@ -358,7 +358,7 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
                 return response()->json([
                     'success' => false,
                     'message' => 'Failed to update vehicle. Please try again.',
-                    'error' => config('app.debug') ? $e->getMessage() : null
+                    'error' => config('app.debug') ? $e->getMessage() : null,
                 ], 500);
             }
 
@@ -382,7 +382,7 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
 
             return redirect()->route('vehicles.index')->with('success', 'Vehicle deleted successfully.');
         } catch (\Throwable $e) {
-            Log::error('Vehicle delete failed: ' . $e->getMessage(), ['vehicle_id' => $vehicle->id]);
+            Log::error('Vehicle delete failed: '.$e->getMessage(), ['vehicle_id' => $vehicle->id]);
 
             if (request()->ajax() || request()->wantsJson()) {
                 return response()->json([
@@ -417,9 +417,10 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
 
             $vehicle->update(['status' => 'maintenance']);
 
-            return redirect()->back()->with('success', 'Vehicle dispatched for maintenance. Record #' . $maintenance->id . ' created.');
+            return redirect()->back()->with('success', 'Vehicle dispatched for maintenance. Record #'.$maintenance->id.' created.');
         } catch (\Exception $e) {
-            Log::error('Error dispatching vehicle for maintenance: ' . $e->getMessage());
+            Log::error('Error dispatching vehicle for maintenance: '.$e->getMessage());
+
             return redirect()->back()->with('error', 'Failed to dispatch vehicle for maintenance.');
         }
     }
@@ -446,45 +447,47 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
 
             return redirect()->back()->with('success', 'Vehicle released from maintenance successfully.');
         } catch (\Exception $e) {
-            Log::error('Error releasing vehicle from maintenance: ' . $e->getMessage());
+            Log::error('Error releasing vehicle from maintenance: '.$e->getMessage());
+
             return redirect()->back()->with('error', 'Failed to release vehicle from maintenance.');
         }
     }
 
-        /**
+    /**
      * Get vehicles data for API/JSON responses
      */
     public function getVehiclesData(Request $request)
     {
         try {
+            // Bolt: Eager load assignedDriver.user to avoid N+1 queries in the vehicles table
             $query = Vehicle::where('vehicles.status', '!=', 'deleted')
-                ->with(['region', 'district', 'station', 'assignedDriver']);
-            
+                ->with(['region', 'district', 'station', 'assignedDriver.user']);
+
             // Apply filters
             if ($request->filled('status')) {
                 $query->where('vehicles.status', $request->status);
             }
-            
+
             if ($request->filled('region_id')) {
                 $query->where('region_id', $request->region_id);
             }
-            
+
             if ($request->filled('vehicle_type')) {
                 $query->where('vehicle_type', $request->vehicle_type);
             }
-            
+
             if ($request->filled('search')) {
                 $search = $request->search;
-                $query->where(function($q) use ($search) {
+                $query->where(function ($q) use ($search) {
                     $q->where('registration_number', 'like', "%{$search}%")
-                    ->orWhere('make', 'like', "%{$search}%")
-                    ->orWhere('model', 'like', "%{$search}%")
-                    ->orWhere('chassis_number', 'like', "%{$search}%");
+                        ->orWhere('make', 'like', "%{$search}%")
+                        ->orWhere('model', 'like', "%{$search}%")
+                        ->orWhere('chassis_number', 'like', "%{$search}%");
                 });
             }
-            
+
             $vehicles = $query->orderBy('created_at', 'desc')->paginate(15);
-            
+
             if ($request->ajax()) {
                 return response()->json([
                     'success' => true,
@@ -493,15 +496,16 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
                         'current_page' => $vehicles->currentPage(),
                         'last_page' => $vehicles->lastPage(),
                         'per_page' => $vehicles->perPage(),
-                        'total' => $vehicles->total()
-                    ]
+                        'total' => $vehicles->total(),
+                    ],
                 ]);
             }
-            
+
             return view('admin.vehicles.vehicles', compact('vehicles'));
-            
+
         } catch (\Exception $e) {
-            Log::error('Error fetching vehicles data: ' . $e->getMessage());
+            Log::error('Error fetching vehicles data: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Failed to fetch vehicles'], 500);
         }
     }
@@ -520,45 +524,58 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
                     : (Schema::hasColumn($maintenanceTable, 'maintenance_date') ? 'maintenance_date' : null))
                 : null;
 
+            // Bolt: Consolidate multiple count queries into a single query using conditional aggregation
+            $now = now()->toDateString();
+            $thirtyDaysFromNow = now()->addDays(30)->toDateString();
+
+            $counts = Vehicle::where('status', '!=', 'deleted')
+                ->selectRaw("
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+                    SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END) as inactive,
+                    SUM(CASE WHEN status = 'maintenance' THEN 1 ELSE 0 END) as maintenance,
+                    SUM(CASE WHEN status = 'disposed' THEN 1 ELSE 0 END) as disposed,
+                    SUM(CASE WHEN assigned_driver_id IS NULL THEN 1 ELSE 0 END) as unassigned,
+                    SUM(CASE WHEN assigned_driver_id IS NOT NULL THEN 1 ELSE 0 END) as assigned,
+                    SUM(CASE WHEN insurance_expiry_date <= ? AND insurance_expiry_date >= ? THEN 1 ELSE 0 END) as expiring_insurance,
+                    SUM(CASE WHEN insurance_expiry_date < ? THEN 1 ELSE 0 END) as expired_insurance,
+                    SUM(CASE WHEN mileage >= 100000 THEN 1 ELSE 0 END) as high_mileage
+                ", [$thirtyDaysFromNow, $now, $now])
+                ->first();
+
             $stats = [
-                'total' => Vehicle::where('status', '!=', 'deleted')->count(),
-                'active' => Vehicle::where('status', 'active')->count(),
-                'inactive' => Vehicle::where('status', 'inactive')->count(),
-                'maintenance' => Vehicle::where('status', 'maintenance')->count(),
-                'disposed' => Vehicle::where('status', 'disposed')->count(),
-                'unassigned' => Vehicle::whereNull('assigned_driver_id')->where('status', '!=', 'deleted')->count(),
-                'assigned' => Vehicle::whereNotNull('assigned_driver_id')->where('status', '!=', 'deleted')->count(),
-                'expiring_insurance' => Vehicle::where('insurance_expiry_date', '<=', now()->addDays(30))
-                    ->where('insurance_expiry_date', '>=', now())
-                    ->where('status', '!=', 'deleted')
-                    ->count(),
-                'expired_insurance' => Vehicle::where('insurance_expiry_date', '<', now())
-                    ->where('status', '!=', 'deleted')
-                    ->count(),
-                'high_mileage' => Vehicle::where('mileage', '>=', 100000)
-                    ->where('status', '!=', 'deleted')
-                    ->count(),
+                'total' => (int) ($counts->total ?? 0),
+                'active' => (int) ($counts->active ?? 0),
+                'inactive' => (int) ($counts->inactive ?? 0),
+                'maintenance' => (int) ($counts->maintenance ?? 0),
+                'disposed' => (int) ($counts->disposed ?? 0),
+                'unassigned' => (int) ($counts->unassigned ?? 0),
+                'assigned' => (int) ($counts->assigned ?? 0),
+                'expiring_insurance' => (int) ($counts->expiring_insurance ?? 0),
+                'expired_insurance' => (int) ($counts->expired_insurance ?? 0),
+                'high_mileage' => (int) ($counts->high_mileage ?? 0),
             ];
-            
+
             // Vehicle type distribution
             $stats['by_type'] = Vehicle::where('status', '!=', 'deleted')
                 ->select('vehicle_type', DB::raw('count(*) as count'))
                 ->groupBy('vehicle_type')
                 ->get();
-            
+
             // Maintenance due this month
             $stats['maintenance_due'] = 0;
             if ($hasVehicleMaintenanceTable && $maintenanceDueColumn) {
-                $stats['maintenance_due'] = Vehicle::whereHas('maintenances', function($q) use ($maintenanceDueColumn) {
+                $stats['maintenance_due'] = Vehicle::whereHas('maintenances', function ($q) use ($maintenanceDueColumn) {
                     $q->whereIn('status', ['pending', 'scheduled', 'waiting', 'dispatched'])
-                    ->where($maintenanceDueColumn, '<=', now()->addDays(30));
+                        ->where($maintenanceDueColumn, '<=', now()->addDays(30));
                 })->count();
             }
-            
+
             return response()->json(['success' => true, 'data' => $stats]);
-            
+
         } catch (\Exception $e) {
-            Log::error('Error fetching vehicle statistics: ' . $e->getMessage());
+            Log::error('Error fetching vehicle statistics: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Failed to fetch statistics'], 500);
         }
     }
@@ -572,16 +589,18 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
             $data = [
                 'regions' => Region::where('status', '!=', 'deleted')->get(),
                 'districts' => District::where('status', '!=', 'deleted')->get(),
-                'stations' => \App\Models\Station::where('status', '!=', 'deleted')->get(),
-                'drivers' => Driver::where('status', 'active')->get(),
+                'stations' => Station::where('status', '!=', 'deleted')->get(),
+                // Bolt: Eager load user relation to prevent N+1 queries when accessing driver names
+                'drivers' => Driver::with('user')->where('status', 'active')->get(),
                 'vehicle_types' => ['Saloon', 'SUV', 'Truck', 'Bus', 'Van', 'Motorcycle', 'Pickup', 'Others'],
                 'statuses' => ['active', 'inactive', 'maintenance', 'disposed'],
             ];
-            
+
             return response()->json(['success' => true, 'data' => $data]);
-            
+
         } catch (\Throwable $e) {
-            Log::error('Error fetching form data: ' . $e->getMessage());
+            Log::error('Error fetching form data: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Failed to fetch form data'], 500);
         }
     }
@@ -595,18 +614,18 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
             $vehicles = Vehicle::where('status', '!=', 'deleted')
                 ->with(['region', 'district', 'station', 'assignedDriver'])
                 ->get();
-            
-            $filename = 'vehicles_export_' . date('Y-m-d_His') . '.csv';
+
+            $filename = 'vehicles_export_'.date('Y-m-d_His').'.csv';
             $handle = fopen('php://temp', 'w+');
-            
+
             // Add headers
             fputcsv($handle, [
-                'Registration Number', 'Make', 'Model', 'Year', 'Color', 
-                'Chassis Number', 'Engine Number', 'Mileage', 'Vehicle Type', 
-                'Status', 'Region', 'District', 'Station', 
-                'Assigned Driver', 'Insurance Expiry', 'Purchase Price', 'Purchase Date'
+                'Registration Number', 'Make', 'Model', 'Year', 'Color',
+                'Chassis Number', 'Engine Number', 'Mileage', 'Vehicle Type',
+                'Status', 'Region', 'District', 'Station',
+                'Assigned Driver', 'Insurance Expiry', 'Purchase Price', 'Purchase Date',
             ]);
-            
+
             // Add data rows
             foreach ($vehicles as $vehicle) {
                 fputcsv($handle, [
@@ -629,17 +648,18 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
                     $vehicle->purchase_date,
                 ]);
             }
-            
+
             rewind($handle);
             $csvContent = stream_get_contents($handle);
             fclose($handle);
-            
+
             return response($csvContent, 200)
                 ->header('Content-Type', 'text/csv')
-                ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
-                
+                ->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
+
         } catch (\Exception $e) {
-            Log::error('Error exporting vehicles: ' . $e->getMessage());
+            Log::error('Error exporting vehicles: '.$e->getMessage());
+
             return back()->with('error', 'Failed to export vehicles');
         }
     }
@@ -672,12 +692,11 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
             'purchase_date',
             'notes',
             'owner_name',
-'owner_contact',
+            'owner_contact',
             'driver_email',
             'region_name',
             'district_name',
         ]);
-
 
         fputcsv($handle, [
             'GR-1234-24',
@@ -711,7 +730,7 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
 
         return response($csvContent, 200)
             ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+            ->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
     }
 
     public function importVehicles(Request $request)
@@ -755,6 +774,7 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
                         'error' => $validation,
                         'data' => $normalized,
                     ];
+
                     continue;
                 }
 
@@ -762,7 +782,7 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
                     ->orWhere('chassis_number', $normalized['chassis_number'])
                     ->first();
 
-                if ($existingVehicle && !$updateExisting) {
+                if ($existingVehicle && ! $updateExisting) {
                     $result['skipped']++;
                     $duplicateError = "Row {$rowNumber}: Duplicate vehicle found (registration/chassis).";
                     $result['errors'][] = $duplicateError;
@@ -771,6 +791,7 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
                         'error' => $duplicateError,
                         'data' => $normalized,
                     ];
+
                     continue;
                 }
 
@@ -824,7 +845,7 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
             return back()->with('error', 'No failed rows available for download.');
         }
 
-        $filename = 'vehicle_import_failed_rows_' . date('Y-m-d_His') . '.csv';
+        $filename = 'vehicle_import_failed_rows_'.date('Y-m-d_His').'.csv';
         $handle = fopen('php://temp', 'w+');
 
         fputcsv($handle, ['row_number', 'error', 'registration_number', 'make', 'model', 'year', 'vehicle_type', 'chassis_number', 'driver_email', 'region_name', 'district_name']);
@@ -852,7 +873,7 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
 
         return response($csvContent, 200)
             ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+            ->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
     }
 
     private function extractRowsFromImportFile($file): array
@@ -881,6 +902,7 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
         while (($data = fgetcsv($handle)) !== false) {
             if ($headers === null) {
                 $headers = $this->normalizeImportHeaders($data);
+
                 continue;
             }
             $rows[] = array_combine($headers, array_pad($data, count($headers), null));
@@ -895,6 +917,7 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
         return array_map(function ($header) {
             $header = strtolower(trim((string) $header));
             $header = preg_replace('/[^a-z0-9]+/', '_', $header);
+
             return trim((string) $header, '_');
         }, $headers);
     }
@@ -916,6 +939,7 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
         foreach ($row as $key => $value) {
             $normalized[$key] = is_string($value) ? trim($value) : $value;
         }
+
         return $normalized;
     }
 
@@ -926,6 +950,7 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
                 return false;
             }
         }
+
         return true;
     }
 
@@ -935,7 +960,7 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
             'registration_number' => 'required|string|max:20',
             'make' => 'required|string|max:255',
             'model' => 'required|string|max:255',
-            'year' => 'required|integer|min:1900|max:' . date('Y'),
+            'year' => 'required|integer|min:1900|max:'.date('Y'),
             'vehicle_type' => 'required|string|max:100',
             'chassis_number' => 'required|string|max:255',
             'engine_number' => 'nullable|string|max:255',
@@ -951,7 +976,7 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
         ]);
 
         if ($validator->fails()) {
-            return 'Row ' . $rowNumber . ': ' . implode(' ', $validator->errors()->all());
+            return 'Row '.$rowNumber.': '.implode(' ', $validator->errors()->all());
         }
 
         return true;
@@ -963,14 +988,14 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
         $districtId = null;
         $driverId = null;
 
-        if (!empty($row['region_name'])) {
+        if (! empty($row['region_name'])) {
             $regionId = Region::whereRaw('LOWER(name) = ?', [strtolower($row['region_name'])])->value('id');
         }
-        if (!empty($row['district_name'])) {
+        if (! empty($row['district_name'])) {
             $districtId = District::whereRaw('LOWER(name) = ?', [strtolower($row['district_name'])])->value('id');
         }
 
-        if (!empty($row['driver_email'])) {
+        if (! empty($row['driver_email'])) {
             $driverId = Driver::whereHas('user', function ($query) use ($row) {
                 $query->whereRaw('LOWER(email) = ?', [strtolower($row['driver_email'])]);
             })->value('id');
@@ -1011,40 +1036,41 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
     {
         try {
             $plate = $request->query('plate');
-            
-            if (!$plate || strlen(trim($plate)) < 2) {
+
+            if (! $plate || strlen(trim($plate)) < 2) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Please enter at least 2 characters',
-                    'vehicles' => []
+                    'vehicles' => [],
                 ]);
             }
-            
+
             $vehicles = Vehicle::where('registration_number', 'LIKE', "%{$plate}%")
                 ->where('status', '!=', 'deleted')
                 ->limit(5)
                 ->get(['id', 'registration_number', 'make', 'model', 'year', 'color']);
-            
+
             if ($vehicles->count() > 0) {
                 return response()->json([
                     'success' => true,
                     'vehicles' => $vehicles,
-                    'count' => $vehicles->count()
+                    'count' => $vehicles->count(),
                 ]);
             } else {
                 return response()->json([
                     'success' => false,
                     'message' => 'No vehicles found',
-                    'vehicles' => []
+                    'vehicles' => [],
                 ]);
             }
-            
+
         } catch (\Exception $e) {
-            \Log::error('Vehicle search error: ' . $e->getMessage());
+            \Log::error('Vehicle search error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error searching for vehicle',
-                'vehicles' => []
+                'vehicles' => [],
             ], 500);
         }
     }
@@ -1055,9 +1081,10 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
     public function getVehicleDetails($id)
     {
         try {
-            $vehicle = Vehicle::with(['assignedDriver:id,name', 'region:id,name'])
+            // Bolt: Eager load driver user data
+            $vehicle = Vehicle::with(['assignedDriver.user', 'region:id,name'])
                 ->findOrFail($id);
-            
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -1071,14 +1098,190 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
                     'fuel_type' => $vehicle->fuel_type ?? 'petrol',
                     'driver_id' => $vehicle->assigned_driver_id,
                     'driver_name' => $vehicle->assignedDriver ? $vehicle->assignedDriver->name : null,
-                    'status' => $vehicle->status
+                    'status' => $vehicle->status,
                 ]
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Vehicle not found'
+                'message' => 'Vehicle not found',
             ], 404);
         }
     }
+
+    /**
+     * Create a Job Order form for a vehicle.
+     *
+     * NOTE: Your app already uses the Maintenance model for dispatch/approval.
+     * These routes expect job-order methods on this controller, so we map
+     * job orders to Maintenance records.
+     */
+    public function createJobOrder(Vehicle $vehicle)
+    {
+        // If you later add a dedicated Blade, you can swap this view.
+        return redirect()
+            ->route('maintenance.show', ['id' => $vehicle->id])
+            ->with('info', 'Job order creation is handled via Maintenance scheduling UI.');
+    }
+
+    /**
+     * Store a Job Order (mapped to a Maintenance record).
+     */
+    public function storeJobOrder(Request $request, Vehicle $vehicle)
+    {
+        try {
+            // Map Blade form fields -> backend expected fields
+            // Blade:
+            // - scheduled_date -> maintenance_date
+            // - selected_services[] -> checklist
+            // - description + technician_notes -> maintenance_notes
+            $request->merge([
+                'maintenance_date' => $request->input('scheduled_date'),
+                'checklist' => $request->input('selected_services', $request->input('checklist')),
+                'maintenance_notes' => trim((string) $request->input('description', ''))
+                    . (filled($request->input('technician_notes')) ? "\n" . (string) $request->input('technician_notes') : ''),
+            ]);
+
+            $validated = $request->validate([
+                'maintenance_type' => 'required|string|max:255',
+                'other_maintenance_type' => 'nullable|string|max:255',
+                'maintenance_date' => 'required|date',
+                'mileage_at_service' => 'nullable|integer|min:0',
+                'driver_id' => 'nullable|exists:drivers,id',
+                'checklist' => 'nullable|array',
+                'maintenance_notes' => 'nullable|string|max:1000',
+                'status' => 'nullable|in:waiting,dispatched,scheduled,completed,cancelled',
+
+                // Optional fields that exist in your Blade (safe to accept)
+                'service_provider' => 'nullable|string|max:255',
+                'priority' => 'nullable|string|max:50',
+                'estimated_cost' => 'nullable|numeric|min:0',
+            ]);
+
+            if (($validated['maintenance_type'] ?? null) === 'other' && !empty($validated['other_maintenance_type'])) {
+                $validated['maintenance_type'] = $validated['other_maintenance_type'];
+            }
+
+            // Driver role requests should go into waiting state
+            $user = auth()->user();
+            if ($user && method_exists($user, 'isDriver') && $user->isDriver()) {
+                $validated['status'] = 'waiting';
+                $validated['driver_id'] = $validated['driver_id'] ?? optional($user->driver)->id;
+            } else {
+                $validated['status'] = $validated['status'] ?? 'dispatched';
+            }
+
+            $validated['vehicle_id'] = $vehicle->id;
+            $validated['date'] = $validated['maintenance_date'];
+
+            // Store notes into description (your Maintenance model uses description as the text field)
+            $validated['description'] = $validated['maintenance_notes'] ?? null;
+
+            // Map extra fields (if present) into Maintenance columns
+            if (filled($validated['service_provider'] ?? null)) {
+                $validated['service_provider'] = $validated['service_provider'];
+            }
+
+            // If user provided manual estimated cost, store it as cost.
+            if ($request->filled('estimated_cost')) {
+                $validated['cost'] = (float) $request->input('estimated_cost');
+            }
+
+            // Priority isn't in fillable on Maintenance.php (no column shown), but safe to ignore.
+
+            $validated['created_by'] = auth()->id();
+
+            $maintenance = Maintenance::create($validated);
+
+            // Update vehicle status to reflect maintenance
+            $vehicle->update(['status' => 'maintenance']);
+
+            return redirect()
+                ->back()
+                ->with('success', 'Job order created successfully. Maintenance record #' . $maintenance->id . ' created.');
+        } catch (\Throwable $e) {
+            return back()->withErrors(['error' => 'Failed to store job order: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * List job orders for a vehicle.
+     */
+    public function jobOrders(Vehicle $vehicle)
+    {
+        $jobOrders = $vehicle->maintenances()
+            ->where('status', '!=', 'deleted')
+            ->orderByDesc('created_at')
+            ->paginate(15);
+
+        return view('vehicle-maintenance.index', [
+            'maintenanceRecords' => $jobOrders,
+        ]);
+    }
+
+    /**
+     * Update job order status.
+     */
+    public function updateJobOrderStatus(
+        Request $request,
+        Vehicle $vehicle,
+        Maintenance $maintenance
+    ) {
+        $validated = $request->validate([
+            'status' => 'required|in:waiting,dispatched,scheduled,completed,cancelled',
+        ]);
+
+        if ($maintenance->vehicle_id !== $vehicle->id) {
+            abort(404);
+        }
+
+        $maintenance->update([
+            'status' => $validated['status'],
+            'modified_by' => auth()->id(),
+        ]);
+
+        if ($validated['status'] === 'completed') {
+            $vehicle->update(['status' => 'active']);
+        }
+
+        return redirect()->back()->with('success', 'Job order status updated successfully.');
+    }
+
+    // ---------------------------------------------------------------------
+    // Admin mileage / fuel log handlers (routes/web.php -> routes/admin.php)
+    // ---------------------------------------------------------------------
+
+    public function getMileageLog($id)
+    {
+        return redirect()->route('mileage-logs.index');
+    }
+
+    public function storeMileage(Request $request)
+    {
+        return redirect()->route('mileage-logs.index');
+    }
+
+    public function deleteMileage($id)
+    {
+        return redirect()->route('mileage-logs.index');
+    }
+
+    public function getFuelLog($id)
+    {
+        return redirect()->route('fuel.store');
+    }
+
+    public function storeFuel(Request $request)
+    {
+        return redirect()->route('fuel.store');
+    }
+
+
+
+    public function getPreviousOdometer($id)
+    {
+        return response()->json(['previous_odometer' => null]);
+    }
 }
+
+

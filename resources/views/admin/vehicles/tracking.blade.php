@@ -10,30 +10,11 @@
     .vehicle-list-item:hover { background-color: #f8fafc; }
     .vehicle-list-item.active { background-color: #eff6ff; border-left-color: #3b82f6; }
 
-    .status-active { color: #10b981; }
-    .status-inactive { color: #6b7280; }
-    .status-maintenance { color: #f59e0b; }
-
-    .pulse {
-        border-radius: 50%;
-        height: 14px;
-        width: 14px;
-        position: absolute;
-        left: -2px;
-        top: -2px;
-        animation: pulsate 2s ease-out infinite;
-        opacity: 0;
-        border: 3px solid #3b82f6;
+    .leaflet-marker-icon {
+        transition: transform 0.8s linear;
     }
-
-    @keyframes pulsate {
-        0% { transform: scale(0.1, 0.1); opacity: 0.0; }
-        50% { opacity: 1.0; }
-        100% { transform: scale(1.2, 1.2); opacity: 0.0; }
-    }
-
-    .uber-marker {
-        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    .car-marker {
+        transition: transform 0.4s ease-in-out;
     }
 
     .marker-label {
@@ -49,18 +30,23 @@
 </style>
 
 <div class="space-y-6">
-    <div class="flex justify-between items-center">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Fleet Command Center</h1>
             <p class="text-gray-500 text-sm">Real-time telematics and live vehicle positioning</p>
         </div>
-        <div class="flex gap-3">
+        <div class="flex flex-wrap gap-3">
             <div id="connectionStatus" class="flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
                 <span class="relative flex h-2 w-2 mr-2">
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                     <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                 </span>
                 LIVE UPDATING
+            </div>
+            <div class="flex bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
+                <button onclick="setMapTheme('light')" class="px-3 py-1 text-xs font-medium rounded-md hover:bg-gray-100 transition" id="theme-light">Light</button>
+                <button onclick="setMapTheme('dark')" class="px-3 py-1 text-xs font-medium rounded-md hover:bg-gray-100 transition" id="theme-dark">Dark</button>
+                <button onclick="setMapTheme('satellite')" class="px-3 py-1 text-xs font-medium rounded-md hover:bg-gray-100 transition" id="theme-satellite">Satellite</button>
             </div>
             <button onclick="refreshMap()" class="bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition shadow-sm">
                 <i class="fas fa-sync-alt mr-2"></i>Sync
@@ -105,7 +91,7 @@
             <div class="bg-white p-1 rounded-xl shadow-md border border-gray-200 relative">
                 <div id="map"></div>
 
-                <!-- Map Overlay: Vehicle Detail Card (Hidden by default) -->
+                <!-- Map Overlay: Vehicle Detail Card -->
                 <div id="miniDetailCard" class="absolute bottom-6 left-6 z-[1000] bg-white rounded-xl shadow-2xl border border-gray-100 p-4 w-72 hidden transform transition-all duration-300">
                     <div class="flex justify-between items-start mb-3">
                         <div>
@@ -114,14 +100,30 @@
                         </div>
                         <button onclick="closeDetailCard()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
                     </div>
-                    <div class="grid grid-cols-2 gap-3 mb-4">
-                        <div class="bg-blue-50 p-2 rounded-lg">
-                            <p class="text-[10px] text-blue-600 font-bold uppercase">Speed</p>
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div class="bg-blue-50 p-2 rounded-lg border border-blue-100">
+                            <p class="text-[9px] text-blue-600 font-bold uppercase">Speed</p>
                             <p id="cardSpeed" class="text-lg font-black text-blue-900">0 <span class="text-[10px] font-normal">km/h</span></p>
                         </div>
-                        <div class="bg-green-50 p-2 rounded-lg">
-                            <p class="text-[10px] text-green-600 font-bold uppercase">Status</p>
-                            <p id="cardStatus" class="text-sm font-bold text-green-900">Available</p>
+                        <div class="bg-emerald-50 p-2 rounded-lg border border-emerald-100">
+                            <p class="text-[9px] text-emerald-600 font-bold uppercase">Ignition</p>
+                            <p id="cardIgnition" class="text-sm font-bold text-emerald-900">On</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div class="bg-gray-50 p-2 rounded-lg border border-gray-100">
+                            <p class="text-[9px] text-gray-500 font-bold uppercase">Fuel Level</p>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <div class="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                    <div id="cardFuelBar" class="h-full bg-orange-500" style="width: 0%"></div>
+                                </div>
+                                <span id="cardFuelText" class="text-[10px] font-bold text-gray-700">0%</span>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 p-2 rounded-lg border border-gray-100">
+                            <p class="text-[9px] text-gray-500 font-bold uppercase">Battery</p>
+                            <p id="cardBattery" class="text-sm font-bold text-gray-800">12.4V</p>
                         </div>
                     </div>
                     <div class="space-y-2 text-xs text-gray-600">
@@ -129,22 +131,31 @@
                             <span>Driver:</span>
                             <span id="cardDriver" class="font-bold text-gray-900">---</span>
                         </div>
+                    <div class="flex justify-between">
+                        <span>Est. Arrival:</span>
+                        <span id="cardETA" class="font-bold text-gray-900">---</span>
+                    </div>
                         <div class="flex justify-between">
                             <span>Last Update:</span>
                             <span id="cardLastSeen" class="text-gray-400">Just now</span>
                         </div>
                     </div>
-                    <div class="mt-4 pt-4 border-t border-gray-100 flex gap-2">
-                        <button id="historyBtn" class="flex-1 bg-gray-900 text-white py-2 rounded-lg text-xs font-bold hover:bg-black transition">
-                            <i class="fas fa-route mr-1"></i> History
-                        </button>
-                        <a id="detailsLink" href="#" class="flex-1 bg-white border border-gray-200 text-center py-2 rounded-lg text-xs font-bold hover:bg-gray-50 transition">
-                            Details
+                    <div class="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-2">
+                        <div class="flex gap-2">
+                            <button id="historyBtn" class="flex-1 bg-gray-900 text-white py-2 rounded-lg text-xs font-bold hover:bg-black transition">
+                                <i class="fas fa-route mr-1"></i> History
+                            </button>
+                            <button id="followBtn" onclick="toggleFollow()" class="flex-1 bg-blue-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-blue-700 transition">
+                                <i class="fas fa-crosshairs mr-1"></i> Follow
+                            </button>
+                        </div>
+                        <a id="detailsLink" href="#" class="w-full bg-white border border-gray-200 text-center py-2 rounded-lg text-xs font-bold hover:bg-gray-50 transition">
+                            View Full Profile
                         </a>
                     </div>
                 </div>
 
-                <!-- History Legend (Hidden) -->
+                <!-- History Legend -->
                 <div id="historyLegend" class="absolute top-6 right-6 z-[1000] bg-white/90 backdrop-blur-md rounded-lg shadow-lg border border-gray-200 p-3 hidden">
                     <div class="flex items-center gap-2 mb-2">
                         <div class="h-1 w-8 bg-blue-500 rounded"></div>
@@ -160,17 +171,25 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
     let map;
+    let tileLayers = {};
     let markers = {};
     let vehiclesData = [];
     let historyPolyline = null;
     let updateInterval;
     let selectedVehicleId = null;
+    let following = false;
+    let activeTileLayer;
+
+    const mapThemes = {
+        light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+        dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+    };
 
     document.addEventListener('DOMContentLoaded', function() {
         initMap();
         fetchData();
 
-        // Polling every 5 seconds for smooth updates
         updateInterval = setInterval(fetchData, 5000);
 
         document.getElementById('vehicleSearch').addEventListener('input', e => filterVehicles());
@@ -179,28 +198,73 @@
 
     function initMap() {
         map = L.map('map', {
-            zoomControl: false
+            zoomControl: false,
+            preferCanvas: true
         }).setView([5.6037, -0.1870], 13);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-            subdomains: 'abcd',
-            maxZoom: 20
-        }).addTo(map);
+        setMapTheme('light');
 
         L.control.zoom({ position: 'bottomright' }).addTo(map);
     }
 
+    function setMapTheme(theme) {
+        if (activeTileLayer) map.removeLayer(activeTileLayer);
+
+        activeTileLayer = L.tileLayer(mapThemes[theme], {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 20
+        }).addTo(map);
+
+        // Update UI buttons
+        ['light', 'dark', 'satellite'].forEach(t => {
+            const btn = document.getElementById(`theme-${t}`);
+            if (btn) {
+                if (t === theme) {
+                    btn.classList.add('bg-blue-600', 'text-white', 'shadow-sm');
+                    btn.classList.remove('hover:bg-gray-100');
+                } else {
+                    btn.classList.remove('bg-blue-600', 'text-white', 'shadow-sm');
+                    btn.classList.add('hover:bg-gray-100');
+                }
+            }
+        });
+    }
+
     function fetchData() {
+        const statusIndicator = document.getElementById('connectionStatus');
+
         fetch('{{ route("vehicles.tracking.data") }}')
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error('Network response was not ok');
+                return res.json();
+            })
             .then(result => {
                 if (result.success) {
                     vehiclesData = result.data;
                     updateUI();
+
+                    if (statusIndicator) {
+                        statusIndicator.className = "flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium";
+                        statusIndicator.innerHTML = `
+                            <span class="relative flex h-2 w-2 mr-2">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                            </span>
+                            LIVE UPDATING
+                        `;
+                    }
                 }
             })
-            .catch(err => console.error("Update failed", err));
+            .catch(err => {
+                console.error("Update failed", err);
+                if (statusIndicator) {
+                    statusIndicator.className = "flex items-center px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium";
+                    statusIndicator.innerHTML = `
+                        <i class="fas fa-exclamation-circle mr-2"></i>
+                        CONNECTION LOST
+                    `;
+                }
+            });
     }
 
     function updateUI() {
@@ -220,7 +284,12 @@
 
         if (selectedVehicleId) {
             const selected = vehiclesData.find(v => v.id === selectedVehicleId);
-            if (selected) updateDetailCard(selected);
+            if (selected) {
+                updateDetailCard(selected);
+                if (following) {
+                    map.panTo([selected.current_latitude, selected.current_longitude]);
+                }
+            }
         }
     }
 
@@ -229,18 +298,29 @@
         container.innerHTML = vehicles.map(v => `
             <div class="vehicle-list-item p-3 ${selectedVehicleId === v.id ? 'active' : ''}" onclick="focusVehicle(${v.id})">
                 <div class="flex justify-between items-start mb-1">
-                    <span class="font-bold text-gray-900">${v.registration_number}</span>
-                    <span class="text-[10px] font-black ${v.is_on_trip ? 'text-blue-600' : 'text-green-500'} uppercase">
-                        ${v.is_on_trip ? 'On Trip' : 'Available'}
-                    </span>
+                    <div class="flex flex-col">
+                        <span class="font-bold text-gray-900 leading-tight">${v.registration_number}</span>
+                        <span class="text-[10px] text-gray-500 uppercase font-medium">${v.make} ${v.model}</span>
+                    </div>
+                    <div class="flex flex-col items-end">
+                        <span class="text-[10px] font-black ${v.ignition === 'on' ? 'text-emerald-600' : 'text-gray-400'} uppercase">
+                            ${v.ignition === 'on' ? 'Ignition On' : 'Ignition Off'}
+                        </span>
+                        <span class="text-[11px] font-bold text-gray-900">${v.speed} km/h</span>
+                    </div>
                 </div>
-                <div class="flex justify-between items-center text-[11px] mb-1">
-                    <span class="text-gray-500">${v.make} ${v.model}</span>
-                    <span class="text-gray-900 font-bold">${v.speed} km/h</span>
-                </div>
-                <div class="flex items-center text-[10px]">
-                    <i class="fas fa-user-circle mr-1 ${v.assigned_driver && v.assigned_driver.online_status === 'online' ? 'text-green-500' : 'text-gray-400'}"></i>
-                    <span class="text-gray-400 truncate">${v.assigned_driver ? v.assigned_driver.name : 'Unassigned'}</span>
+
+                <div class="mt-2 flex items-center justify-between">
+                    <div class="flex items-center text-[10px]">
+                        <i class="fas fa-user-circle mr-1 ${v.assigned_driver && v.assigned_driver.online_status === 'online' ? 'text-green-500' : 'text-gray-400'}"></i>
+                        <span class="text-gray-400 truncate max-w-[80px]">${v.assigned_driver ? v.assigned_driver.name : 'Unassigned'}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-12 h-1 bg-gray-100 rounded-full overflow-hidden">
+                            <div class="h-full ${v.fuel_level < 20 ? 'bg-red-500' : 'bg-emerald-500'}" style="width: ${v.fuel_level}%"></div>
+                        </div>
+                        <span class="text-[9px] font-bold text-gray-500">${v.fuel_level}%</span>
+                    </div>
                 </div>
             </div>
         `).join('');
@@ -251,33 +331,36 @@
             if (!v.current_latitude) return;
 
             const pos = [v.current_latitude, v.current_longitude];
+            const markerColor = v.is_on_trip ? '#2563eb' : '#10b981';
 
             if (markers[v.id]) {
-                // Smooth transition
                 markers[v.id].setLatLng(pos);
-                // Update rotation if we had a heading (simulated)
                 const markerEl = markers[v.id].getElement();
                 if (markerEl) {
-                    const icon = markerEl.querySelector('.uber-marker');
+                    const icon = markerEl.querySelector('.car-marker');
                     if (icon) icon.style.transform = `rotate(${v.heading}deg)`;
                 }
             } else {
                 const icon = L.divIcon({
                     className: 'custom-div-icon',
                     html: `
-                        <div class="relative">
-                            <div class="pulse"></div>
-                            <div class="uber-marker" style="transform: rotate(${v.heading}deg)">
-                                <svg width="36" height="36" viewBox="0 0 100 100">
-                                    <circle cx="50" cy="50" r="40" fill="${v.is_on_trip ? '#2563eb' : '#10b981'}" stroke="white" stroke-width="8" />
-                                    <path d="M50 20 L70 70 L50 60 L30 70 Z" fill="white" />
+                        <div class="relative car-marker-container">
+                            <div class="car-marker" style="transform: rotate(${v.heading}deg)">
+                                <svg width="40" height="40" viewBox="0 0 100 100">
+                                    <!-- Car Top View -->
+                                    <rect x="30" y="20" width="40" height="60" rx="10" fill="${v.is_on_trip ? '#2563eb' : '#10b981'}" stroke="white" stroke-width="4" />
+                                    <rect x="35" y="30" width="30" height="20" rx="2" fill="rgba(255,255,255,0.4)" /> <!-- Windshield -->
+                                    <rect x="35" y="55" width="30" height="15" rx="2" fill="rgba(255,255,255,0.2)" /> <!-- Rear window -->
+                                    <!-- Headlights -->
+                                    <circle cx="35" cy="22" r="3" fill="yellow" />
+                                    <circle cx="65" cy="22" r="3" fill="yellow" />
                                 </svg>
                             </div>
                             <div class="absolute -top-8 left-1/2 -translate-x-1/2 marker-label">${v.registration_number}</div>
                         </div>
                     `,
-                    iconSize: [36, 36],
-                    iconAnchor: [18, 18]
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 20]
                 });
 
                 markers[v.id] = L.marker(pos, { icon: icon }).addTo(map)
@@ -288,15 +371,30 @@
 
     function focusVehicle(id) {
         selectedVehicleId = id;
+        following = false;
         const vehicle = vehiclesData.find(v => v.id === id);
         if (!vehicle) return;
 
-        map.flyTo([vehicle.current_latitude, vehicle.current_longitude], 16, {
+        map.flyTo([vehicle.current_latitude, vehicle.current_longitude], 17, {
             duration: 1.5
         });
 
         updateDetailCard(vehicle);
-        updateUI(); // Refresh list styles
+        updateUI();
+    }
+
+    function toggleFollow() {
+        following = !following;
+        const btn = document.getElementById('followBtn');
+        if (following) {
+            btn.innerHTML = '<i class="fas fa-stop-circle mr-1"></i> Stop Following';
+            btn.classList.replace('bg-blue-600', 'bg-red-600');
+            btn.classList.replace('hover:bg-blue-700', 'hover:bg-red-700');
+        } else {
+            btn.innerHTML = '<i class="fas fa-crosshairs mr-1"></i> Follow';
+            btn.classList.replace('bg-red-600', 'bg-blue-600');
+            btn.classList.replace('hover:bg-red-700', 'hover:bg-blue-700');
+        }
     }
 
     function updateDetailCard(v) {
@@ -306,8 +404,19 @@
         document.getElementById('cardReg').innerText = v.registration_number;
         document.getElementById('cardModel').innerText = `${v.make} ${v.model}`;
         document.getElementById('cardSpeed').innerHTML = `${v.speed} <span class="text-[10px] font-normal">km/h</span>`;
-        document.getElementById('cardStatus').innerText = v.is_on_trip ? 'On Trip' : 'Available';
-        document.getElementById('cardStatus').parentElement.className = `p-2 rounded-lg ${v.is_on_trip ? 'bg-blue-50 text-blue-900' : 'bg-green-50 text-green-900'}`;
+
+        const ignitionEl = document.getElementById('cardIgnition');
+        ignitionEl.innerText = v.ignition === 'on' ? 'Ignition On' : 'Ignition Off';
+        ignitionEl.parentElement.className = `p-2 rounded-lg border ${v.ignition === 'on' ? 'bg-emerald-50 text-emerald-900 border-emerald-100' : 'bg-gray-100 text-gray-600 border-gray-200'}`;
+
+        document.getElementById('cardFuelText').innerText = `${v.fuel_level}%`;
+        const fuelBar = document.getElementById('cardFuelBar');
+        fuelBar.style.width = `${v.fuel_level}%`;
+        fuelBar.className = `h-full ${v.fuel_level < 20 ? 'bg-red-500' : (v.fuel_level < 50 ? 'bg-orange-500' : 'bg-green-500')}`;
+
+        document.getElementById('cardBattery').innerText = `${v.battery}V`;
+        document.getElementById('cardETA').innerText = v.is_on_trip ? `${v.eta} mins` : 'N/A';
+
         document.getElementById('cardDriver').innerText = v.assigned_driver ? v.assigned_driver.name : 'Unassigned';
         document.getElementById('detailsLink').href = `/vehicles/${v.id}`;
 
@@ -317,6 +426,7 @@
     function closeDetailCard() {
         document.getElementById('miniDetailCard').classList.add('hidden');
         selectedVehicleId = null;
+        following = false;
         updateUI();
         clearHistory();
     }

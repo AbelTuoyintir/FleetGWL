@@ -58,13 +58,17 @@ class DocumentController extends Controller
             $query->where('vehicle_id', $request->vehicle_id);
         }
 
-        // Show only user's documents if not admin
-        // if (!auth()->user()->hasRole('admin')) {
-        //     $query->where(function($q) {
-        //         $q->where('user_id', auth()->id())
-        //           ->orWhere('is_public', true);
-        //     });
-        // }
+        // Show public documents or documents for user's vehicle if not admin
+        if (!auth()->user()->isAdmin()) {
+            $userVehicleId = auth()->user()->driver?->vehicle?->id;
+
+            $query->where(function($q) use ($userVehicleId) {
+                $q->where('is_public', true);
+                if ($userVehicleId) {
+                    $q->orWhere('vehicle_id', $userVehicleId);
+                }
+            });
+        }
 
         $documents = $request->has('per_page')
             ? $query->paginate($request->per_page)
@@ -311,10 +315,10 @@ class DocumentController extends Controller
     {
         $document = Document::where('status', 'deleted')->findOrFail($id);
 
-        // // Only admins can force delete
-        // if (!auth()->user()->hasRole('admin')) {
-        //     abort(403);
-        // }
+        // Only admins can force delete
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
 
         // Delete file from storage
         if ($document->file_path && Storage::disk('public')->exists($document->file_path)) {
@@ -348,6 +352,11 @@ class DocumentController extends Controller
      */
     public function trashed()
     {
+        // Only admins can view trashed documents
+        if (!auth()->user()->isAdmin()) {
+            abort(403);
+        }
+
         $documents = Document::where('status', 'deleted')
                             ->with(['vehicle'])
                             ->latest()

@@ -136,7 +136,10 @@
 <div id="mobileOverlay" class="overlay-fleet"></div>
 
 <!-- STICKY HEADER -->
-<header class="sticky top-0 z-30 glass-card shadow-sm flex items-center justify-end px-5 py-3 border-b border-white/60">
+<header class="sticky top-0 z-30 glass-card shadow-sm flex items-center justify-between lg:justify-end px-5 py-3 border-b border-white/60">
+    <button id="menuToggleBtn" aria-label="Open Sidebar" class="lg:hidden text-gray-600 hover:text-green-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 rounded p-1">
+        <i class="fas fa-bars text-xl"></i>
+    </button>
     <div class="flex items-center gap-4">
         <!-- Notification Bell -->
         <div class="notification-bell" id="notificationBell">

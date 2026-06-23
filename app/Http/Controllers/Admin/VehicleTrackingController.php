@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use App\Models\Vehicle;
 use App\Models\VehicleLocationHistory;
 use Illuminate\Http\Request;
@@ -23,8 +24,9 @@ class VehicleTrackingController extends Controller
      */
     public function getVehiclesLocations()
     {
+        // Bolt: Eager load assignedDriver.user to prevent N+1 queries when accessing driver names/status
         $vehicles = Vehicle::where('status', '!=', 'deleted')
-            ->with(['assignedDriver:id,name,online_status'])
+            ->with(['assignedDriver.user:id,name,online_status'])
             ->select([
                 'id',
                 'registration_number',
@@ -55,6 +57,10 @@ class VehicleTrackingController extends Controller
             $vehicle->speed = rand(0, 65);
             $vehicle->heading = rand(0, 360);
             $vehicle->is_on_trip = (bool)rand(0, 1);
+            $vehicle->fuel_level = rand(15, 95); // Simulated fuel percentage
+            $vehicle->ignition = $vehicle->speed > 0 ? 'on' : (rand(0, 10) > 2 ? 'on' : 'off'); // Simulated ignition status
+            $vehicle->battery = (rand(118, 142) / 10); // Simulated 12V battery voltage
+            $vehicle->eta = rand(5, 45); // Simulated ETA in minutes
 
             return $vehicle;
         });

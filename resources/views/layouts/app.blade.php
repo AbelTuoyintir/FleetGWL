@@ -78,7 +78,10 @@
 <div id="mobileOverlay" class="overlay-fleet"></div>
 
 <!-- STICKY HEADER -->
-<header class="sticky top-0 z-30 glass-card shadow-sm flex items-center justify-end px-5 py-3 border-b border-white/60">
+<header class="sticky top-0 z-30 glass-card shadow-sm flex items-center justify-between lg:justify-end px-5 py-3 border-b border-white/60">
+    <button id="menuToggleBtn" aria-label="Open Sidebar" class="lg:hidden text-gray-600 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-1">
+        <i class="fas fa-bars text-xl"></i>
+    </button>
     <div class="relative">
         @php
             $userName = Auth::user()->name ?? 'Kwame Asare';
@@ -239,7 +242,6 @@
 <!-- AI SUPPORT CHAT BOT -->
 @include('components.ai-chat-bot')
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     // Keep sidebar controls working even when a page doesn't define its own handlers.

@@ -20,7 +20,7 @@
                     </p>
                 </div>
             </div>
-            <button id="close-chat" aria-label="Close Chat" class="text-white/80 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-lg">
+            <button id="close-chat" aria-label="Close Chat" class="text-white/80 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -54,6 +54,7 @@
         border-radius: 18px;
         font-size: 13px;
         line-height: 1.5;
+        animation: fadeIn 0.3s ease-out;
     }
     .user-message {
         background: #2563eb;
@@ -67,6 +68,25 @@
         border-bottom-left-radius: 4px;
         border: 1px solid #e5e7eb;
     }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .dot-bounce {
+        display: inline-block;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: currentColor;
+        margin: 0 1px;
+        animation: dotBounce 1.4s infinite ease-in-out both;
+    }
+    .dot-bounce:nth-child(1) { animation-delay: -0.32s; }
+    .dot-bounce:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes dotBounce {
+        0%, 80%, 100% { transform: scale(0); }
+        40% { transform: scale(1); }
+    }
 </style>
 
 <script>
@@ -78,20 +98,25 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatInput = document.getElementById('chat-input');
     const chatMessages = document.getElementById('chat-messages');
 
-    // Toggle Chat
-    chatToggle.addEventListener('click', () => {
-        const isOpen = chatWindow.classList.contains('chat-window-open');
-        if (!isOpen) {
-            chatWindow.classList.add('chat-window-open');
-            loadHistory();
-        } else {
-            chatWindow.classList.remove('chat-window-open');
-        }
-    });
+    const historyRoute = "{{ route('ai-support.history') }}";
+    const chatRoute = "{{ route('ai-support.chat') }}";
 
-    closeChat.addEventListener('click', () => {
-        chatWindow.classList.remove('chat-window-open');
-    });
+    // Toggle Chat
+    function toggleChat(forceClose = false) {
+        const isOpen = chatWindow.classList.contains('chat-window-open');
+        if (isOpen || forceClose) {
+            chatWindow.classList.remove('chat-window-open');
+            chatToggle.setAttribute('aria-expanded', 'false');
+        } else {
+            chatWindow.classList.add('chat-window-open');
+            chatToggle.setAttribute('aria-expanded', 'true');
+            loadHistory();
+            setTimeout(() => chatInput.focus(), 300);
+        }
+    }
+
+    chatToggle.addEventListener('click', () => toggleChat());
+    closeChat.addEventListener('click', () => toggleChat(true));
 
     // Load Chat History
     function loadHistory() {
@@ -141,16 +166,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Add loading state
         const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'message-bubble ai-message italic text-gray-400';
-        loadingDiv.innerText = 'Typing...';
+        loadingDiv.className = 'message-bubble ai-message flex items-center gap-1';
+        loadingDiv.innerHTML = '<span class="dot-bounce"></span><span class="dot-bounce"></span><span class="dot-bounce"></span>';
         chatMessages.appendChild(loadingDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
-        fetch('/ai-support/chat', {
+        fetch(chatRoute, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
             },
             body: JSON.stringify({ message: message })
         })
@@ -170,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch((err) => {
-            chatMessages.removeChild(loadingDiv);
+            if (loadingDiv.parentNode) chatMessages.removeChild(loadingDiv);
             console.error('AI chat fetch failed:', err);
             appendMessage('ai', `Request failed: ${err?.message || 'Please check your network/server.'}`);
         });
