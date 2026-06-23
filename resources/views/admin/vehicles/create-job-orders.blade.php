@@ -144,7 +144,7 @@
             </div>
         </div>
         
-        <form id="jobOrderForm" action="{{ route('vehicles.maintenance.job-order.store', $vehicle) }}" method="POST">
+        <form id="jobOrderForm" action="{{ route('maintenance.job-order.store', $vehicle) }}" method="POST">
             @csrf
             
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

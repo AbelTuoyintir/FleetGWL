@@ -21,7 +21,7 @@ class AdminUserSeeder extends Seeder
             [
                 'name' => 'System Administrator',
                 'email' => 'admin@gwc.com',
-                'phone' => '0240000000',
+                'phone' => '0240000001',
                 'role' => 'admin',
                 'photo' => null,
                 'password' => Hash::make('password'),

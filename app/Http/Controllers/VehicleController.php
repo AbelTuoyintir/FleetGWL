@@ -1105,6 +1105,18 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
     public function storeJobOrder(Request $request, Vehicle $vehicle)
     {
         try {
+            // Map Blade form fields -> backend expected fields
+            // Blade:
+            // - scheduled_date -> maintenance_date
+            // - selected_services[] -> checklist
+            // - description + technician_notes -> maintenance_notes
+            $request->merge([
+                'maintenance_date' => $request->input('scheduled_date'),
+                'checklist' => $request->input('selected_services', $request->input('checklist')),
+                'maintenance_notes' => trim((string) $request->input('description', ''))
+                    . (filled($request->input('technician_notes')) ? "\n" . (string) $request->input('technician_notes') : ''),
+            ]);
+
             $validated = $request->validate([
                 'maintenance_type' => 'required|string|max:255',
                 'other_maintenance_type' => 'nullable|string|max:255',
@@ -1114,6 +1126,11 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
                 'checklist' => 'nullable|array',
                 'maintenance_notes' => 'nullable|string|max:1000',
                 'status' => 'nullable|in:waiting,dispatched,scheduled,completed,cancelled',
+
+                // Optional fields that exist in your Blade (safe to accept)
+                'service_provider' => 'nullable|string|max:255',
+                'priority' => 'nullable|string|max:50',
+                'estimated_cost' => 'nullable|numeric|min:0',
             ]);
 
             if (($validated['maintenance_type'] ?? null) === 'other' && !empty($validated['other_maintenance_type'])) {
@@ -1131,7 +1148,22 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
 
             $validated['vehicle_id'] = $vehicle->id;
             $validated['date'] = $validated['maintenance_date'];
-            $validated['description'] = $validated['maintenance_notes'] ?? ($validated['description'] ?? null);
+
+            // Store notes into description (your Maintenance model uses description as the text field)
+            $validated['description'] = $validated['maintenance_notes'] ?? null;
+
+            // Map extra fields (if present) into Maintenance columns
+            if (filled($validated['service_provider'] ?? null)) {
+                $validated['service_provider'] = $validated['service_provider'];
+            }
+
+            // If user provided manual estimated cost, store it as cost.
+            if ($request->filled('estimated_cost')) {
+                $validated['cost'] = (float) $request->input('estimated_cost');
+            }
+
+            // Priority isn't in fillable on Maintenance.php (no column shown), but safe to ignore.
+
             $validated['created_by'] = auth()->id();
 
             $maintenance = Maintenance::create($validated);
@@ -1189,5 +1221,42 @@ private function calculateAverageWeeklyMileage($vehicle, $weeks = 12)
 
         return redirect()->back()->with('success', 'Job order status updated successfully.');
     }
+
+    // ---------------------------------------------------------------------
+    // Admin mileage / fuel log handlers (routes/web.php -> routes/admin.php)
+    // ---------------------------------------------------------------------
+
+    public function getMileageLog($id)
+    {
+        return redirect()->route('mileage-logs.index');
+    }
+
+    public function storeMileage(Request $request)
+    {
+        return redirect()->route('mileage-logs.index');
+    }
+
+    public function deleteMileage($id)
+    {
+        return redirect()->route('mileage-logs.index');
+    }
+
+    public function getFuelLog($id)
+    {
+        return redirect()->route('fuel.store');
+    }
+
+    public function storeFuel(Request $request)
+    {
+        return redirect()->route('fuel.store');
+    }
+
+
+
+    public function getPreviousOdometer($id)
+    {
+        return response()->json(['previous_odometer' => null]);
+    }
 }
+
 
