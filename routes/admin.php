@@ -8,9 +8,9 @@ use App\Http\Controllers\DriverController;
 use App\Http\Controllers\DocumentController;
 Use App\Http\Controllers\LocationController;
 use App\Http\Controllers\MaintenanceController as AdminMaintenanceController;
-use App\Http\Controllers\VehicleTrackingController;
+use App\Http\Controllers\Admin\VehicleTrackingController;
 
-Route::middleware(['auth'])->prefix('vehicles')->name('vehicles.')->group(function () {
+Route::middleware(['auth', 'role:admin'])->prefix('vehicles')->name('vehicles.')->group(function () {
     // Vehicle Tracking (Moved up to avoid collision with /{id})
     Route::get('/tracking', [VehicleTrackingController::class, 'index'])->name('tracking');
     Route::get('/tracking/data', [VehicleTrackingController::class, 'getVehiclesLocations'])->name('tracking.data');
