@@ -1099,7 +1099,7 @@ class VehicleController extends Controller
                     'driver_id' => $vehicle->assigned_driver_id,
                     'driver_name' => $vehicle->assignedDriver ? $vehicle->assignedDriver->name : null,
                     'status' => $vehicle->status,
-                ],
+                ]
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -1108,4 +1108,180 @@ class VehicleController extends Controller
             ], 404);
         }
     }
+
+    /**
+     * Create a Job Order form for a vehicle.
+     *
+     * NOTE: Your app already uses the Maintenance model for dispatch/approval.
+     * These routes expect job-order methods on this controller, so we map
+     * job orders to Maintenance records.
+     */
+    public function createJobOrder(Vehicle $vehicle)
+    {
+        // If you later add a dedicated Blade, you can swap this view.
+        return redirect()
+            ->route('maintenance.show', ['id' => $vehicle->id])
+            ->with('info', 'Job order creation is handled via Maintenance scheduling UI.');
+    }
+
+    /**
+     * Store a Job Order (mapped to a Maintenance record).
+     */
+    public function storeJobOrder(Request $request, Vehicle $vehicle)
+    {
+        try {
+            // Map Blade form fields -> backend expected fields
+            // Blade:
+            // - scheduled_date -> maintenance_date
+            // - selected_services[] -> checklist
+            // - description + technician_notes -> maintenance_notes
+            $request->merge([
+                'maintenance_date' => $request->input('scheduled_date'),
+                'checklist' => $request->input('selected_services', $request->input('checklist')),
+                'maintenance_notes' => trim((string) $request->input('description', ''))
+                    . (filled($request->input('technician_notes')) ? "\n" . (string) $request->input('technician_notes') : ''),
+            ]);
+
+            $validated = $request->validate([
+                'maintenance_type' => 'required|string|max:255',
+                'other_maintenance_type' => 'nullable|string|max:255',
+                'maintenance_date' => 'required|date',
+                'mileage_at_service' => 'nullable|integer|min:0',
+                'driver_id' => 'nullable|exists:drivers,id',
+                'checklist' => 'nullable|array',
+                'maintenance_notes' => 'nullable|string|max:1000',
+                'status' => 'nullable|in:waiting,dispatched,scheduled,completed,cancelled',
+
+                // Optional fields that exist in your Blade (safe to accept)
+                'service_provider' => 'nullable|string|max:255',
+                'priority' => 'nullable|string|max:50',
+                'estimated_cost' => 'nullable|numeric|min:0',
+            ]);
+
+            if (($validated['maintenance_type'] ?? null) === 'other' && !empty($validated['other_maintenance_type'])) {
+                $validated['maintenance_type'] = $validated['other_maintenance_type'];
+            }
+
+            // Driver role requests should go into waiting state
+            $user = auth()->user();
+            if ($user && method_exists($user, 'isDriver') && $user->isDriver()) {
+                $validated['status'] = 'waiting';
+                $validated['driver_id'] = $validated['driver_id'] ?? optional($user->driver)->id;
+            } else {
+                $validated['status'] = $validated['status'] ?? 'dispatched';
+            }
+
+            $validated['vehicle_id'] = $vehicle->id;
+            $validated['date'] = $validated['maintenance_date'];
+
+            // Store notes into description (your Maintenance model uses description as the text field)
+            $validated['description'] = $validated['maintenance_notes'] ?? null;
+
+            // Map extra fields (if present) into Maintenance columns
+            if (filled($validated['service_provider'] ?? null)) {
+                $validated['service_provider'] = $validated['service_provider'];
+            }
+
+            // If user provided manual estimated cost, store it as cost.
+            if ($request->filled('estimated_cost')) {
+                $validated['cost'] = (float) $request->input('estimated_cost');
+            }
+
+            // Priority isn't in fillable on Maintenance.php (no column shown), but safe to ignore.
+
+            $validated['created_by'] = auth()->id();
+
+            $maintenance = Maintenance::create($validated);
+
+            // Update vehicle status to reflect maintenance
+            $vehicle->update(['status' => 'maintenance']);
+
+            return redirect()
+                ->back()
+                ->with('success', 'Job order created successfully. Maintenance record #' . $maintenance->id . ' created.');
+        } catch (\Throwable $e) {
+            return back()->withErrors(['error' => 'Failed to store job order: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * List job orders for a vehicle.
+     */
+    public function jobOrders(Vehicle $vehicle)
+    {
+        $jobOrders = $vehicle->maintenances()
+            ->where('status', '!=', 'deleted')
+            ->orderByDesc('created_at')
+            ->paginate(15);
+
+        return view('vehicle-maintenance.index', [
+            'maintenanceRecords' => $jobOrders,
+        ]);
+    }
+
+    /**
+     * Update job order status.
+     */
+    public function updateJobOrderStatus(
+        Request $request,
+        Vehicle $vehicle,
+        Maintenance $maintenance
+    ) {
+        $validated = $request->validate([
+            'status' => 'required|in:waiting,dispatched,scheduled,completed,cancelled',
+        ]);
+
+        if ($maintenance->vehicle_id !== $vehicle->id) {
+            abort(404);
+        }
+
+        $maintenance->update([
+            'status' => $validated['status'],
+            'modified_by' => auth()->id(),
+        ]);
+
+        if ($validated['status'] === 'completed') {
+            $vehicle->update(['status' => 'active']);
+        }
+
+        return redirect()->back()->with('success', 'Job order status updated successfully.');
+    }
+
+    // ---------------------------------------------------------------------
+    // Admin mileage / fuel log handlers (routes/web.php -> routes/admin.php)
+    // ---------------------------------------------------------------------
+
+    public function getMileageLog($id)
+    {
+        return redirect()->route('mileage-logs.index');
+    }
+
+    public function storeMileage(Request $request)
+    {
+        return redirect()->route('mileage-logs.index');
+    }
+
+    public function deleteMileage($id)
+    {
+        return redirect()->route('mileage-logs.index');
+    }
+
+    public function getFuelLog($id)
+    {
+        return redirect()->route('fuel.store');
+    }
+
+    public function storeFuel(Request $request)
+    {
+        return redirect()->route('fuel.store');
+    }
+
+
+
+    public function getPreviousOdometer($id)
+    {
+        return response()->json(['previous_odometer' => null]);
+    }
 }
+
+

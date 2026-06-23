@@ -213,53 +213,58 @@
         activeTileLayer = L.tileLayer(mapThemes[theme], {
             attribution: '&copy; OpenStreetMap contributors',
             maxZoom: 20
-        });
-
-        tileLayers.dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            subdomains: 'abcd',
-            maxZoom: 20
-        });
-
-        tileLayers.satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            maxZoom: 19
-        });
+        }).addTo(map);
 
         // Update UI buttons
         ['light', 'dark', 'satellite'].forEach(t => {
             const btn = document.getElementById(`theme-${t}`);
-            if (t === theme) {
-                btn.classList.add('bg-blue-50', 'text-blue-600');
-            } else {
-                btn.classList.remove('bg-blue-50', 'text-blue-600');
-            }
-        });
-    }
-
-    function setMapTheme(theme) {
-        Object.values(tileLayers).forEach(layer => map.removeLayer(layer));
-        tileLayers[theme].addTo(map);
-
-        // Update buttons
-        ['light', 'dark', 'satellite'].forEach(t => {
-            const btn = document.getElementById(`btn-theme-${t}`);
-            if (t === theme) {
-                btn.className = 'px-3 py-1.5 rounded-md text-[10px] font-bold transition bg-blue-600 text-white shadow-sm';
-            } else {
-                btn.className = 'px-3 py-1.5 rounded-md text-[10px] font-bold transition text-gray-400 hover:text-gray-600';
+            if (btn) {
+                if (t === theme) {
+                    btn.classList.add('bg-blue-600', 'text-white', 'shadow-sm');
+                    btn.classList.remove('hover:bg-gray-100');
+                } else {
+                    btn.classList.remove('bg-blue-600', 'text-white', 'shadow-sm');
+                    btn.classList.add('hover:bg-gray-100');
+                }
             }
         });
     }
 
     function fetchData() {
+        const statusIndicator = document.getElementById('connectionStatus');
+
         fetch('{{ route("vehicles.tracking.data") }}')
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error('Network response was not ok');
+                return res.json();
+            })
             .then(result => {
                 if (result.success) {
                     vehiclesData = result.data;
                     updateUI();
+
+                    if (statusIndicator) {
+                        statusIndicator.className = "flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium";
+                        statusIndicator.innerHTML = `
+                            <span class="relative flex h-2 w-2 mr-2">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                            </span>
+                            LIVE UPDATING
+                        `;
+                    }
                 }
             })
-            .catch(err => console.error("Update failed", err));
+            .catch(err => {
+                console.error("Update failed", err);
+                if (statusIndicator) {
+                    statusIndicator.className = "flex items-center px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium";
+                    statusIndicator.innerHTML = `
+                        <i class="fas fa-exclamation-circle mr-2"></i>
+                        CONNECTION LOST
+                    `;
+                }
+            });
     }
 
     function updateUI() {

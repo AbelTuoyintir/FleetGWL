@@ -1706,7 +1706,7 @@ $(document).ready(function() {
         submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
         
         $.ajax({
-            url: '{{ route("vehicles.fuel.store") }}',
+url: '{{ route("vehicles.fuel.store") }}',
             method: 'POST',
             data: formData,
             headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
