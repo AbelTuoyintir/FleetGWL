@@ -29,6 +29,9 @@
                 <p class="text-gray-500 text-xs mt-0.5">Ghana Water Company Limited - Real-time fleet intelligence</p>
             </div>
             <div class="flex gap-2 mt-2 sm:mt-0">
+                <a href="{{ route('vehicles.tracking') }}" class="bg-blue-600 text-white rounded-lg px-4 py-1.5 text-xs font-bold hover:bg-blue-700 transition flex items-center shadow-sm">
+                    <i class="fas fa-map-marked-alt mr-2"></i> Live Fleet Map
+                </a>
                 <span class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs">
                     <i class="far fa-calendar-alt mr-1"></i> <span id="dashboardDate">{{ now()->format('F j, Y') }}</span>
                 </span>
