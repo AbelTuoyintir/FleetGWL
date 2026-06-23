@@ -31,9 +31,14 @@ class AiSupportController extends Controller
                     : (string) ($aiMessage->message ?? $aiMessage ?? 'Sorry, I could not generate a response.'),
             ]);
         } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('AI Support Chat Error: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'exception' => $e
+            ]);
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'AI chat failed.',
+                'message' => 'I encountered an unexpected error processing your request. Please try again in a moment.',
             ], 500);
         }
     }
