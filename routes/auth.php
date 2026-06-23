@@ -21,7 +21,9 @@ use App\Http\Controllers\DriverController;
 Route::middleware('guest')->group(function () {
     // Login routes
     Route::get('/', [AuthenticationController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [AuthenticationController::class, 'login'])->name('login.submit');
+    Route::post('/login', [AuthenticationController::class, 'login'])
+        ->middleware('throttle:5,1')
+        ->name('login.submit');
     
     // Password reset routes
     Route::get('/forgot-password', [AuthenticationController::class, 'showForgotPasswordForm'])->name('password.request');
@@ -42,7 +44,9 @@ Route::middleware('auth')->group(function () {
     // Security & Device Management Routes
     Route::prefix('security')->name('security.')->group(function () {
         // Temporary handlers to keep links functional until a dedicated controller is added.
-        Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity');
+        Route::get('/activity', [ActivityLogController::class, 'index'])
+            ->middleware('role:admin,super_admin')
+            ->name('activity');
         Route::get('/devices', fn () => redirect()->route('dashboard'))->name('devices');
         Route::delete('/devices/{device}', fn () => back())->name('devices.remove');
         Route::post('/devices/{device}/trust', fn () => back())->name('devices.trust');
