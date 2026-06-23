@@ -178,7 +178,10 @@ class SecurityController extends Controller
         DB::table('security_events')
             ->where('id', $eventId)
             ->where('user_identifier', $user->email)
-            ->update(['metadata' => DB::raw('JSON_SET(COALESCE(metadata, "{}"), "$.reviewed", true, "$.reviewed_at", "' . now() . '")')]);
+            ->update([
+                'metadata->reviewed' => true,
+                'metadata->reviewed_at' => now()->toDateTimeString(),
+            ]);
         
         return response()->json(['success' => true]);
     }
