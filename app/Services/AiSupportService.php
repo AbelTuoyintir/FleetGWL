@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\SupportChat;
 use App\Models\SupportMessage;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class AiSupportService
 {
@@ -22,9 +24,70 @@ class AiSupportService
     }
 
 
-    public function generateAiResponse(string $userMessage): string
+    public function generateAiResponse(string $userMessage, array $history = []): string
     {
-        // Simulated AI logic for now
+        // 1. Try OpenAI
+        $openaiKey = config('services.openai.api_key');
+        if ($openaiKey) {
+            try {
+                $messages = [
+                    ['role' => 'system', 'content' => "You are a 24/7 AI support agent for the Ghana Water Limited Fleet Management system. Assist users with platform difficulties. System features include Vehicle Tracking, Fuel Management, Maintenance, Driver Hub, Reports, and Documents."]
+                ];
+
+                foreach ($history as $h) {
+                    $messages[] = ['role' => $h->sender_type === 'user' ? 'user' : 'assistant', 'content' => $h->message];
+                }
+
+                $messages[] = ['role' => 'user', 'content' => $userMessage];
+
+                $response = Http::withToken($openaiKey)
+                    ->post('https://api.openai.com/v1/chat/completions', [
+                        'model' => 'gpt-4o-mini',
+                        'messages' => $messages,
+                        'max_tokens' => 500,
+                    ]);
+
+                if ($response->successful()) {
+                    return $response->json('choices.0.message.content');
+                }
+            } catch (\Throwable $e) {
+                Log::error("OpenAI failed: " . $e->getMessage());
+            }
+        }
+
+        // 2. Fallback to Ollama (Local AI)
+        $ollamaBaseUrl = config('services.ollama.base_url');
+        if ($ollamaBaseUrl) {
+            try {
+                $prompt = "You are a 24/7 AI support agent for the Ghana Water Limited Fleet Management system.\n";
+                foreach ($history as $h) {
+                    $prompt .= ($h->sender_type === 'user' ? "User: " : "AI: ") . $h->message . "\n";
+                }
+                $prompt .= "User: $userMessage\n";
+                $prompt .= "AI:";
+
+                $response = Http::post($ollamaBaseUrl . '/api/chat', [
+                    'model' => config('services.ollama.model', 'llama3'),
+                    'messages' => [
+                        ['role' => 'user', 'content' => $prompt]
+                    ],
+                    'stream' => false
+                ]);
+
+                if ($response->successful()) {
+                    return $response->json('message.content');
+                }
+            } catch (\Throwable $e) {
+                Log::error("Ollama failed: " . $e->getMessage());
+            }
+        }
+
+        // 3. Final Fallback: Simulated keyword matching
+        return $this->generateSimulatedResponse($userMessage);
+    }
+
+    protected function generateSimulatedResponse(string $userMessage): string
+    {
         $lowerMsg = strtolower($userMessage);
 
         if (str_contains($lowerMsg, 'track') || str_contains($lowerMsg, 'location') || str_contains($lowerMsg, 'map')) {
@@ -74,9 +137,12 @@ class AiSupportService
     {
         $chat = $this->getOrCreateChat($userId);
 
+        // Get recent history for context
+        $history = $chat ? $chat->messages()->orderBy('created_at', 'desc')->take(10)->get()->reverse()->values()->all() : [];
+
         // If DB tables are missing, degrade gracefully.
         if (!$chat) {
-            $aiResponseText = $this->generateAiResponse($messageText);
+            $aiResponseText = $this->generateAiResponse($messageText, $history);
             return (object) [
                 'message' => $aiResponseText
             ];
@@ -90,7 +156,7 @@ class AiSupportService
         ]);
 
         // Generate and save AI response
-        $aiResponseText = $this->generateAiResponse($messageText);
+        $aiResponseText = $this->generateAiResponse($messageText, $history);
 
         return SupportMessage::create([
             'support_chat_id' => $chat->id,
