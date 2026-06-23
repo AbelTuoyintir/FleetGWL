@@ -165,7 +165,7 @@ class AiSupportService
         $lowerMsg = strtolower($userMessage);
 
         if (str_contains($lowerMsg, 'track') || str_contains($lowerMsg, 'location') || str_contains($lowerMsg, 'map')) {
-            return "You can track vehicles in real-time on the 'Live Tracking' map under the Vehicle Registry menu.";
+            return "You can view live vehicle locations and historical routes in the 'Live Tracking' section under 'Vehicle Registry'. The map supports real-time updates and multiple view modes (Light, Dark, Satellite).";
         }
 
         if (str_contains($lowerMsg, 'fuel')) {
@@ -185,23 +185,6 @@ class AiSupportService
         }
 
         if (str_contains($lowerMsg, 'report') || str_contains($lowerMsg, 'analytics') || str_contains($lowerMsg, 'stats')) {
-            return "Comprehensive fleet reports, including utilization and cost analysis, are available in the 'Fleet Reports' section.";
-        }
-
-        if (str_contains($lowerMsg, 'mileage') || str_contains($lowerMsg, 'distance') || str_contains($lowerMsg, 'odometer')) {
-            return "Mileage logs and distance analytics can be managed in the 'Mileage Management' section of the sidebar.";
-        }
-
-        if (str_contains($lowerMsg, 'document') || str_contains($lowerMsg, 'insurance') || str_contains($lowerMsg, 'license')) {
-            return "Vehicle insurance, licenses, and other important documents can be managed in the 'Insurance & Docs' section.";
-        }
-
-        if (str_contains($lowerMsg, 'setting') || str_contains($lowerMsg, 'config')) {
-            return "General system and fleet configurations can be adjusted in the 'Fleet Settings' menu.";
-        }
-
-        return "I'm your 24/7 AI support agent for the GWL Fleet Management system. How can I assist you with your fleet, fuel, tracking, or maintenance needs today?";
-    }
             return "Visit the 'Fleet Reports' section for deep insights. We provide utilization reports, cost analysis, and fuel efficiency metrics to help you optimize your fleet operations.";
         }
 

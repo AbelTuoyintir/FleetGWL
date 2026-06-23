@@ -1283,5 +1283,3 @@ class VehicleController extends Controller
         return response()->json(['previous_odometer' => null]);
     }
 }
-
-

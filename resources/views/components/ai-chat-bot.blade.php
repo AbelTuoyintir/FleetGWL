@@ -1,11 +1,11 @@
 <div id="ai-chat-widget" class="fixed bottom-6 right-6 z-50">
     <!-- Chat Toggle Button -->
-    <button id="chat-toggle" aria-label="Open AI Support Chat" class="w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-blue-700 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
+    <button id="chat-toggle" aria-label="Toggle AI Support Chat" aria-expanded="false" class="w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-blue-700 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2">
         <i class="fas fa-comment-dots text-2xl"></i>
     </button>
 
     <!-- Chat Window -->
-    <div id="chat-window" role="dialog" aria-label="AI Support Chat" class="hidden absolute bottom-16 right-0 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden transition-all duration-300 origin-bottom-right transform scale-95 opacity-0">
+    <div id="chat-window" class="hidden absolute bottom-16 right-0 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden transition-all duration-300 origin-bottom-right transform scale-95 opacity-0">
         <!-- Header -->
         <div class="bg-blue-600 p-4 text-white flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -122,13 +122,13 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadHistory() {
         if (chatMessages.children.length > 0) return; // Only load once
 
-        fetch('/ai-support/history')
-            .then(async (response) => {
-                if (!response.ok) {
-                    const errorText = await response.text().catch(() => 'Unknown error');
-                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+        fetch(historyRoute)
+            .then(async (res) => {
+                if (!res.ok) {
+                    const text = await res.text().catch(() => '');
+                    throw new Error(`HTTP ${res.status}: ${text || 'Request failed'}`);
                 }
-                return response.json();
+                return res.json();
             })
             .then(data => {
                 if (data.status === 'success') {
@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(err => {
-                console.error('Failed to load chat history:', err);
+                console.error('Failed to load history:', err);
             });
     }
 
@@ -180,12 +180,20 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({ message: message })
         })
-        .then(async (response) => {
-            if (!response.ok) {
-                const text = await response.text().catch(() => '');
-                throw new Error(`HTTP ${response.status}: ${text || 'Request failed'}`);
+        .then(async (res) => {
+            const rawText = await res.text().catch(() => '');
+            let parsed = null;
+            try {
+                parsed = rawText ? JSON.parse(rawText) : null;
+            } catch (e) {
+                parsed = null;
             }
-            return response.json();
+
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}: ${rawText || 'Request failed'}`);
+            }
+
+            return parsed || { status: 'error', message: rawText || 'Invalid server response' };
         })
         .then(data => {
             chatMessages.removeChild(loadingDiv);

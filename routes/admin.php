@@ -10,24 +10,24 @@ Use App\Http\Controllers\LocationController;
 use App\Http\Controllers\MaintenanceController as AdminMaintenanceController;
 use App\Http\Controllers\Admin\VehicleTrackingController;
 
-Route::middleware(['auth', 'role:admin'])->prefix('vehicles')->name('vehicles.')->group(function () {
+Route::middleware(['auth'])->prefix('vehicles')->name('vehicles.')->group(function () {
     // Vehicle Tracking (Moved up to avoid collision with /{id})
-    Route::get('/tracking', [VehicleTrackingController::class, 'index'])->name('tracking');
-    Route::get('/tracking/data', [VehicleTrackingController::class, 'getVehiclesLocations'])->name('tracking.data');
-    Route::get('/tracking/{id}/history', [VehicleTrackingController::class, 'getVehicleHistory'])->name('tracking.history');
+    Route::get('/tracking', [VehicleTrackingController::class, 'index'])->middleware('role:admin')->name('tracking');
+    Route::get('/tracking/data', [VehicleTrackingController::class, 'getVehiclesLocations'])->middleware('role:admin')->name('tracking.data');
+    Route::get('/tracking/{id}/history', [VehicleTrackingController::class, 'getVehicleHistory'])->middleware('role:admin')->name('tracking.history');
 
-    Route::get('/', [VehicleController::class, 'index'])->name('index');
-    Route::post('/', [VehicleController::class, 'store'])->name('store');
-    Route::get('/data', [VehicleController::class, 'getVehiclesData'])->name('data');
-    Route::get('/statistics', [VehicleController::class, 'getVehicleStatistics'])->name('statistics');
-    Route::get('/form-data', [VehicleController::class, 'getFormData'])->name('form-data');
-    Route::get('/export', [VehicleController::class, 'exportVehicles'])->name('export');
+    Route::get('/', [VehicleController::class, 'index'])->middleware('role:admin')->name('index');
+    Route::post('/', [VehicleController::class, 'store'])->middleware('role:admin')->name('store');
+    Route::get('/data', [VehicleController::class, 'getVehiclesData'])->middleware('role:admin')->name('data');
+    Route::get('/statistics', [VehicleController::class, 'getVehicleStatistics'])->middleware('role:admin')->name('statistics');
+    Route::get('/form-data', [VehicleController::class, 'getFormData'])->middleware('role:admin')->name('form-data');
+    Route::get('/export', [VehicleController::class, 'exportVehicles'])->middleware('role:admin')->name('export');
 
-    Route::get('/import', [VehicleController::class, 'showImportForm'])->name('import.form');
-    Route::post('/import', [VehicleController::class, 'importVehicles'])->name('import');
-    Route::get('/template/download', [VehicleController::class, 'downloadTemplate'])->name('template');
-    Route::get('/import/status', [VehicleController::class, 'getImportStatus'])->name('import.status');
-    Route::get('/import/failed/download', [VehicleController::class, 'downloadFailedImportRows'])->name('import.failed.download');
+    Route::get('/import', [VehicleController::class, 'showImportForm'])->middleware('role:admin')->name('import.form');
+    Route::post('/import', [VehicleController::class, 'importVehicles'])->middleware('role:admin')->name('import');
+    Route::get('/template/download', [VehicleController::class, 'downloadTemplate'])->middleware('role:admin')->name('template');
+    Route::get('/import/status', [VehicleController::class, 'getImportStatus'])->middleware('role:admin')->name('import.status');
+    Route::get('/import/failed/download', [VehicleController::class, 'downloadFailedImportRows'])->middleware('role:admin')->name('import.failed.download');
 
     // Documents
     Route::prefix('documents')->name('documents.')->group(function () {
@@ -46,31 +46,32 @@ Route::middleware(['auth', 'role:admin'])->prefix('vehicles')->name('vehicles.')
     Route::resource('documents', \App\Http\Controllers\DocumentController::class)->except(['destroy']);
     Route::delete('/documents/{document}', [\App\Http\Controllers\DocumentController::class, 'destroy'])->name('documents.destroy');
 
-    Route::get('/{id}/edit', [VehicleController::class, 'edit'])->name('edit');
-    Route::post('/{vehicle}/maintenance', [VehicleController::class, 'dispatchForMaintenance'])->name('maintenance');
-    Route::post('/{vehicle}/maintenance/release', [VehicleController::class, 'releaseFromMaintenance'])->name('maintenance.release');
-    Route::put('/{vehicle}', [VehicleController::class, 'update'])->name('update');
-    Route::delete('/{vehicle}', [VehicleController::class, 'destroy'])->name('destroy');
-    Route::get('/{id}', [VehicleController::class, 'show'])->name('show');
-    Route::get('/{vehicle}/create-job-order', [VehicleController::class, 'createJobOrder'])->name('maintenance.job-order.create');
-    Route::post('/{vehicle}/store-job-order', [VehicleController::class, 'storeJobOrder'])->name('maintenance.job-order.store');
-    Route::get('/{vehicle}/job-orders', [VehicleController::class, 'jobOrders'])->name('maintenance.job-orders');
-    Route::put('/{vehicle}/job-orders/{maintenance}/status', [VehicleController::class, 'updateJobOrderStatus'])->name('maintenance.job-order.status');
-    Route::get('/vehicles/maintenance/{id}/data', [VehicleController::class, 'getMaintenanceData'])->name('vehicles.maintenance.data');
-    Route::get('/vehicles/maintenance/{id}/details', [VehicleController::class, 'maintenanceDetailsPage'])->name('vehicles.maintenance.details.page');
+    Route::middleware(['role:admin'])->group(function () {
+        Route::get('/{id}/edit', [VehicleController::class, 'edit'])->name('edit');
+        Route::post('/{vehicle}/maintenance', [VehicleController::class, 'dispatchForMaintenance'])->name('maintenance');
+        Route::post('/{vehicle}/maintenance/release', [VehicleController::class, 'releaseFromMaintenance'])->name('maintenance.release');
+        Route::put('/{vehicle}', [VehicleController::class, 'update'])->name('update');
+        Route::delete('/{vehicle}', [VehicleController::class, 'destroy'])->name('destroy');
+        Route::get('/{id}', [VehicleController::class, 'show'])->name('show');
+        Route::get('/{vehicle}/create-job-order', [VehicleController::class, 'createJobOrder'])->name('maintenance.job-order.create');
+        Route::post('/{vehicle}/store-job-order', [VehicleController::class, 'storeJobOrder'])->name('maintenance.job-order.store');
+        Route::get('/{vehicle}/job-orders', [VehicleController::class, 'jobOrders'])->name('maintenance.job-orders');
+        Route::put('/{vehicle}/job-orders/{maintenance}/status', [VehicleController::class, 'updateJobOrderStatus'])->name('maintenance.job-order.status');
+        Route::get('/vehicles/maintenance/{id}/data', [VehicleController::class, 'getMaintenanceData'])->name('vehicles.maintenance.data');
+        Route::get('/vehicles/maintenance/{id}/details', [VehicleController::class, 'maintenanceDetailsPage'])->name('vehicles.maintenance.details.page');
 
 
-    // Mileage Log Routes
-    Route::get('/{id}/mileage-log', [VehicleController::class, 'getMileageLog'])->name('mileage.log');
-    Route::post('/mileage/store', [VehicleController::class, 'storeMileage'])->name('mileage.store');
-    Route::delete('/mileage/{id}', [VehicleController::class, 'deleteMileage'])->name('mileage.delete');
+        // Mileage Log Routes
+        Route::get('/{id}/mileage-log', [VehicleController::class, 'getMileageLog'])->name('mileage.log');
+        Route::post('/mileage/store', [VehicleController::class, 'storeMileage'])->name('mileage.store');
+        Route::delete('/mileage/{id}', [VehicleController::class, 'deleteMileage'])->name('mileage.delete');
 
-    // Fuel Log Routes
-    Route::get('/{id}/fuel-log', [VehicleController::class, 'getFuelLog'])->name('fuel.log');
-    Route::post('/fuel/store', [VehicleController::class, 'storeFuel'])->name('fuel.store');
-    Route::delete('/fuel/{id}', [VehicleController::class, 'deleteFuel'])->name('fuel.delete');
-    Route::get('/{id}/fuel/previous-odometer', [VehicleController::class, 'getPreviousOdometer'])->name('fuel.previous');
-   
+        // Fuel Log Routes
+        Route::get('/{id}/fuel-log', [VehicleController::class, 'getFuelLog'])->name('fuel.log');
+        Route::post('/fuel/store', [VehicleController::class, 'storeFuel'])->name('fuel.store');
+        Route::delete('/fuel/{id}', [VehicleController::class, 'deleteFuel'])->name('fuel.delete');
+        Route::get('/{id}/fuel/previous-odometer', [VehicleController::class, 'getPreviousOdometer'])->name('fuel.previous');
+    });
 });
 
 Route::middleware(['auth'])->prefix('fuel-management')->name('fuel-management.')->group(function () {
@@ -187,18 +188,18 @@ Route::middleware(['auth'])->prefix('reports')->name('reports.')->group(function
 
 // Maintenance Alert Routes
 Route::middleware(['auth'])->prefix('maintenance')->name('maintenance.')->group(function () {
-    Route::get('/vehicles-needing', [VehicleController::class, 'vehiclesNeedingPage'])->name('vehicles-needing');
-    Route::get('/vehicles-needing/data', [VehicleController::class, 'getVehiclesNeedingMaintenance'])->name('vehicles-needing.data');
-    Route::post('/vehicle/{id}/acknowledge', [VehicleController::class, 'acknowledgeAlert'])->name('acknowledge');
-    Route::get('/schedule/{vehicleId}', [VehicleController::class, 'create'])->name('schedule');
-    Route::get('/', [VehicleController::class, 'index'])->name('index');
-    Route::get('/create', [VehicleController::class, 'create'])->name('create');
-    Route::post('/store', [VehicleController::class, 'store'])->name('store');
-    Route::get('/{id}', [VehicleController::class, 'show'])->name('show');
-    Route::get('/{id}/edit', [VehicleController::class, 'edit'])->name('edit');
-    Route::put('/{id}', [VehicleController::class, 'update'])->name('update');
-    Route::delete('/{id}', [VehicleController::class, 'destroy'])->name('destroy');
-    Route::get('/statistics', [VehicleController::class, 'statistics'])->name('statistics');
+    Route::get('/vehicles-needing', [AdminMaintenanceController::class, 'vehiclesNeedingPage'])->name('vehicles-needing');
+    Route::get('/vehicles-needing/data', [AdminMaintenanceController::class, 'getVehiclesNeedingMaintenance'])->name('vehicles-needing.data');
+    Route::post('/vehicle/{id}/acknowledge', [AdminMaintenanceController::class, 'acknowledgeAlert'])->name('acknowledge');
+    Route::get('/schedule/{vehicleId}', [AdminMaintenanceController::class, 'create'])->name('schedule');
+    Route::get('/', [AdminMaintenanceController::class, 'index'])->name('index');
+    Route::get('/create', [AdminMaintenanceController::class, 'create'])->name('create');
+    Route::post('/store', [AdminMaintenanceController::class, 'store'])->name('store');
+    Route::get('/{id}', [AdminMaintenanceController::class, 'show'])->name('show');
+    Route::get('/{id}/edit', [AdminMaintenanceController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [AdminMaintenanceController::class, 'update'])->name('update');
+    Route::delete('/{id}', [AdminMaintenanceController::class, 'destroy'])->name('destroy');
+    Route::get('/statistics', [AdminMaintenanceController::class, 'statistics'])->name('statistics');
 });
 
 
