@@ -4,13 +4,25 @@ namespace App\Services;
 
 use App\Models\SupportChat;
 use App\Models\SupportMessage;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class AiSupportService
 {
+    protected $systemPrompt = "You are a 24/7 AI support agent for the Ghana Water Limited (GWL) Fleet Management system.
+    Assist users with questions about:
+    - Vehicle Registry & Live Tracking: View locations, history, and status.
+    - Fuel Management: Log purchases, consumption, and costs.
+    - Maintenance: Service schedules, history, and reminders.
+    - Driver Hub: Assignments and online status.
+    - Reports: Utilization, cost, and fuel efficiency.
+    - Documents: Insurance and roadworthiness tracking.
+    - Mileage: Logs and analytics.
+
+    Be professional, helpful, and concise.";
+
     public function getOrCreateChat(int $userId)
     {
-        // If the required tables were never migrated (e.g. support_chats/support_messages),
-        // don't crash the whole app.
         try {
             return SupportChat::firstOrCreate(
                 ['user_id' => $userId, 'status' => 'active'],
@@ -21,10 +33,135 @@ class AiSupportService
         }
     }
 
-
-    public function generateAiResponse(string $userMessage): string
+    public function processMessage(int $userId, string $messageText)
     {
-        // Simulated AI logic for now
+        $chat = $this->getOrCreateChat($userId);
+        $history = collect();
+
+        if ($chat) {
+            // Save user message
+            SupportMessage::create([
+                'support_chat_id' => $chat->id,
+                'sender_type' => 'user',
+                'message' => $messageText
+            ]);
+
+            // Get last 10 messages for context (excluding the one just saved if we want to pass it explicitly or include it)
+            // Let's include the last 10 messages from history.
+            $history = $chat->messages()
+                ->orderBy('created_at', 'desc')
+                ->take(10)
+                ->get()
+                ->reverse();
+        }
+
+        // Generate AI response
+        $aiResponseText = $this->generateAiResponse($messageText, $history);
+
+        if ($chat) {
+            return SupportMessage::create([
+                'support_chat_id' => $chat->id,
+                'sender_type' => 'ai',
+                'message' => $aiResponseText
+            ]);
+        }
+
+        return (object) ['message' => $aiResponseText];
+    }
+
+    public function generateAiResponse(string $userMessage, $history = null): string
+    {
+        // 1. Try OpenAI
+        $openaiResponse = $this->callOpenAi($userMessage, $history);
+        if ($openaiResponse) {
+            return $openaiResponse;
+        }
+
+        // 2. Fallback to Ollama
+        $ollamaResponse = $this->callOllama($userMessage, $history);
+        if ($ollamaResponse) {
+            return $ollamaResponse;
+        }
+
+        // 3. Final Fallback: Keyword Matching
+        return $this->keywordFallback($userMessage);
+    }
+
+    protected function callOpenAi(string $userMessage, $history)
+    {
+        $apiKey = config('services.openai.api_key');
+        if (!$apiKey) return null;
+
+        try {
+            $messages = [['role' => 'system', 'content' => $this->systemPrompt]];
+
+            if ($history && $history->isNotEmpty()) {
+                foreach ($history as $msg) {
+                    $messages[] = [
+                        'role' => $msg->sender_type === 'user' ? 'user' : 'assistant',
+                        'content' => $msg->message
+                    ];
+                }
+            } else {
+                $messages[] = ['role' => 'user', 'content' => $userMessage];
+            }
+
+            $response = Http::withToken($apiKey)
+                ->timeout(10)
+                ->post('https://api.openai.com/v1/chat/completions', [
+                    'model' => 'gpt-3.5-turbo',
+                    'messages' => $messages,
+                    'temperature' => 0.7,
+                    'max_tokens' => 500,
+                ]);
+
+            if ($response->successful()) {
+                return $response->json('choices.0.message.content');
+            }
+        } catch (\Throwable $e) {
+            Log::error('OpenAI API call failed: ' . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    protected function callOllama(string $userMessage, $history)
+    {
+        $baseUrl = config('services.ollama.base_url');
+        $model = config('services.ollama.model');
+
+        try {
+            $messages = [['role' => 'system', 'content' => $this->systemPrompt]];
+            if ($history && $history->isNotEmpty()) {
+                foreach ($history as $msg) {
+                    $messages[] = [
+                        'role' => $msg->sender_type === 'user' ? 'user' : 'assistant',
+                        'content' => $msg->message
+                    ];
+                }
+            } else {
+                $messages[] = ['role' => 'user', 'content' => $userMessage];
+            }
+
+            $response = Http::timeout(15)
+                ->post("$baseUrl/api/chat", [
+                    'model' => $model,
+                    'messages' => $messages,
+                    'stream' => false,
+                ]);
+
+            if ($response->successful()) {
+                return $response->json('message.content');
+            }
+        } catch (\Throwable $e) {
+            Log::error('Ollama API call failed: ' . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    protected function keywordFallback(string $userMessage): string
+    {
         $lowerMsg = strtolower($userMessage);
 
         if (str_contains($lowerMsg, 'track') || str_contains($lowerMsg, 'location') || str_contains($lowerMsg, 'map')) {
@@ -70,36 +207,6 @@ class AiSupportService
         return "I'm your 24/7 AI support agent for the Ghana Water Limited Fleet Management system. How can I assist you with your fleet, fuel, or maintenance needs today?";
     }
 
-    public function processMessage(int $userId, string $messageText)
-    {
-        $chat = $this->getOrCreateChat($userId);
-
-        // If DB tables are missing, degrade gracefully.
-        if (!$chat) {
-            $aiResponseText = $this->generateAiResponse($messageText);
-            return (object) [
-                'message' => $aiResponseText
-            ];
-        }
-
-        // Save user message
-        SupportMessage::create([
-            'support_chat_id' => $chat->id,
-            'sender_type' => 'user',
-            'message' => $messageText
-        ]);
-
-        // Generate and save AI response
-        $aiResponseText = $this->generateAiResponse($messageText);
-
-        return SupportMessage::create([
-            'support_chat_id' => $chat->id,
-            'sender_type' => 'ai',
-            'message' => $aiResponseText
-        ]);
-    }
-
-
     public function getChatHistory(int $userId)
     {
         $chat = $this->getOrCreateChat($userId);
@@ -109,5 +216,4 @@ class AiSupportService
 
         return $chat->messages()->orderBy('created_at', 'asc')->get();
     }
-
 }
