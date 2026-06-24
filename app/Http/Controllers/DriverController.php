@@ -67,8 +67,8 @@ class DriverController extends Controller
    public function store(Request $request)
     {
         try {
-            // Debug: Log incoming request
-            \Log::info('Driver store request received', $request->all());
+            // Debug: Log incoming request (excluding sensitive data)
+            \Log::info('Driver store request received', $request->except(['password', 'password_confirmation', 'phone', 'emergency_contact_phone', 'license_photo']));
 
             // Validate the request
             $validated = $request->validate([
@@ -99,7 +99,7 @@ class DriverController extends Controller
                 'notes' => 'nullable|string',
             ]);
 
-            \Log::info('Validation passed', $validated);
+            \Log::info('Validation passed', collect($validated)->except(['password', 'password_confirmation', 'phone', 'emergency_contact_phone', 'license_photo'])->toArray());
 
             DB::beginTransaction();
 
