@@ -92,6 +92,29 @@ class AiSupportTest extends TestCase
         $this->assertStringContainsString('Manage fuel consumption', $response->json('ai_message'));
     }
 
+    public function test_keyword_fallback_with_new_features()
+    {
+        $user = User::factory()->create();
+        Http::fake(['*' => Http::response([], 500)]);
+
+        // Test Follow Mode
+        $response = $this->actingAs($user)->postJson(route('ai-support.chat'), ['message' => 'how to follow vehicle?']);
+        $response->assertStatus(200)->assertJson(['status' => 'success']);
+        $this->assertStringContainsString('Follow', $response->json('ai_message'));
+        $this->assertStringContainsString('lock the camera', $response->json('ai_message'));
+
+        // Test History Playback
+        $response = $this->actingAs($user)->postJson(route('ai-support.chat'), ['message' => 'view playback history']);
+        $response->assertStatus(200);
+        $this->assertStringContainsString('visualize the path', $response->json('ai_message'));
+
+        // Test Map Themes
+        $response = $this->actingAs($user)->postJson(route('ai-support.chat'), ['message' => 'how to change to satellite view?']);
+        $response->assertStatus(200);
+        $this->assertStringContainsString('Satellite', $response->json('ai_message'));
+        $this->assertStringContainsString('theme switcher', $response->json('ai_message'));
+    }
+
     public function test_user_can_get_chat_history()
     {
         $user = User::factory()->create();

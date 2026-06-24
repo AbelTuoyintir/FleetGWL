@@ -55,6 +55,7 @@
         font-size: 13px;
         line-height: 1.5;
         animation: fadeIn 0.3s ease-out;
+        white-space: pre-wrap;
     }
     .user-message {
         background: #2563eb;

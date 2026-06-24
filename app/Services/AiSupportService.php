@@ -11,7 +11,8 @@ class AiSupportService
 {
     protected $systemPrompt = "You are a 24/7 AI support agent for the Ghana Water Limited (GWL) Fleet Management system.
     Assist users with questions about:
-    - Vehicle Registry & Live Tracking: View locations, history, and status.
+    - Vehicle Registry & Live Tracking: View real-time locations with car-shaped SVG markers that rotate based on heading. Features include 'Follow Mode' for automatic camera centering and 'History Playback' for the last 24 hours.
+    - Map Interface: Supports three themes - Light, Dark, and Satellite.
     - Fuel Management: Log purchases, consumption, and costs.
     - Maintenance: Service schedules, history, and reminders.
     - Driver Hub: Assignments and online status.
@@ -164,8 +165,20 @@ class AiSupportService
     {
         $lowerMsg = strtolower($userMessage);
 
-        if (str_contains($lowerMsg, 'track') || str_contains($lowerMsg, 'location') || str_contains($lowerMsg, 'map')) {
-            return "You can view live vehicle locations and historical routes in the 'Live Tracking' section under 'Vehicle Registry'. The map supports real-time updates and multiple view modes (Light, Dark, Satellite).";
+        if (str_contains($lowerMsg, 'track') || str_contains($lowerMsg, 'location') || str_contains($lowerMsg, 'map') || str_contains($lowerMsg, 'command center')) {
+            return "The 'Live Tracking' Command Center (under 'Vehicle Registry') provides real-time fleet visibility. You can see car-shaped icons that rotate based on their actual direction. You can also switch between Light, Dark, and Satellite map themes in the top right corner.";
+        }
+
+        if (str_contains($lowerMsg, 'follow')) {
+            return "In the 'Live Tracking' section, once you select a vehicle, you can click the 'Follow' button in the Detail Card. This will lock the camera onto the vehicle, automatically centering the map as it moves.";
+        }
+
+        if (str_contains($lowerMsg, 'playback') || str_contains($lowerMsg, 'history')) {
+            return "To view where a vehicle has been, click on the vehicle in the 'Live Tracking' map or sidebar and select 'History'. This will visualize the path taken in the last 24 hours with a dashed line.";
+        }
+
+        if (str_contains($lowerMsg, 'theme') || str_contains($lowerMsg, 'dark mode') || str_contains($lowerMsg, 'satellite')) {
+            return "You can customize your map view in the 'Live Tracking' Command Center. Use the theme switcher in the top right to choose between 'Light' (daytime), 'Dark' (night monitoring), or 'Satellite' (terrain context) modes.";
         }
 
         if (str_contains($lowerMsg, 'fuel')) {
