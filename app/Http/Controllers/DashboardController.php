@@ -161,20 +161,64 @@ class DashboardController extends Controller
         $startOfMonth = $now->copy()->startOfMonth();
         $thirtyDaysFromNow = $now->copy()->addDays(30);
         $sixtyDaysFromNow = $now->copy()->addDays(60);
+        // Bolt: Perform all schema checks once at the beginning to avoid redundant queries
         $maintenanceTable = Maintenance::resolveTableName();
         $hasVehicleMaintenanceTable = Schema::hasTable($maintenanceTable);
-        $maintenanceDueColumn = $hasVehicleMaintenanceTable
-            ? (Schema::hasColumn($maintenanceTable, 'next_service_due')
-                ? 'next_service_due'
-                : (Schema::hasColumn($maintenanceTable, 'maintenance_date') ? 'maintenance_date' : null))
-            : null;
-        $maintenanceCompletedAtColumn = $hasVehicleMaintenanceTable
-            ? (Schema::hasColumn($maintenanceTable, 'completed_at')
-                ? 'completed_at'
-                : (Schema::hasColumn($maintenanceTable, 'updated_at') ? 'updated_at' : null))
-            : null;
+        $hasFuelLogsTable = Schema::hasTable('fuel_logs');
+        $hasOfficesTable = Schema::hasTable('offices');
 
-        // 1. Critical Alerts
+        $maintenanceDueColumn = null;
+        $maintenanceCompletedAtColumn = null;
+
+        if ($hasVehicleMaintenanceTable) {
+            if (Schema::hasColumn($maintenanceTable, 'next_service_due')) {
+                $maintenanceDueColumn = 'next_service_due';
+            } elseif (Schema::hasColumn($maintenanceTable, 'maintenance_date')) {
+                $maintenanceDueColumn = 'maintenance_date';
+            }
+
+            if (Schema::hasColumn($maintenanceTable, 'completed_at')) {
+                $maintenanceCompletedAtColumn = 'completed_at';
+            } elseif (Schema::hasColumn($maintenanceTable, 'updated_at')) {
+                $maintenanceCompletedAtColumn = 'updated_at';
+            }
+        }
+
+        // 1. Consolidated Vehicle Statistics & Performance Metrics
+        // Bolt: Consolidating multiple vehicle-related counts into a single query using conditional aggregation
+        $vehicleStats = DB::table('vehicles')
+            ->where('status', '!=', 'deleted')
+            ->selectRaw("
+                COUNT(*) as total,
+                SUM(CASE WHEN assigned_driver_id IS NOT NULL THEN 1 ELSE 0 END) as assigned,
+                SUM(CASE WHEN assigned_driver_id IS NULL THEN 1 ELSE 0 END) as unassigned,
+                SUM(CASE WHEN status IN ('needs_repair', 'in_shop') THEN 1 ELSE 0 END) as needing_attention,
+                SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) as added_this_month,
+                ROUND((SUM(CASE WHEN assigned_driver_id IS NOT NULL THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0)), 1) as utilization_rate
+            ", [$startOfMonth])
+            ->first();
+
+        $totalVehicles = (int) ($vehicleStats->total ?? 0);
+        $unassignedVehicles = (int) ($vehicleStats->unassigned ?? 0);
+        $vehiclesAddedThisMonth = (int) ($vehicleStats->added_this_month ?? 0);
+        $vehicleUtilization = (object) [
+            'total' => $totalVehicles,
+            'assigned' => (int) ($vehicleStats->assigned ?? 0),
+            'utilization_rate' => $vehicleStats->utilization_rate ?? 0
+        ];
+
+        // 2. Consolidated Document Statistics
+        // Bolt: Consolidating document-related counts into a single query
+        $documentStats = DB::table('documents')
+            ->where('status', '!=', 'deleted')
+            ->where('expiry_date', '<', $now)
+            ->selectRaw("
+                SUM(CASE WHEN document_type = 'insurance' THEN 1 ELSE 0 END) as expired_insurances,
+                SUM(CASE WHEN document_type = 'registration' THEN 1 ELSE 0 END) as expired_registrations
+            ")
+            ->first();
+
+        // 3. Critical Alerts
         $criticalAlerts = (object) [
             'overdue_maintenance' => $hasVehicleMaintenanceTable
                 ? Vehicle::where('status', '!=', 'deleted')
@@ -186,22 +230,12 @@ class DashboardController extends Controller
                           });
                     })->count()
                 : 0,
-            'expired_insurances' => Document::where('status', '!=', 'deleted')
-                ->where('document_type', 'insurance')
-                ->where('expiry_date', '<', $now)
-                ->count(),
-            'expired_registrations' => Document::where('status', '!=', 'deleted')
-                ->where('document_type', 'registration')
-                ->where('expiry_date', '<', $now)
-                ->count(),
-            'vehicles_needing_attention' => Vehicle::where('status', '!=', 'deleted')
-                ->whereIn('status', ['needs_repair', 'in_shop'])
-                ->count(),
+            'expired_insurances' => (int) ($documentStats->expired_insurances ?? 0),
+            'expired_registrations' => (int) ($documentStats->expired_registrations ?? 0),
+            'vehicles_needing_attention' => (int) ($vehicleStats->needing_attention ?? 0),
         ];
 
-        // 2. Vehicle Statistics
-        $totalVehicles = Vehicle::where('status', '!=', 'deleted')->count();
-        
+        // 4. Region and Driver Statistics
         $vehiclesByRegion = Vehicle::where('vehicles.status', '!=', 'deleted')
             ->select('regions.name as region_name', DB::raw('count(*) as count'))
             ->join('regions', 'vehicles.region_id', '=', 'regions.id')
@@ -220,26 +254,6 @@ class DashboardController extends Controller
                 $q->where('status', '!=', 'deleted');
             })
             ->count();
-        
-        $unassignedVehicles = Vehicle::where('status', '!=', 'deleted')
-            ->whereNull('assigned_driver_id')
-            ->count();
-
-        // 3. Performance Metrics
-        $utilizationData = DB::table('vehicles')
-            ->where('status', '!=', 'deleted')
-            ->selectRaw('
-                COUNT(*) as total,
-                SUM(CASE WHEN assigned_driver_id IS NOT NULL THEN 1 ELSE 0 END) as assigned,
-                ROUND((SUM(CASE WHEN assigned_driver_id IS NOT NULL THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0)) * 100, 1) as utilization_rate
-            ')
-            ->first();
-        
-        $vehicleUtilization = (object) [
-            'total' => $utilizationData->total ?? 0,
-            'assigned' => $utilizationData->assigned ?? 0,
-            'utilization_rate' => $utilizationData->utilization_rate ?? 0
-        ];
 
         $costData = (object) ['monthly_cost' => 0, 'ytd_cost' => 0];
         if ($hasVehicleMaintenanceTable) {
@@ -312,7 +326,7 @@ class DashboardController extends Controller
         $activeRegions = Region::where('status', '!=', 'deleted')->count();
         
         $totalOffices = 0;
-        if (Schema::hasTable('offices')) {
+        if ($hasOfficesTable) {
             $totalOffices = DB::table('offices')->where('status', '!=', 'deleted')->count();
         }
 
@@ -353,11 +367,9 @@ class DashboardController extends Controller
         }
 
         // 9. Monthly Summary
+        // Bolt: Using pre-calculated vehiclesAddedThisMonth to save a query
         $monthlySummary = (object) [
-            'vehicles_added' => Vehicle::where('status', '!=', 'deleted')
-                ->whereYear('created_at', $now->year)
-                ->whereMonth('created_at', $now->month)
-                ->count(),
+            'vehicles_added' => $vehiclesAddedThisMonth,
             'maintenance_completed' => $hasVehicleMaintenanceTable
                 ? Maintenance::where('status', '!=', 'deleted')
                     ->where('status', 'completed')
@@ -376,7 +388,7 @@ class DashboardController extends Controller
         // 10. Fuel Efficiency Data (if fuel logs exist)
         $fuelEfficiency = collect();
         try {
-            if (DB::getSchemaBuilder()->hasTable('fuel_logs')) {
+            if ($hasFuelLogsTable) {
                 $fuelEfficiency = DB::table('fuel_logs')
                     ->join('vehicles', 'fuel_logs.vehicle_id', '=', 'vehicles.id')
                     ->select(DB::raw('COALESCE(vehicles.make, "") || " " || COALESCE(vehicles.model, "") as make_model'), DB::raw('AVG(fuel_efficiency) as avg_km_per_litre'))
