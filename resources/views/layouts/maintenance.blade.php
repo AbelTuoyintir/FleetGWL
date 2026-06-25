@@ -7,6 +7,9 @@
 </head>
 <body>
     @yield('content')
+
+    <!-- AI SUPPORT CHAT BOT -->
+    @include('components.ai-chat-bot')
 </body>
 </html>
 
