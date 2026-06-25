@@ -216,7 +216,7 @@
                 <div class="bg-white w-full max-w-2xl rounded-xl shadow-xl">
                     <div class="flex items-center justify-between border-b px-5 py-4">
                         <h3 class="text-lg font-semibold text-gray-800">Bulk Import Vehicles</h3>
-                        <button id="close-import-modal" class="text-gray-500 hover:text-gray-700">
+                        <button id="close-import-modal" class="text-gray-500 hover:text-gray-700" aria-label="Close import modal" title="Close import modal">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -719,13 +719,13 @@ function renderVehiclesTable(vehicles) {
                 <td class="${insuranceClass}">${vehicle.insurance_expiry_date || 'N/A'}</td>
                 <td>
                     <div class="flex gap-2">
-                        <a href="/vehicles/${vehicle.id}" class="text-green-600 hover:text-green-800">
+                        <a href="/vehicles/${vehicle.id}" class="text-green-600 hover:text-green-800" aria-label="View Vehicle Details" title="View Details">
                             <i class="fas fa-eye"></i>
                         </a>
-                        <a href="/vehicles/${vehicle.id}/edit" class="text-blue-600 hover:text-blue-800">
+                        <a href="/vehicles/${vehicle.id}/edit" class="text-blue-600 hover:text-blue-800" aria-label="Edit Vehicle" title="Edit Vehicle">
                             <i class="fas fa-edit"></i>
                         </a>
-                        <button onclick="deleteVehicle(${vehicle.id})" class="text-red-600 hover:text-red-800">
+                        <button onclick="deleteVehicle(${vehicle.id})" class="text-red-600 hover:text-red-800" aria-label="Delete Vehicle" title="Delete Vehicle">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
