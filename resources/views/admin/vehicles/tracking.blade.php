@@ -27,6 +27,30 @@
         white-space: nowrap;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+
+    .pulse {
+        display: block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #10b981;
+        cursor: pointer;
+        box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    .pulse-blue { background: #3b82f6; box-shadow: 0 0 0 rgba(59, 130, 246, 0.4); animation: pulse-blue 2s infinite; }
+    @keyframes pulse-blue {
+        0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+    }
 </style>
 
 <div class="space-y-6">
@@ -57,6 +81,22 @@
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <!-- Sidebar -->
         <div class="lg:col-span-1 flex flex-col gap-4">
+            <!-- Summary Stats -->
+            <div class="grid grid-cols-3 gap-2">
+                <div class="bg-white p-2 rounded-lg border border-gray-200 shadow-sm text-center">
+                    <p class="text-[10px] font-bold text-blue-600 uppercase">Moving</p>
+                    <p id="statMoving" class="text-lg font-black text-gray-900">0</p>
+                </div>
+                <div class="bg-white p-2 rounded-lg border border-gray-200 shadow-sm text-center">
+                    <p class="text-[10px] font-bold text-emerald-600 uppercase">Idle</p>
+                    <p id="statIdle" class="text-lg font-black text-gray-900">0</p>
+                </div>
+                <div class="bg-white p-2 rounded-lg border border-gray-200 shadow-sm text-center">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase">Offline</p>
+                    <p id="statOffline" class="text-lg font-black text-gray-900">0</p>
+                </div>
+            </div>
+
             <!-- Search & Filters -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                 <div class="relative mb-3">
@@ -67,17 +107,18 @@
                 </div>
                 <div class="flex gap-2">
                     <select id="statusFilter" class="w-full text-xs border-gray-200 rounded-lg py-1">
-                        <option value="all">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="maintenance">In Shop</option>
+                        <option value="all">All Units</option>
+                        <option value="moving">Moving Only</option>
+                        <option value="idle">Idle Only</option>
+                        <option value="offline">Offline Only</option>
                     </select>
                 </div>
             </div>
 
             <!-- Vehicle List -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-1" style="max-height: 550px;">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-1" style="max-height: 500px;">
                 <div class="p-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Online Units</span>
+                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Fleet List</span>
                     <span id="vehicleCount" class="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
                 </div>
                 <div id="vehicleList" class="flex-1 overflow-y-auto divide-y divide-gray-100">
@@ -131,10 +172,10 @@
                             <span>Driver:</span>
                             <span id="cardDriver" class="font-bold text-gray-900">---</span>
                         </div>
-                    <div class="flex justify-between">
-                        <span>Est. Arrival:</span>
-                        <span id="cardETA" class="font-bold text-gray-900">---</span>
-                    </div>
+                        <div class="flex justify-between">
+                            <span>Est. Arrival:</span>
+                            <span id="cardETA" class="font-bold text-gray-900">---</span>
+                        </div>
                         <div class="flex justify-between">
                             <span>Last Update:</span>
                             <span id="cardLastSeen" class="text-gray-400">Just now</span>
@@ -267,14 +308,44 @@
             });
     }
 
+    function getTimeAgo(dateString) {
+        if (!dateString) return 'Never';
+        const date = new Date(dateString);
+        const now = new Date();
+        const seconds = Math.floor((now - date) / 1000);
+
+        if (seconds < 60) return 'Just now';
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes}m ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}h ago`;
+        return date.toLocaleDateString();
+    }
+
     function updateUI() {
         const query = document.getElementById('vehicleSearch').value.toLowerCase();
         const status = document.getElementById('statusFilter').value;
 
+        // Calculate Stats
+        const moving = vehiclesData.filter(v => v.speed > 0).length;
+        const idle = vehiclesData.filter(v => v.speed === 0 && (new Date() - new Date(v.last_seen_at)) < 300000).length;
+        const offline = vehiclesData.filter(v => (new Date() - new Date(v.last_seen_at)) >= 300000).length;
+
+        document.getElementById('statMoving').innerText = moving;
+        document.getElementById('statIdle').innerText = idle;
+        document.getElementById('statOffline').innerText = offline;
+
         const filtered = vehiclesData.filter(v => {
             const matchesSearch = v.registration_number.toLowerCase().includes(query) ||
                                 (v.assigned_driver && v.assigned_driver.name.toLowerCase().includes(query));
-            const matchesStatus = status === 'all' || v.status === status;
+
+            let matchesStatus = true;
+            const isOffline = (new Date() - new Date(v.last_seen_at)) >= 300000;
+
+            if (status === 'moving') matchesStatus = v.speed > 0;
+            else if (status === 'idle') matchesStatus = v.speed === 0 && !isOffline;
+            else if (status === 'offline') matchesStatus = isOffline;
+
             return matchesSearch && matchesStatus;
         });
 
@@ -295,35 +366,46 @@
 
     function updateVehicleList(vehicles) {
         const container = document.getElementById('vehicleList');
-        container.innerHTML = vehicles.map(v => `
-            <div class="vehicle-list-item p-3 ${selectedVehicleId === v.id ? 'active' : ''}" onclick="focusVehicle(${v.id})">
-                <div class="flex justify-between items-start mb-1">
-                    <div class="flex flex-col">
-                        <span class="font-bold text-gray-900 leading-tight">${v.registration_number}</span>
-                        <span class="text-[10px] text-gray-500 uppercase font-medium">${v.make} ${v.model}</span>
-                    </div>
-                    <div class="flex flex-col items-end">
-                        <span class="text-[10px] font-black ${v.ignition === 'on' ? 'text-emerald-600' : 'text-gray-400'} uppercase">
-                            ${v.ignition === 'on' ? 'Ignition On' : 'Ignition Off'}
-                        </span>
-                        <span class="text-[11px] font-bold text-gray-900">${v.speed} km/h</span>
-                    </div>
-                </div>
+        container.innerHTML = vehicles.map(v => {
+            const isOffline = (new Date() - new Date(v.last_seen_at)) >= 300000;
+            const statusColor = isOffline ? 'bg-gray-400' : (v.speed > 0 ? 'bg-blue-500' : 'bg-emerald-500');
 
-                <div class="mt-2 flex items-center justify-between">
-                    <div class="flex items-center text-[10px]">
-                        <i class="fas fa-user-circle mr-1 ${v.assigned_driver && v.assigned_driver.online_status === 'online' ? 'text-green-500' : 'text-gray-400'}"></i>
-                        <span class="text-gray-400 truncate max-w-[80px]">${v.assigned_driver ? v.assigned_driver.name : 'Unassigned'}</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="w-12 h-1 bg-gray-100 rounded-full overflow-hidden">
-                            <div class="h-full ${v.fuel_level < 20 ? 'bg-red-500' : 'bg-emerald-500'}" style="width: ${v.fuel_level}%"></div>
+            return `
+                <div class="vehicle-list-item p-3 ${selectedVehicleId === v.id ? 'active' : ''}" onclick="focusVehicle(${v.id})">
+                    <div class="flex justify-between items-start mb-1">
+                        <div class="flex flex-col">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full ${statusColor}"></span>
+                                <span class="font-bold text-gray-900 leading-tight">${v.registration_number}</span>
+                            </div>
+                            <span class="text-[10px] text-gray-500 uppercase font-medium ml-4">${v.make} ${v.model}</span>
                         </div>
-                        <span class="text-[9px] font-bold text-gray-500">${v.fuel_level}%</span>
+                        <div class="flex flex-col items-end">
+                            <span class="text-[10px] font-black ${v.ignition === 'on' ? 'text-emerald-600' : 'text-gray-400'} uppercase">
+                                ${v.ignition === 'on' ? 'Ignition On' : 'Ignition Off'}
+                            </span>
+                            <span class="text-[11px] font-bold text-gray-900">${v.speed} km/h</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-2 flex items-center justify-between">
+                        <div class="flex flex-col">
+                            <div class="flex items-center text-[10px]">
+                                <i class="fas fa-user-circle mr-1 ${v.assigned_driver && v.assigned_driver.user && v.assigned_driver.user.online_status === 'online' ? 'text-green-500' : 'text-gray-400'}"></i>
+                                <span class="text-gray-600 truncate max-w-[100px] font-medium">${v.assigned_driver ? v.assigned_driver.name : 'Unassigned'}</span>
+                            </div>
+                            <span class="text-[9px] text-gray-400 ml-4">${getTimeAgo(v.last_seen_at)}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-12 h-1 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="h-full ${v.fuel_level < 20 ? 'bg-red-500' : (v.fuel_level < 50 ? 'bg-orange-500' : 'bg-emerald-500')}" style="width: ${v.fuel_level}%"></div>
+                            </div>
+                            <span class="text-[9px] font-bold text-gray-500">${v.fuel_level}%</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     function updateMarkers(vehicles) {
@@ -331,7 +413,9 @@
             if (!v.current_latitude) return;
 
             const pos = [v.current_latitude, v.current_longitude];
-            const markerColor = v.is_on_trip ? '#2563eb' : '#10b981';
+            const isMoving = v.speed > 0;
+            const isOffline = (new Date() - new Date(v.last_seen_at)) >= 300000;
+            const markerColor = isOffline ? '#94a3b8' : (isMoving ? '#3b82f6' : '#10b981');
 
             if (markers[v.id]) {
                 markers[v.id].setLatLng(pos);
@@ -339,19 +423,26 @@
                 if (markerEl) {
                     const icon = markerEl.querySelector('.car-marker');
                     if (icon) icon.style.transform = `rotate(${v.heading}deg)`;
+
+                    const svgRect = markerEl.querySelector('rect');
+                    if (svgRect) svgRect.setAttribute('fill', markerColor);
+
+                    const pulseEl = markerEl.querySelector('.pulse-indicator');
+                    if (pulseEl) {
+                        pulseEl.className = `pulse-indicator absolute top-0 left-0 ${isMoving ? 'pulse-blue' : (isOffline ? '' : 'pulse')}`;
+                    }
                 }
             } else {
                 const icon = L.divIcon({
                     className: 'custom-div-icon',
                     html: `
                         <div class="relative car-marker-container">
+                            <div class="pulse-indicator absolute top-0 left-0 ${isMoving ? 'pulse-blue' : (isOffline ? '' : 'pulse')}"></div>
                             <div class="car-marker" style="transform: rotate(${v.heading}deg)">
                                 <svg width="40" height="40" viewBox="0 0 100 100">
-                                    <!-- Car Top View -->
-                                    <rect x="30" y="20" width="40" height="60" rx="10" fill="${v.is_on_trip ? '#2563eb' : '#10b981'}" stroke="white" stroke-width="4" />
-                                    <rect x="35" y="30" width="30" height="20" rx="2" fill="rgba(255,255,255,0.4)" /> <!-- Windshield -->
-                                    <rect x="35" y="55" width="30" height="15" rx="2" fill="rgba(255,255,255,0.2)" /> <!-- Rear window -->
-                                    <!-- Headlights -->
+                                    <rect x="30" y="20" width="40" height="60" rx="10" fill="${markerColor}" stroke="white" stroke-width="4" />
+                                    <rect x="35" y="30" width="30" height="20" rx="2" fill="rgba(255,255,255,0.4)" />
+                                    <rect x="35" y="55" width="30" height="15" rx="2" fill="rgba(255,255,255,0.2)" />
                                     <circle cx="35" cy="22" r="3" fill="yellow" />
                                     <circle cx="65" cy="22" r="3" fill="yellow" />
                                 </svg>
@@ -418,6 +509,7 @@
         document.getElementById('cardETA').innerText = v.is_on_trip ? `${v.eta} mins` : 'N/A';
 
         document.getElementById('cardDriver').innerText = v.assigned_driver ? v.assigned_driver.name : 'Unassigned';
+        document.getElementById('cardLastSeen').innerText = getTimeAgo(v.last_seen_at);
         document.getElementById('detailsLink').href = `/vehicles/${v.id}`;
 
         document.getElementById('historyBtn').onclick = () => loadHistory(v.id);
