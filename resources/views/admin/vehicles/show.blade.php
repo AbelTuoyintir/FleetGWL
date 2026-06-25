@@ -134,7 +134,7 @@
         <div class="mb-6 flex justify-between items-center flex-wrap gap-4">
             <div>
                 <div class="flex items-center gap-3">
-                    <a href="{{ route('vehicles.index') }}" class="text-gray-500 hover:text-gray-700">
+                    <a href="{{ route('vehicles.index') }}" class="text-gray-500 hover:text-gray-700" aria-label="Back to vehicles list" title="Back to vehicles list">
                         <i class="fas fa-arrow-left"></i>
                     </a>
                     <h1 class="text-2xl font-bold text-gray-800">{{ $vehicle->registration_number }}</h1>
@@ -584,7 +584,7 @@
                     
                     <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-slate-200">
                         <div class="absolute top-4 right-4">
-                            <button onclick="closeMileageModal()" class="text-slate-400 hover:text-slate-600 transition">
+                            <button onclick="closeMileageModal()" class="text-slate-400 hover:text-slate-600 transition" aria-label="Close modal" title="Close">
                                 <i class="fas fa-times text-xl"></i>
                             </button>
                         </div>
@@ -721,7 +721,7 @@
                     <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border border-slate-200">
                         <!-- Modal Header -->
                         <div class="absolute top-4 right-4">
-                            <button onclick="closeFuelModal()" class="text-slate-400 hover:text-slate-600 transition">
+                            <button onclick="closeFuelModal()" class="text-slate-400 hover:text-slate-600 transition" aria-label="Close modal" title="Close">
                                 <i class="fas fa-times text-xl"></i>
                             </button>
                         </div>
@@ -952,7 +952,7 @@
                 <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full border border-slate-200">
                     <!-- Modal Header -->
                     <div class="absolute top-4 right-4">
-                        <button onclick="closeMaintenanceModal()" class="text-slate-400 hover:text-slate-600 transition">
+                        <button onclick="closeMaintenanceModal()" class="text-slate-400 hover:text-slate-600 transition" aria-label="Close modal" title="Close">
                             <i class="fas fa-times text-xl"></i>
                         </button>
                     </div>
@@ -1375,7 +1375,7 @@ function renderMileageLog(records) {
                 <td class="px-6 py-4 text-sm text-right">${numberFormat(record.distance)}</td>
                 <td class="px-6 py-4 text-sm text-gray-500">${record.notes || '—'}</td>
                 <td class="px-6 py-4 text-sm text-center">
-                    <button onclick="deleteMileageRecord(${record.id})" class="text-red-600 hover:text-red-800">
+                    <button onclick="deleteMileageRecord(${record.id})" class="text-red-600 hover:text-red-800" aria-label="Delete mileage record" title="Delete Record">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
@@ -1462,7 +1462,7 @@ function renderFuelLog(records) {
                 </td>
                 <td class="px-6 py-4 text-sm">${record.fuel_station || '—'}</td>
                 <td class="px-6 py-4 text-sm text-center">
-                    <button onclick="deleteFuelRecord(${record.id})" class="text-red-600 hover:text-red-800">
+                    <button onclick="deleteFuelRecord(${record.id})" class="text-red-600 hover:text-red-800" aria-label="Delete fuel record" title="Delete Record">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
@@ -1743,7 +1743,7 @@ function showNotification(type, message) {
             } text-white">
                 <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
                 <span class="text-sm">${message}</span>
-                <button onclick="$(this).closest('.fixed').remove()" class="ml-4 text-white hover:text-gray-200">
+                <button onclick="$(this).closest('.fixed').remove()" class="ml-4 text-white hover:text-gray-200" aria-label="Dismiss notification" title="Dismiss">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -1788,7 +1788,7 @@ $('<style>')
         <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
         <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-slate-200">
             <div class="absolute top-4 right-4">
-                <button onclick="hideUploadModal()" class="text-slate-400 hover:text-slate-600 transition">
+                <button onclick="hideUploadModal()" class="text-slate-400 hover:text-slate-600 transition" aria-label="Close modal" title="Close">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -1945,7 +1945,7 @@ function updateSelectedServicesDisplay() {
         html += `<span class="service-tag bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs flex items-center gap-1">
                     <i class="fas fa-check-circle text-green-600 text-xs"></i>
                     ${service}
-                    <button type="button" onclick="removeService('${service}')" class="text-red-500 hover:text-red-700 ml-1">
+                    <button type="button" onclick="removeService('${service}')" class="text-red-500 hover:text-red-700 ml-1" aria-label="Remove service" title="Remove Service">
                         <i class="fas fa-times-circle text-xs"></i>
                     </button>
                 </span>`;
