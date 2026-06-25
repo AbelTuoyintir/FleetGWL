@@ -313,6 +313,8 @@ public function index(Request $request)
 
     public function quickStats(Request $request)
     {
+        // Bolt: Optimize by using database aggregation instead of in-memory collection methods.
+        // This avoids fetching all records and hydrating models, significantly reducing memory and CPU usage.
         $query = FuelLog::where('status', '!=', 'deleted');
 
         if ($request->filled('vehicle_id')) {
@@ -331,16 +333,22 @@ public function index(Request $request)
             $query->where('status', $request->status);
         }
 
-        $logs = $query->get();
-        $totalDistance = (float) $logs->sum('distance_traveled');
-        $totalCost = (float) $logs->sum('fuel_cost');
+        $stats = $query->selectRaw('
+            SUM(fuel_quantity) as total_fuel,
+            SUM(fuel_cost) as total_cost,
+            SUM(distance_traveled) as total_distance,
+            AVG(CASE WHEN fuel_efficiency > 0 THEN fuel_efficiency ELSE NULL END) as avg_efficiency
+        ')->first();
+
+        $totalCost = (float) ($stats->total_cost ?? 0);
+        $totalDistance = (float) ($stats->total_distance ?? 0);
 
         return response()->json([
             'success' => true,
-            'total_fuel' => (float) $logs->sum('fuel_quantity'),
+            'total_fuel' => (float) ($stats->total_fuel ?? 0),
             'total_cost' => $totalCost,
             'total_distance' => $totalDistance,
-            'avg_efficiency' => (float) ($logs->where('fuel_efficiency', '>', 0)->avg('fuel_efficiency') ?? 0),
+            'avg_efficiency' => (float) ($stats->avg_efficiency ?? 0),
             'avg_cost_per_km' => $totalDistance > 0 ? $totalCost / $totalDistance : 0,
         ]);
     }
