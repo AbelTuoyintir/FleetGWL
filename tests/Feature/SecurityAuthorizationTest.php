@@ -104,7 +104,7 @@ class SecurityAuthorizationTest extends TestCase
             'vehicle_id' => null
         ]);
 
-        $response = $this->actingAs($driverUser)->get(route('vehicles.documents.index'));
+        $response = $this->actingAs($driverUser)->get(route('documents.index'));
 
         $response->assertStatus(200);
         $response->assertSee('Public Doc');
