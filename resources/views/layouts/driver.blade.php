@@ -137,14 +137,16 @@
 
 <!-- STICKY HEADER -->
 <header class="sticky top-0 z-30 glass-card shadow-sm flex items-center justify-between lg:justify-end px-5 py-3 border-b border-white/60">
-    <button id="menuToggleBtn" aria-label="Open Sidebar" class="lg:hidden text-gray-600 hover:text-green-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 rounded p-1">
+    <button id="menuToggleBtn" aria-label="Open Sidebar" title="Open Sidebar" class="lg:hidden text-gray-600 hover:text-green-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 rounded p-1">
         <i class="fas fa-bars text-xl"></i>
     </button>
     <div class="flex items-center gap-4">
         <!-- Notification Bell -->
-        <div class="notification-bell" id="notificationBell">
-            <i class="fas fa-bell text-gray-500 text-xl hover:text-gray-700 transition"></i>
-            <span class="notification-badge" id="notificationCount">0</span>
+        <div class="relative">
+            <button class="notification-bell focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 rounded-full p-1" id="notificationBell" aria-label="Toggle Notifications" title="Toggle Notifications">
+                <i class="fas fa-bell text-gray-500 text-xl hover:text-gray-700 transition"></i>
+                <span class="notification-badge" id="notificationCount">0</span>
+            </button>
             <div class="notification-dropdown" id="notificationDropdown">
                 <div class="p-3 border-b border-gray-200 bg-gray-50 rounded-t-2xl">
                     <div class="flex justify-between items-center">
@@ -214,7 +216,7 @@
                 <p class="text-[10px] text-gray-500 uppercase tracking-wide">Ghana Water Limited</p>
             </div>
         </div>
-        <button id="closeSidebarBtn" class="lg:hidden text-gray-500 hover:text-green-600"><i class="fas fa-times text-lg"></i></button>
+        <button id="closeSidebarBtn" aria-label="Close Sidebar" title="Close Sidebar" class="lg:hidden text-gray-500 hover:text-green-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 rounded p-1"><i class="fas fa-times text-lg"></i></button>
     </div>
 
     <!-- Driver Navigation Menu -->

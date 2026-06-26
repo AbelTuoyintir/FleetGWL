@@ -1,6 +1,6 @@
 <div id="ai-chat-widget" class="fixed bottom-6 right-6 z-50">
     <!-- Chat Toggle Button -->
-    <button id="chat-toggle" aria-label="Toggle AI Support Chat" aria-expanded="false" class="w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-blue-700 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2">
+    <button id="chat-toggle" aria-label="Toggle AI Support Chat" title="Toggle AI Support Chat" aria-expanded="false" class="w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-blue-700 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2">
         <i class="fas fa-comment-dots text-2xl"></i>
     </button>
 
@@ -20,7 +20,7 @@
                     </p>
                 </div>
             </div>
-            <button id="close-chat" aria-label="Close Chat" class="text-white/80 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded">
+            <button id="close-chat" aria-label="Close Chat" title="Close Chat" class="text-white/80 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -108,6 +108,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isOpen || forceClose) {
             chatWindow.classList.remove('chat-window-open');
             chatToggle.setAttribute('aria-expanded', 'false');
+            chatToggle.focus();
         } else {
             chatWindow.classList.add('chat-window-open');
             chatToggle.setAttribute('aria-expanded', 'true');

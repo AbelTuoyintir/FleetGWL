@@ -79,7 +79,7 @@
 
 <!-- STICKY HEADER -->
 <header class="sticky top-0 z-30 glass-card shadow-sm flex items-center justify-between lg:justify-end px-5 py-3 border-b border-white/60">
-    <button id="menuToggleBtn" aria-label="Open Sidebar" class="lg:hidden text-gray-600 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-1">
+    <button id="menuToggleBtn" aria-label="Open Sidebar" title="Open Sidebar" class="lg:hidden text-gray-600 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-1">
         <i class="fas fa-bars text-xl"></i>
     </button>
     <div class="relative">
@@ -125,7 +125,7 @@
                 <p class="text-[10px] text-gray-500 uppercase tracking-wide">Vehicle fleet intelligence</p>
             </div>
         </div>
-        <button id="closeSidebarBtn" class="lg:hidden text-gray-500 hover:text-blue-600"><i class="fas fa-times text-lg"></i></button>
+        <button id="closeSidebarBtn" aria-label="Close Sidebar" title="Close Sidebar" class="lg:hidden text-gray-500 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-1"><i class="fas fa-times text-lg"></i></button>
     </div>
 
     <!-- navigation menu -->
