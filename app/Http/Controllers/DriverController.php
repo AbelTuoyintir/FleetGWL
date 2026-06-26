@@ -67,8 +67,8 @@ class DriverController extends Controller
    public function store(Request $request)
     {
         try {
-            // Debug: Log incoming request
-            \Log::info('Driver store request received', $request->all());
+            // Debug: Log incoming request (redacting sensitive fields)
+            \Log::info('Driver store request received', $request->except(['password', 'password_confirmation', 'license_photo', 'phone', 'emergency_contact_phone']));
 
             // Validate the request
             $validated = $request->validate([
