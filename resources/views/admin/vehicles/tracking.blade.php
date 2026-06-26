@@ -28,6 +28,24 @@
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
+    .focus-marker {
+        animation: focus-ring 1.5s infinite;
+    }
+
+    @keyframes focus-ring {
+        0% { transform: scale(1); opacity: 1; border: 2px solid #3b82f6; }
+        100% { transform: scale(2.5); opacity: 0; border: 4px solid #3b82f6; }
+    }
+
+    .focus-indicator {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: -1;
+    }
+
     .pulse {
         display: block;
         width: 10px;
@@ -229,7 +247,14 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         initMap();
-        fetchData();
+        fetchData().then(() => {
+            // Auto-focus if ID is in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const focusId = urlParams.get('id');
+            if (focusId) {
+                setTimeout(() => focusVehicle(parseInt(focusId)), 1000);
+            }
+        });
 
         updateInterval = setInterval(fetchData, 5000);
 
@@ -274,7 +299,7 @@
     function fetchData() {
         const statusIndicator = document.getElementById('connectionStatus');
 
-        fetch('{{ route("vehicles.tracking.data") }}')
+        return fetch('{{ route("vehicles.tracking.data") }}')
             .then(res => {
                 if (!res.ok) throw new Error('Network response was not ok');
                 return res.json();
@@ -408,6 +433,15 @@
         }).join('');
     }
 
+    function escapeHtml(unsafe) {
+        return unsafe
+             .replace(/&/g, "&amp;")
+             .replace(/</g, "&lt;")
+             .replace(/>/g, "&gt;")
+             .replace(/"/g, "&quot;")
+             .replace(/'/g, "&#039;");
+    }
+
     function updateMarkers(vehicles) {
         vehicles.forEach(v => {
             if (!v.current_latitude) return;
@@ -437,17 +471,29 @@
                     className: 'custom-div-icon',
                     html: `
                         <div class="relative car-marker-container">
+                            <div id="focus-${v.id}" class="focus-indicator ${selectedVehicleId === v.id ? 'focus-marker' : ''}"></div>
                             <div class="pulse-indicator absolute top-0 left-0 ${isMoving ? 'pulse-blue' : (isOffline ? '' : 'pulse')}"></div>
                             <div class="car-marker" style="transform: rotate(${v.heading}deg)">
                                 <svg width="40" height="40" viewBox="0 0 100 100">
-                                    <rect x="30" y="20" width="40" height="60" rx="10" fill="${markerColor}" stroke="white" stroke-width="4" />
-                                    <rect x="35" y="30" width="30" height="20" rx="2" fill="rgba(255,255,255,0.4)" />
-                                    <rect x="35" y="55" width="30" height="15" rx="2" fill="rgba(255,255,255,0.2)" />
-                                    <circle cx="35" cy="22" r="3" fill="yellow" />
-                                    <circle cx="65" cy="22" r="3" fill="yellow" />
+                                    <!-- Car Body shadow -->
+                                    <rect x="28" y="22" width="44" height="64" rx="12" fill="rgba(0,0,0,0.15)" />
+                                    <!-- Main Car Body -->
+                                    <rect x="30" y="20" width="40" height="60" rx="10" fill="${markerColor}" stroke="#1e293b" stroke-width="2" />
+                                    <!-- Roof/Windshield -->
+                                    <rect x="34" y="32" width="32" height="24" rx="4" fill="rgba(255,255,255,0.3)" />
+                                    <path d="M34 32 L30 25 L70 25 L66 32 Z" fill="rgba(255,255,255,0.2)" />
+                                    <!-- Headlights -->
+                                    <rect x="33" y="21" width="8" height="4" rx="1" fill="#fef08a" />
+                                    <rect x="59" y="21" width="8" height="4" rx="1" fill="#fef08a" />
+                                    <!-- Taillights -->
+                                    <rect x="34" y="76" width="8" height="3" rx="1" fill="#ef4444" />
+                                    <rect x="58" y="76" width="8" height="3" rx="1" fill="#ef4444" />
+                                    <!-- Side Mirrors -->
+                                    <rect x="26" y="35" width="4" height="6" rx="1" fill="${markerColor}" stroke="#1e293b" stroke-width="1" />
+                                    <rect x="70" y="35" width="4" height="6" rx="1" fill="${markerColor}" stroke="#1e293b" stroke-width="1" />
                                 </svg>
                             </div>
-                            <div class="absolute -top-8 left-1/2 -translate-x-1/2 marker-label">${v.registration_number}</div>
+                            <div class="absolute -top-8 left-1/2 -translate-x-1/2 marker-label">${escapeHtml(v.registration_number)}</div>
                         </div>
                     `,
                     iconSize: [40, 40],
@@ -472,6 +518,14 @@
 
         updateDetailCard(vehicle);
         updateUI();
+
+        // Add focus animation class to the marker's focus indicator
+        setTimeout(() => {
+            const indicator = document.getElementById(`focus-${id}`);
+            if (indicator) {
+                indicator.classList.add('focus-marker');
+            }
+        }, 1500);
     }
 
     function toggleFollow() {
