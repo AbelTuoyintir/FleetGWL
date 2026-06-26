@@ -22,7 +22,8 @@ class AiSupportController extends Controller
         ]);
 
         try {
-            $aiMessage = $this->aiSupportService->processMessage(Auth::id(), $request->message);
+            $sessionId = Auth::check() ? null : session()->getId();
+            $aiMessage = $this->aiSupportService->processMessage(Auth::id(), $request->message, $sessionId);
 
             return response()->json([
                 'status' => 'success',
@@ -45,7 +46,8 @@ class AiSupportController extends Controller
 
     public function getHistory()
     {
-        $history = $this->aiSupportService->getChatHistory(Auth::id());
+        $sessionId = Auth::check() ? null : session()->getId();
+        $history = $this->aiSupportService->getChatHistory(Auth::id(), $sessionId);
 
         return response()->json([
             'status' => 'success',

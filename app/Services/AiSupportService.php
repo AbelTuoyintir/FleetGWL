@@ -9,7 +9,20 @@ use Illuminate\Support\Facades\Log;
 
 class AiSupportService
 {
-    protected $systemPrompt = "You are a 24/7 AI support agent for the Ghana Water Limited (GWL) Fleet Management system.
+    protected function getSystemPrompt($user = null)
+    {
+        $context = "You are a 24/7 AI support agent for the Ghana Water Limited (GWL) Fleet Management system.";
+
+        if ($user) {
+            $context .= " You are currently assisting {$user->name} (Role: {$user->role}).";
+            if ($user->role === 'driver') {
+                $context .= " Tailor your advice for a driver's perspective (e.g., focus on logging mileage, viewing their own vehicle's status).";
+            }
+        } else {
+            $context .= " You are assisting a guest user who is not yet logged in.";
+        }
+
+        return "{$context}
     Assist users with questions about:
     - Vehicle Registry & Live Tracking: View locations, history, and status.
     - Fuel Management: Log purchases, consumption, and costs.
@@ -20,22 +33,33 @@ class AiSupportService
     - Mileage: Logs and analytics.
 
     Be professional, helpful, and concise.";
+    }
 
-    public function getOrCreateChat(int $userId)
+    public function getOrCreateChat(?int $userId, ?string $sessionId = null)
     {
         try {
-            return SupportChat::firstOrCreate(
-                ['user_id' => $userId, 'status' => 'active'],
-                ['subject' => 'AI System Support']
-            );
+            if ($userId) {
+                return SupportChat::firstOrCreate(
+                    ['user_id' => $userId, 'status' => 'active'],
+                    ['subject' => 'AI System Support']
+                );
+            } elseif ($sessionId) {
+                return SupportChat::firstOrCreate(
+                    ['session_id' => $sessionId, 'status' => 'active'],
+                    ['subject' => 'Guest AI Support']
+                );
+            }
+            return null;
         } catch (\Throwable $e) {
+            Log::error('Error in getOrCreateChat: ' . $e->getMessage());
             return null;
         }
     }
 
-    public function processMessage(int $userId, string $messageText)
+    public function processMessage(?int $userId, string $messageText, ?string $sessionId = null)
     {
-        $chat = $this->getOrCreateChat($userId);
+        $user = $userId ? \App\Models\User::find($userId) : null;
+        $chat = $this->getOrCreateChat($userId, $sessionId);
         $history = collect();
 
         if ($chat) {
@@ -46,8 +70,7 @@ class AiSupportService
                 'message' => $messageText
             ]);
 
-            // Get last 10 messages for context (excluding the one just saved if we want to pass it explicitly or include it)
-            // Let's include the last 10 messages from history.
+            // Get last 10 messages for context
             $history = $chat->messages()
                 ->orderBy('created_at', 'desc')
                 ->take(10)
@@ -56,7 +79,7 @@ class AiSupportService
         }
 
         // Generate AI response
-        $aiResponseText = $this->generateAiResponse($messageText, $history);
+        $aiResponseText = $this->generateAiResponse($messageText, $history, $user);
 
         if ($chat) {
             return SupportMessage::create([
@@ -69,16 +92,16 @@ class AiSupportService
         return (object) ['message' => $aiResponseText];
     }
 
-    public function generateAiResponse(string $userMessage, $history = null): string
+    public function generateAiResponse(string $userMessage, $history = null, $user = null): string
     {
         // 1. Try OpenAI
-        $openaiResponse = $this->callOpenAi($userMessage, $history);
+        $openaiResponse = $this->callOpenAi($userMessage, $history, $user);
         if ($openaiResponse) {
             return $openaiResponse;
         }
 
         // 2. Fallback to Ollama
-        $ollamaResponse = $this->callOllama($userMessage, $history);
+        $ollamaResponse = $this->callOllama($userMessage, $history, $user);
         if ($ollamaResponse) {
             return $ollamaResponse;
         }
@@ -87,13 +110,13 @@ class AiSupportService
         return $this->keywordFallback($userMessage);
     }
 
-    protected function callOpenAi(string $userMessage, $history)
+    protected function callOpenAi(string $userMessage, $history, $user = null)
     {
         $apiKey = config('services.openai.api_key');
         if (!$apiKey) return null;
 
         try {
-            $messages = [['role' => 'system', 'content' => $this->systemPrompt]];
+            $messages = [['role' => 'system', 'content' => $this->getSystemPrompt($user)]];
 
             if ($history && $history->isNotEmpty()) {
                 foreach ($history as $msg) {
@@ -125,13 +148,13 @@ class AiSupportService
         return null;
     }
 
-    protected function callOllama(string $userMessage, $history)
+    protected function callOllama(string $userMessage, $history, $user = null)
     {
         $baseUrl = config('services.ollama.base_url');
         $model = config('services.ollama.model');
 
         try {
-            $messages = [['role' => 'system', 'content' => $this->systemPrompt]];
+            $messages = [['role' => 'system', 'content' => $this->getSystemPrompt($user)]];
             if ($history && $history->isNotEmpty()) {
                 foreach ($history as $msg) {
                     $messages[] = [
@@ -207,9 +230,9 @@ class AiSupportService
         return "I'm your 24/7 AI support agent for the Ghana Water Limited Fleet Management system. How can I assist you with your fleet, fuel, or maintenance needs today?";
     }
 
-    public function getChatHistory(int $userId)
+    public function getChatHistory(?int $userId, ?string $sessionId = null)
     {
-        $chat = $this->getOrCreateChat($userId);
+        $chat = $this->getOrCreateChat($userId, $sessionId);
         if (!$chat) {
             return collect();
         }
