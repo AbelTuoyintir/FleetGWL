@@ -719,6 +719,9 @@ function renderVehiclesTable(vehicles) {
                 <td class="${insuranceClass}">${vehicle.insurance_expiry_date || 'N/A'}</td>
                 <td>
                     <div class="flex gap-2">
+                        <a href="/vehicles/tracking?id=${vehicle.id}" class="text-indigo-600 hover:text-indigo-800" aria-label="Track Live" title="Track Live">
+                            <i class="fas fa-location-crosshairs"></i>
+                        </a>
                         <a href="/vehicles/${vehicle.id}" class="text-green-600 hover:text-green-800" aria-label="View Vehicle Details" title="View Details">
                             <i class="fas fa-eye"></i>
                         </a>

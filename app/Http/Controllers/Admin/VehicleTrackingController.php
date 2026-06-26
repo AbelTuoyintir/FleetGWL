@@ -49,13 +49,24 @@ class VehicleTrackingController extends Controller
             }
 
             // SIMULATED DRIFT: For the "live feel" without saving to DB on every GET
-            // This makes the icons move slightly on every refresh even if data is static
-            $vehicle->current_latitude += (mt_rand(-20, 20) / 100000);
-            $vehicle->current_longitude += (mt_rand(-20, 20) / 100000);
+            // Consistent heading-based drift based on vehicle ID and current time bucket (every 10s)
+            // Use hash-based deterministic simulation to avoid global mt_srand side effects
+            $timeBucket = floor(time() / 10);
+            $seedHash = crc32($vehicle->id . '_' . $timeBucket);
+
+            $vehicle->speed = $seedHash % 66; // 0-65
+            $vehicle->heading = ($seedHash >> 8) % 361; // 0-360
+
+            if ($vehicle->speed > 0) {
+                $angleRad = deg2rad($vehicle->heading);
+                // Drift by ~5-15 meters per 10s
+                $driftDist = (($seedHash >> 16) % 11 + 5);
+                $dist = $driftDist / 111111;
+                $vehicle->current_latitude += cos($angleRad) * $dist;
+                $vehicle->current_longitude += sin($angleRad) * $dist;
+            }
 
             // Dynamic properties for UI
-            $vehicle->speed = rand(0, 65);
-            $vehicle->heading = rand(0, 360);
             $vehicle->is_on_trip = (bool)rand(0, 1);
             $vehicle->fuel_level = rand(15, 95); // Simulated fuel percentage
             $vehicle->ignition = $vehicle->speed > 0 ? 'on' : (rand(0, 10) > 2 ? 'on' : 'off'); // Simulated ignition status
