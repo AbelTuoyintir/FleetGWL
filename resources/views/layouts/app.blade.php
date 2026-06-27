@@ -30,6 +30,7 @@
         /* Navigation items */
         .nav-item-fleet { transition: all 0.2s ease; border-radius: 12px; margin-bottom: 2px; }
         .nav-item-fleet:hover { background: rgba(59,130,246,0.12); color: #1e40af; }
+        .nav-item-fleet:focus-visible { outline: 2px solid #3b82f6; outline-offset: -2px; background: rgba(59,130,246,0.12); }
         .nav-active-fleet { background: #eef2ff; color: #2563eb; font-weight: 500; border-left: 3px solid #3b82f6; }
         .submenu-item { padding-left: 2.5rem; transition: all 0.2s; }
         .rotate-180 { transform: rotate(180deg); }
@@ -79,7 +80,7 @@
 
 <!-- STICKY HEADER -->
 <header class="sticky top-0 z-30 glass-card shadow-sm flex items-center justify-between lg:justify-end px-5 py-3 border-b border-white/60">
-    <button id="menuToggleBtn" aria-label="Open Sidebar" title="Open Sidebar" class="lg:hidden text-gray-600 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-1">
+    <button id="menuToggleBtn" aria-label="Open Sidebar" title="Open Sidebar" aria-expanded="false" aria-controls="fleetSidebar" class="lg:hidden text-gray-600 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-1">
         <i class="fas fa-bars text-xl"></i>
     </button>
     <div class="relative">
@@ -92,7 +93,7 @@
             }
             $initials = $initials ?: 'KA';
         @endphp
-        <button id="userMenuToggle" type="button" class="flex items-center gap-2 bg-slate-50 rounded-full pl-2 pr-3 py-1 border border-slate-200 hover:bg-slate-100 transition">
+        <button id="userMenuToggle" type="button" aria-expanded="false" aria-controls="userMenuDropdown" class="flex items-center gap-2 bg-slate-50 rounded-full pl-2 pr-3 py-1 border border-slate-200 hover:bg-slate-100 transition focus-visible:ring-2 focus-visible:ring-blue-500 outline-none">
             <div class="w-7 h-7 bg-blue-700 text-white rounded-full flex items-center justify-center text-xs font-bold">{{ $initials }}</div>
             <span class="text-sm font-medium text-gray-700 hidden sm:inline">{{ $userName }}</span>
             <span class="text-[11px] bg-slate-200 text-gray-700 px-2 py-0.5 rounded-full hidden sm:inline">Fleet Admin</span>
@@ -137,7 +138,7 @@
 
         <!-- Vehicle Registry -->
         <div class="space-y-1">
-            <button onclick="toggleSubMenu('vehicles')" class="nav-item-fleet w-full flex items-center justify-between px-3 py-2.5 rounded-xl">
+            <button onclick="toggleSubMenu('vehicles')" aria-expanded="false" aria-controls="vehicles-submenu" class="nav-item-fleet w-full flex items-center justify-between px-3 py-2.5 rounded-xl focus:outline-none">
                 <div class="flex items-center gap-3"><i class="fas fa-truck-moving w-5 text-center text-gray-500"></i><span>Vehicle Registry</span></div>
                 <i class="fas fa-chevron-down text-xs transition-transform" id="vehicles-chevron"></i>
             </button>
@@ -151,7 +152,7 @@
 
         <!-- Location Management (NEW) -->
         <div class="space-y-1">
-            <button onclick="toggleSubMenu('locations')" class="nav-item-fleet w-full flex items-center justify-between px-3 py-2.5 rounded-xl">
+            <button onclick="toggleSubMenu('locations')" aria-expanded="false" aria-controls="locations-submenu" class="nav-item-fleet w-full flex items-center justify-between px-3 py-2.5 rounded-xl focus:outline-none">
                 <div class="flex items-center gap-3"><i class="fas fa-map-marker-alt w-5 text-center text-gray-500"></i><span>Location Management</span></div>
                 <i class="fas fa-chevron-down text-xs transition-transform" id="locations-chevron"></i>
             </button>
@@ -162,7 +163,7 @@
 
         <!-- Fuel Management -->
         <div class="space-y-1">
-            <button onclick="toggleSubMenu('fuel')" class="nav-item-fleet w-full flex items-center justify-between px-3 py-2.5 rounded-xl">
+            <button onclick="toggleSubMenu('fuel')" aria-expanded="false" aria-controls="fuel-submenu" class="nav-item-fleet w-full flex items-center justify-between px-3 py-2.5 rounded-xl focus:outline-none">
                 <div class="flex items-center gap-3"><i class="fas fa-gas-pump w-5 text-center text-gray-500"></i><span>Fuel Management</span></div>
                 <i class="fas fa-chevron-down text-xs transition-transform" id="fuel-chevron"></i>
             </button>
@@ -175,7 +176,7 @@
 
         <!-- Mileage Management -->
         <div class="space-y-1">
-            <button onclick="toggleSubMenu('mileage')" class="nav-item-fleet w-full flex items-center justify-between px-3 py-2.5 rounded-xl">
+            <button onclick="toggleSubMenu('mileage')" aria-expanded="false" aria-controls="mileage-submenu" class="nav-item-fleet w-full flex items-center justify-between px-3 py-2.5 rounded-xl focus:outline-none">
                 <div class="flex items-center gap-3"><i class="fas fa-tachometer-alt w-5 text-center text-gray-500"></i><span>Mileage Management</span></div>
                 <i class="fas fa-chevron-down text-xs transition-transform" id="mileage-chevron"></i>
             </button>
@@ -187,7 +188,7 @@
 
         <!-- Maintenance & Service -->
         <div class="space-y-1">
-            <button onclick="toggleSubMenu('maint')" class="nav-item-fleet w-full flex items-center justify-between px-3 py-2.5 rounded-xl">
+            <button onclick="toggleSubMenu('maint')" aria-expanded="false" aria-controls="maint-submenu" class="nav-item-fleet w-full flex items-center justify-between px-3 py-2.5 rounded-xl focus:outline-none">
                 <div class="flex items-center gap-3"><i class="fas fa-tools w-5 text-center text-gray-500"></i><span>Maintenance</span></div>
                 <i class="fas fa-chevron-down text-xs transition-transform" id="maint-chevron"></i>
             </button>
@@ -210,7 +211,7 @@
 
         <!-- Fleet Reports -->
         <div class="space-y-1">
-            <button onclick="toggleSubMenu('reports')" class="nav-item-fleet w-full flex items-center justify-between px-3 py-2.5 rounded-xl">
+            <button onclick="toggleSubMenu('reports')" aria-expanded="false" aria-controls="reports-submenu" class="nav-item-fleet w-full flex items-center justify-between px-3 py-2.5 rounded-xl focus:outline-none">
                 <div class="flex items-center gap-3"><i class="fas fa-chart-pie w-5 text-center text-gray-500"></i><span>Fleet Reports</span></div>
                 <i class="fas fa-chevron-down text-xs transition-transform" id="reports-chevron"></i>
             </button>
@@ -248,10 +249,12 @@
     function toggleSubMenu(menuId) {
         const subMenu = document.getElementById(`${menuId}-submenu`);
         const chevron = document.getElementById(`${menuId}-chevron`);
+        const trigger = document.querySelector(`[aria-controls="${menuId}-submenu"]`);
 
         if (!subMenu) return;
-        subMenu.classList.toggle('hidden');
+        const isHidden = subMenu.classList.toggle('hidden');
         if (chevron) chevron.classList.toggle('rotate-180');
+        if (trigger) trigger.setAttribute('aria-expanded', !isHidden);
     }
     window.toggleSubMenu = window.toggleSubMenu || toggleSubMenu;
 
@@ -267,12 +270,16 @@
             sidebar?.classList.remove('sidebar-closed');
             overlay?.classList.add('overlay-open');
             document.body.style.overflow = 'hidden';
+            openBtn?.setAttribute('aria-expanded', 'true');
+            setTimeout(() => closeBtn?.focus(), 100);
         };
 
         const closeSidebar = () => {
             sidebar?.classList.add('sidebar-closed');
             overlay?.classList.remove('overlay-open');
             document.body.style.overflow = '';
+            openBtn?.setAttribute('aria-expanded', 'false');
+            openBtn?.focus();
         };
 
         openBtn?.addEventListener('click', openSidebar);
@@ -280,12 +287,16 @@
         overlay?.addEventListener('click', closeSidebar);
 
         const closeUserMenu = () => {
-            if (userMenuDropdown) userMenuDropdown.classList.add('hidden');
+            if (userMenuDropdown) {
+                userMenuDropdown.classList.add('hidden');
+                userMenuToggle?.setAttribute('aria-expanded', 'false');
+            }
         };
 
         userMenuToggle?.addEventListener('click', (event) => {
             event.stopPropagation();
-            userMenuDropdown?.classList.toggle('hidden');
+            const isHidden = userMenuDropdown?.classList.toggle('hidden');
+            userMenuToggle?.setAttribute('aria-expanded', !isHidden);
         });
 
         document.addEventListener('click', (event) => {

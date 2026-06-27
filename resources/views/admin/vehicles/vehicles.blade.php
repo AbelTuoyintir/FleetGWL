@@ -63,6 +63,7 @@
             cursor: pointer;
         }
         .nav-item-fleet:hover { background-color: #f1f5f9; color: #1e40af; }
+        .nav-item-fleet:focus-visible { outline: 2px solid #3b82f6; outline-offset: -2px; background-color: #f1f5f9; }
         .nav-active-fleet { background-color: #eff6ff; color: #2563eb; font-weight: 500; border-left: 3px solid #3b82f6; }
         
         .overlay-fleet {
@@ -128,15 +129,15 @@
         </div>
         
         <!-- Tabs -->
-        <div class="bg-white rounded-t-xl border-b border-gray-200 px-6">
+        <div class="bg-white rounded-t-xl border-b border-gray-200 px-6" role="tablist">
             <div class="flex space-x-8">
-                <button data-tab="all-vehicles" class="tab-btn py-4 text-sm font-medium text-gray-600 hover:text-blue-600 transition">
+                <button id="tab-all-vehicles" role="tab" aria-controls="all-vehicles-tab" aria-selected="true" data-tab="all-vehicles" class="tab-btn py-4 text-sm font-medium text-gray-600 hover:text-blue-600 transition focus:outline-none focus-visible:text-blue-600">
                     <i class="fas fa-truck-moving mr-2"></i>All Fleet Units
                 </button>
-                <button data-tab="add-vehicle" class="tab-btn py-4 text-sm font-medium text-gray-600 hover:text-blue-600 transition">
+                <button id="tab-add-vehicle" role="tab" aria-controls="add-vehicle-tab" aria-selected="false" data-tab="add-vehicle" class="tab-btn py-4 text-sm font-medium text-gray-600 hover:text-blue-600 transition focus:outline-none focus-visible:text-blue-600">
                     <i class="fas fa-plus-circle mr-2"></i>Add New Vehicle
                 </button>
-                <button data-tab="status-overview" class="tab-btn py-4 text-sm font-medium text-gray-600 hover:text-blue-600 transition">
+                <button id="tab-status-overview" role="tab" aria-controls="status-overview-tab" aria-selected="false" data-tab="status-overview" class="tab-btn py-4 text-sm font-medium text-gray-600 hover:text-blue-600 transition focus:outline-none focus-visible:text-blue-600">
                     <i class="fas fa-chart-simple mr-2"></i>Status Overview
                 </button>
             </div>
@@ -145,7 +146,7 @@
         <!-- Tab Content Container -->
         <div class="bg-white rounded-b-xl shadow-sm p-6">
             <!-- All Vehicles Tab -->
-            <div id="all-vehicles-tab" class="tab-content">
+            <div id="all-vehicles-tab" role="tabpanel" aria-labelledby="tab-all-vehicles" class="tab-content">
                 <!-- Filters -->
                 <div class="flex flex-wrap gap-4 items-center justify-between mb-6">
                     <div class="flex flex-wrap gap-3">
@@ -260,7 +261,7 @@
             </div>
             
             <!-- Add Vehicle Tab -->
-            <div id="add-vehicle-tab" class="tab-content hidden">
+            <div id="add-vehicle-tab" role="tabpanel" aria-labelledby="tab-add-vehicle" class="tab-content hidden">
                 <form id="vehicle-form" enctype="multipart/form-data">
                     @csrf
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -424,7 +425,7 @@
             </div>
             
             <!-- Status Overview Tab -->
-            <div id="status-overview-tab" class="tab-content hidden">
+            <div id="status-overview-tab" role="tabpanel" aria-labelledby="tab-status-overview" class="tab-content hidden">
                 <!-- Statistics Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8" id="stats-cards">
                     <div class="stat-card p-5"><div class="loading-spinner"></div></div>
@@ -471,8 +472,9 @@ let typeChart = null;
 function activateTab(tabId, updateHistory = true) {
     if (!tabId) return;
 
-    $('.tab-btn').removeClass('tab-active text-blue-600 border-blue-600').addClass('text-gray-600');
-    $(`.tab-btn[data-tab="${tabId}"]`).addClass('tab-active text-blue-600 border-blue-600');
+    $('.tab-btn').removeClass('tab-active text-blue-600 border-blue-600').addClass('text-gray-600').attr('aria-selected', 'false');
+    const $activeTab = $(`.tab-btn[data-tab="${tabId}"]`);
+    $activeTab.addClass('tab-active text-blue-600 border-blue-600').attr('aria-selected', 'true');
 
     $('.tab-content').addClass('hidden');
     $(`#${tabId}-tab`).removeClass('hidden');
@@ -931,32 +933,6 @@ function renderAlerts(stats) {
     $('#maintenance-alerts').html(maintenanceHtml);
 }
 
-// Sidebar functions
-function toggleSubMenu(menuId) {
-    const sub = document.getElementById(`${menuId}-submenu`);
-    const chevron = document.getElementById(`${menuId}-chevron`);
-    if (sub) {
-        sub.classList.toggle('hidden');
-        if(chevron) chevron.classList.toggle('rotate-180');
-    }
-}
-
-// Mobile sidebar
-const sidebar = document.getElementById('fleetSidebar');
-const overlay = document.getElementById('mobileOverlay');
-const menuToggleBtn = document.getElementById('menuToggleBtn');
-const closeSidebarBtn = document.getElementById('closeSidebarBtn');
-if (menuToggleBtn) {
-    menuToggleBtn.addEventListener('click', () => {
-        if (sidebar) sidebar.classList.remove('sidebar-closed');
-        if (overlay) overlay.classList.add('overlay-open');
-    });
-}
-if (closeSidebarBtn) {
-    closeSidebarBtn.addEventListener('click', () => {
-        if (sidebar) sidebar.classList.add('sidebar-closed');
-        if (overlay) overlay.classList.remove('overlay-open');
-    });
-}
+// Redundant sidebar functions removed - handled by app layout
 </script>
 @endsection

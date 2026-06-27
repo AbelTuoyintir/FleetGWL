@@ -66,6 +66,7 @@
             cursor: pointer;
         }
         .nav-item-fleet:hover { background-color: #f1f5f9; color: #1e40af; }
+        .nav-item-fleet:focus-visible { outline: 2px solid #3b82f6; outline-offset: -2px; background-color: #f1f5f9; }
         .nav-active-fleet { background-color: #eff6ff; color: #2563eb; font-weight: 500; border-left: 3px solid #3b82f6; }
         
         .overlay-fleet {
@@ -260,12 +261,12 @@
         </div>
         
         <!-- Tabs -->
-        <div class="bg-white rounded-t-xl border-b border-gray-200 px-6">
+        <div class="bg-white rounded-t-xl border-b border-gray-200 px-6" role="tablist">
             <div class="flex space-x-8 overflow-x-auto">
-                <button data-tab="logs" class="tab-btn py-4 text-sm font-medium text-gray-600 hover:text-blue-600 transition tab-active">
+                <button id="tab-logs" role="tab" aria-controls="logs-tab" aria-selected="true" data-tab="logs" class="tab-btn py-4 text-sm font-medium text-gray-600 hover:text-blue-600 transition tab-active focus:outline-none focus-visible:text-blue-600">
                     <i class="fas fa-list-ul mr-2"></i>Fuel Logs
                 </button>
-                <button data-tab="analytics" class="tab-btn py-4 text-sm font-medium text-gray-600 hover:text-blue-600 transition">
+                <button id="tab-analytics" role="tab" aria-controls="analytics-tab" aria-selected="false" data-tab="analytics" class="tab-btn py-4 text-sm font-medium text-gray-600 hover:text-blue-600 transition focus:outline-none focus-visible:text-blue-600">
                     <i class="fas fa-chart-line mr-2"></i>Consumption Analytics
                 </button>
             </div>
@@ -273,7 +274,7 @@
         
         <div class="bg-white rounded-b-xl shadow-sm p-6">
             <!-- Tab 1: Fuel Logs -->
-            <div id="logs-tab" class="tab-content">
+            <div id="logs-tab" role="tabpanel" aria-labelledby="tab-logs" class="tab-content">
                 <!-- Filters -->
                 <div class="mb-6 flex flex-wrap gap-4 items-center justify-between">
                     <div class="flex flex-wrap gap-3">
@@ -372,7 +373,7 @@
             </div>
             
             <!-- Tab 2: Consumption Analytics -->
-            <div id="analytics-tab" class="tab-content hidden">
+            <div id="analytics-tab" role="tabpanel" aria-labelledby="tab-analytics" class="tab-content hidden">
                 <!-- Analytics Filters -->
                 <div class="mb-6 flex flex-wrap gap-4 items-end">
                     <div class="flex-1 min-w-[200px]">
@@ -643,8 +644,8 @@ $(document).ready(function() {
     $('.tab-btn').click(function() {
         let tabId = $(this).data('tab');
         
-        $('.tab-btn').removeClass('tab-active text-blue-600 border-blue-600').addClass('text-gray-600');
-        $(this).addClass('tab-active text-blue-600 border-blue-600');
+        $('.tab-btn').removeClass('tab-active text-blue-600 border-blue-600').addClass('text-gray-600').attr('aria-selected', 'false');
+        $(this).addClass('tab-active text-blue-600 border-blue-600').attr('aria-selected', 'true');
         
         $('.tab-content').addClass('hidden');
         $(`#${tabId}-tab`).removeClass('hidden');
@@ -1238,41 +1239,6 @@ $('#export-logs').click(function() {
     window.open('{{ route("fuel-management.export") }}?' + params.toString(), '_blank');
 });
 
-// Sidebar functions
-function toggleSubMenu(menuId) {
-    const sub = document.getElementById(`${menuId}-submenu`);
-    const chevron = document.getElementById(`${menuId}-chevron`);
-    if (sub) {
-        sub.classList.toggle('hidden');
-        if(chevron) chevron.classList.toggle('rotate-180');
-    }
-}
-
-// Mobile sidebar
-const sidebar = document.getElementById('fleetSidebar');
-const overlay = document.getElementById('mobileOverlay');
-const menuToggle = document.getElementById('menuToggleBtn');
-const closeSidebar = document.getElementById('closeSidebarBtn');
-
-if (menuToggle) {
-    menuToggle.addEventListener('click', () => {
-        sidebar?.classList.remove('sidebar-closed');
-        overlay?.classList.add('overlay-open');
-    });
-}
-
-if (closeSidebar) {
-    closeSidebar.addEventListener('click', () => {
-        sidebar?.classList.add('sidebar-closed');
-        overlay?.classList.remove('overlay-open');
-    });
-}
-
-if (overlay) {
-    overlay.addEventListener('click', () => {
-        sidebar?.classList.add('sidebar-closed');
-        overlay.classList.remove('overlay-open');
-    });
-}
+// Redundant sidebar functions removed - handled by app layout
 </script>
 @endsection
