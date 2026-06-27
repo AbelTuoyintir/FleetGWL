@@ -69,6 +69,39 @@
         70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
         100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
     }
+
+    .live-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #ef4444;
+        display: inline-block;
+        margin-right: 4px;
+        animation: blink 1s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+    }
+
+    .sidebar-moving-pulse {
+        position: relative;
+    }
+    .sidebar-moving-pulse::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(59, 130, 246, 0.05);
+        animation: sidebar-pulse 2s infinite;
+        pointer-events: none;
+    }
+
+    @keyframes sidebar-pulse {
+        0% { opacity: 0.5; }
+        50% { opacity: 1; }
+        100% { opacity: 0.5; }
+    }
 </style>
 
 <div class="space-y-6">
@@ -393,15 +426,18 @@
         const container = document.getElementById('vehicleList');
         container.innerHTML = vehicles.map(v => {
             const isOffline = (new Date() - new Date(v.last_seen_at)) >= 300000;
-            const statusColor = isOffline ? 'bg-gray-400' : (v.speed > 0 ? 'bg-blue-500' : 'bg-emerald-500');
+            const isMoving = v.speed > 0;
+            const statusColor = isOffline ? 'bg-gray-400' : (isMoving ? 'bg-blue-500' : 'bg-emerald-500');
+            const movingPulseClass = isMoving ? 'sidebar-moving-pulse' : '';
 
             return `
-                <div class="vehicle-list-item p-3 ${selectedVehicleId === v.id ? 'active' : ''}" onclick="focusVehicle(${v.id})">
+                <div class="vehicle-list-item p-3 ${selectedVehicleId === v.id ? 'active' : ''} ${movingPulseClass}" onclick="focusVehicle(${v.id})">
                     <div class="flex justify-between items-start mb-1">
                         <div class="flex flex-col">
                             <div class="flex items-center gap-2">
                                 <span class="w-2 h-2 rounded-full ${statusColor}"></span>
                                 <span class="font-bold text-gray-900 leading-tight">${v.registration_number}</span>
+                                ${isMoving ? '<span class="live-dot"></span>' : ''}
                             </div>
                             <span class="text-[10px] text-gray-500 uppercase font-medium ml-4">${v.make} ${v.model}</span>
                         </div>
@@ -409,7 +445,7 @@
                             <span class="text-[10px] font-black ${v.ignition === 'on' ? 'text-emerald-600' : 'text-gray-400'} uppercase">
                                 ${v.ignition === 'on' ? 'Ignition On' : 'Ignition Off'}
                             </span>
-                            <span class="text-[11px] font-bold text-gray-900">${v.speed} km/h</span>
+                            <span class="text-[11px] font-bold ${isMoving ? 'text-blue-600' : 'text-gray-900'}">${v.speed} km/h</span>
                         </div>
                     </div>
 
@@ -442,6 +478,68 @@
              .replace(/'/g, "&#039;");
     }
 
+    function getVehicleSvg(type, color) {
+        type = type ? type.toLowerCase() : '';
+        if (type === 'truck') {
+            return `
+                <svg width="40" height="40" viewBox="0 0 100 100">
+                    <!-- Truck Body shadow -->
+                    <rect x="25" y="15" width="50" height="75" rx="4" fill="rgba(0,0,0,0.15)" />
+                    <!-- Trailer -->
+                    <rect x="28" y="35" width="44" height="50" rx="2" fill="${color}" stroke="#1e293b" stroke-width="2" />
+                    <!-- Cabin -->
+                    <rect x="30" y="18" width="40" height="20" rx="4" fill="${color}" stroke="#1e293b" stroke-width="2" />
+                    <!-- Windshield -->
+                    <rect x="34" y="20" width="32" height="10" rx="2" fill="rgba(255,255,255,0.3)" />
+                    <!-- Wheels (Simulated as parts of body for simplicity in rotate) -->
+                    <rect x="25" y="30" width="5" height="10" fill="#333" />
+                    <rect x="70" y="30" width="5" height="10" fill="#333" />
+                </svg>`;
+        } else if (type === 'suv') {
+            return `
+                <svg width="40" height="40" viewBox="0 0 100 100">
+                    <rect x="25" y="20" width="50" height="65" rx="8" fill="rgba(0,0,0,0.15)" />
+                    <rect x="28" y="18" width="44" height="64" rx="10" fill="${color}" stroke="#1e293b" stroke-width="2.5" />
+                    <rect x="32" y="30" width="36" height="35" rx="4" fill="rgba(255,255,255,0.3)" />
+                    <!-- Roof Rails -->
+                    <rect x="30" y="35" width="2" height="30" fill="#1e293b" />
+                    <rect x="68" y="35" width="2" height="30" fill="#1e293b" />
+                </svg>`;
+        } else if (type === 'van' || type === 'bus') {
+            return `
+                <svg width="40" height="40" viewBox="0 0 100 100">
+                    <rect x="25" y="15" width="50" height="75" rx="4" fill="rgba(0,0,0,0.15)" />
+                    <rect x="28" y="18" width="44" height="70" rx="6" fill="${color}" stroke="#1e293b" stroke-width="2" />
+                    <!-- Large Windows -->
+                    <rect x="32" y="25" width="36" height="15" rx="2" fill="rgba(255,255,255,0.3)" />
+                    <rect x="32" y="45" width="36" height="35" rx="2" fill="rgba(255,255,255,0.2)" />
+                </svg>`;
+        } else if (type === 'pickup') {
+            return `
+                <svg width="40" height="40" viewBox="0 0 100 100">
+                    <rect x="28" y="22" width="44" height="64" rx="12" fill="rgba(0,0,0,0.15)" />
+                    <!-- Cabin -->
+                    <rect x="30" y="20" width="40" height="35" rx="6" fill="${color}" stroke="#1e293b" stroke-width="2" />
+                    <!-- Bed -->
+                    <rect x="30" y="55" width="40" height="25" rx="2" fill="${color}" stroke="#1e293b" stroke-width="2" />
+                    <!-- Windshield -->
+                    <rect x="34" y="25" width="32" height="15" rx="2" fill="rgba(255,255,255,0.3)" />
+                </svg>`;
+        }
+        // Default Saloon Car
+        return `
+            <svg width="40" height="40" viewBox="0 0 100 100">
+                <rect x="28" y="22" width="44" height="64" rx="12" fill="rgba(0,0,0,0.15)" />
+                <rect x="30" y="20" width="40" height="60" rx="10" fill="${color}" stroke="#1e293b" stroke-width="2" />
+                <rect x="34" y="32" width="32" height="24" rx="4" fill="rgba(255,255,255,0.3)" />
+                <path d="M34 32 L30 25 L70 25 L66 32 Z" fill="rgba(255,255,255,0.2)" />
+                <rect x="33" y="21" width="8" height="4" rx="1" fill="#fef08a" />
+                <rect x="59" y="21" width="8" height="4" rx="1" fill="#fef08a" />
+                <rect x="34" y="76" width="8" height="3" rx="1" fill="#ef4444" />
+                <rect x="58" y="76" width="8" height="3" rx="1" fill="#ef4444" />
+            </svg>`;
+    }
+
     function updateMarkers(vehicles) {
         vehicles.forEach(v => {
             if (!v.current_latitude) return;
@@ -456,10 +554,14 @@
                 const markerEl = markers[v.id].getElement();
                 if (markerEl) {
                     const icon = markerEl.querySelector('.car-marker');
-                    if (icon) icon.style.transform = `rotate(${v.heading}deg)`;
-
-                    const svgRect = markerEl.querySelector('rect');
-                    if (svgRect) svgRect.setAttribute('fill', markerColor);
+                    if (icon) {
+                        icon.style.transform = `rotate(${v.heading}deg)`;
+                        // Update SVG if color changed (e.g. status change)
+                        const svgContainer = icon.querySelector('svg');
+                        if (svgContainer) {
+                            icon.innerHTML = getVehicleSvg(v.vehicle_type, markerColor);
+                        }
+                    }
 
                     const pulseEl = markerEl.querySelector('.pulse-indicator');
                     if (pulseEl) {
@@ -474,24 +576,7 @@
                             <div id="focus-${v.id}" class="focus-indicator ${selectedVehicleId === v.id ? 'focus-marker' : ''}"></div>
                             <div class="pulse-indicator absolute top-0 left-0 ${isMoving ? 'pulse-blue' : (isOffline ? '' : 'pulse')}"></div>
                             <div class="car-marker" style="transform: rotate(${v.heading}deg)">
-                                <svg width="40" height="40" viewBox="0 0 100 100">
-                                    <!-- Car Body shadow -->
-                                    <rect x="28" y="22" width="44" height="64" rx="12" fill="rgba(0,0,0,0.15)" />
-                                    <!-- Main Car Body -->
-                                    <rect x="30" y="20" width="40" height="60" rx="10" fill="${markerColor}" stroke="#1e293b" stroke-width="2" />
-                                    <!-- Roof/Windshield -->
-                                    <rect x="34" y="32" width="32" height="24" rx="4" fill="rgba(255,255,255,0.3)" />
-                                    <path d="M34 32 L30 25 L70 25 L66 32 Z" fill="rgba(255,255,255,0.2)" />
-                                    <!-- Headlights -->
-                                    <rect x="33" y="21" width="8" height="4" rx="1" fill="#fef08a" />
-                                    <rect x="59" y="21" width="8" height="4" rx="1" fill="#fef08a" />
-                                    <!-- Taillights -->
-                                    <rect x="34" y="76" width="8" height="3" rx="1" fill="#ef4444" />
-                                    <rect x="58" y="76" width="8" height="3" rx="1" fill="#ef4444" />
-                                    <!-- Side Mirrors -->
-                                    <rect x="26" y="35" width="4" height="6" rx="1" fill="${markerColor}" stroke="#1e293b" stroke-width="1" />
-                                    <rect x="70" y="35" width="4" height="6" rx="1" fill="${markerColor}" stroke="#1e293b" stroke-width="1" />
-                                </svg>
+                                ${getVehicleSvg(v.vehicle_type, markerColor)}
                             </div>
                             <div class="absolute -top-8 left-1/2 -translate-x-1/2 marker-label">${escapeHtml(v.registration_number)}</div>
                         </div>
