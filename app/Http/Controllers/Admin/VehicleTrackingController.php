@@ -36,6 +36,7 @@ class VehicleTrackingController extends Controller
                 'current_longitude',
                 'last_seen_at',
                 'status',
+                'vehicle_type',
                 'assigned_driver_id'
             ])
             ->get();
