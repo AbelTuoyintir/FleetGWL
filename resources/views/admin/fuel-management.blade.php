@@ -48,36 +48,6 @@
             font-weight: 500;
         }
         
-        .sidebar-fleet {
-            position: fixed; top: 0; left: 0;
-            height: 100vh; width: 280px;
-            background: white;
-            border-right: 1px solid #e2e8f0;
-            z-index: 40;
-            transition: transform 0.25s ease;
-            overflow-y: auto;
-        }
-        .sidebar-closed { transform: translateX(-100%); }
-        @media (min-width: 1024px) { .sidebar-fleet { transform: translateX(0); } }
-        
-        .nav-item-fleet {
-            transition: all 0.2s;
-            border-radius: 10px;
-            cursor: pointer;
-        }
-        .nav-item-fleet:hover { background-color: #f1f5f9; color: #1e40af; }
-        .nav-item-fleet:focus-visible { outline: 2px solid #3b82f6; outline-offset: -2px; background-color: #f1f5f9; }
-        .nav-active-fleet { background-color: #eff6ff; color: #2563eb; font-weight: 500; border-left: 3px solid #3b82f6; }
-        
-        .overlay-fleet {
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,0.3);
-            backdrop-filter: blur(2px);
-            z-index: 35;
-            display: none;
-        }
-        .overlay-open { display: block; }
-        
         .form-input {
             width: 100%;
             padding: 8px 12px;
@@ -188,9 +158,6 @@
         <!-- Header -->
         <div class="mb-6 flex justify-between items-center flex-wrap gap-4">
             <div class="flex items-center gap-3">
-                <button id="menuToggleBtn" class="lg:hidden p-2 text-gray-600 hover:text-blue-600">
-                    <i class="fas fa-bars text-xl"></i>
-                </button>
                 <div>
                     <h1 class="text-2xl font-bold text-gray-800">Fuel Management</h1>
                     <p class="text-gray-500 text-sm mt-1">Track fuel consumption, costs, and efficiency across your fleet</p>
@@ -363,10 +330,10 @@
                                 <td><span class="status-badge status-{{ $log->status }}">{{ ucfirst($log->status) }}</span></td>
                                 <td>
                                     <div class="flex gap-2">
-                                        <button onclick="editLog({{ $log->id }})" class="text-blue-600 hover:text-blue-800 transition-colors p-1" aria-label="Edit Fuel Log" title="Edit Fuel Log">
+                                        <button onclick="editLog({{ $log->id }})" class="text-blue-600 hover:text-blue-800 transition-colors" aria-label="Edit Fuel Log" title="Edit Fuel Log">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button onclick="deleteLog({{ $log->id }})" class="text-red-600 hover:text-red-800 transition-colors p-1" aria-label="Delete Fuel Log" title="Delete Fuel Log">
+                                        <button onclick="deleteLog({{ $log->id }})" class="text-red-600 hover:text-red-800 transition-colors" aria-label="Delete Fuel Log" title="Delete Fuel Log">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
@@ -374,19 +341,14 @@
                             </tr>
                             @empty
                             <tr>
-                                    <td colspan="11" class="px-6 py-12 text-center">
+                                <td colspan="12" class="py-12 text-center">
                                     <div class="flex flex-col items-center justify-center text-gray-400">
                                         <i class="fas fa-gas-pump text-5xl mb-4 opacity-20"></i>
                                         <p class="text-lg font-medium text-gray-500">No fuel logs found</p>
-                                        <p class="text-sm mb-6">Track consumption or request extra allocation.</p>
-                                        <div class="flex gap-3">
-                                            <button onclick="openAddModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition shadow-sm">
-                                                <i class="fas fa-plus mr-1"></i>Add Fuel Log
-                                            </button>
-                                            <button onclick="requestExtraAllocation()" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition shadow-sm" aria-label="Request Extra Allocation" title="Request Extra Allocation">
-                                                <i class="fas fa-gas-pump mr-1 text-amber-500"></i>Request Extra Allocation
-                                            </button>
-                                        </div>
+                                        <p class="text-sm mb-6">Start tracking consumption by adding your first fuel log.</p>
+                                        <button onclick="openAddModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition shadow-sm">
+                                            <i class="fas fa-plus mr-1"></i>Add Fuel Log
+                                        </button>
                                     </div>
                                 </td>
                             </tr>

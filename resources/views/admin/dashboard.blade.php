@@ -244,8 +244,11 @@
                     <div class="space-y-2" id="expiringDocumentsList">
                         @forelse($expiringDocuments as $doc)
                             <div class="flex justify-between items-center border-b border-slate-100 pb-1 text-xs">
-                                <div><span class="font-medium">{{ $doc->document_type }}</span> <span class="text-gray-500">{{ optional($doc->vehicle)->plate_number ?? 'N/A' }}</span></div>
-                                <span class="badge-warning px-2 py-0.5 rounded-full text-[10px]">{{ \Carbon\Carbon::parse($doc->expiry_date)->format('M j, Y') }}</span>
+                                <div>
+                                    <span class="font-medium">{{ data_get($doc, 'document_type') }}</span>
+                                    <span class="text-gray-500">{{ data_get($doc, 'vehicle.plate_number') ?? data_get($doc, 'vehicle_plate') ?? 'N/A' }}</span>
+                                </div>
+                                <span class="badge-warning px-2 py-0.5 rounded-full text-[10px]">{{ \Carbon\Carbon::parse(data_get($doc, 'expiry_date'))->format('M j, Y') }}</span>
                             </div>
                         @empty
                             <p class="text-xs text-gray-400">No expiring documents</p>

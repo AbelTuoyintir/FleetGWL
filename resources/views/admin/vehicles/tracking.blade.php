@@ -114,7 +114,7 @@
             <div id="connectionStatus" class="flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
                 <span class="relative flex h-2 w-2 mr-2">
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-green-600"></span>
                 </span>
                 LIVE UPDATING
             </div>
@@ -123,6 +123,9 @@
                 <button onclick="setMapTheme('dark')" class="px-3 py-1 text-xs font-medium rounded-md hover:bg-gray-100 transition" id="theme-dark">Dark</button>
                 <button onclick="setMapTheme('satellite')" class="px-3 py-1 text-xs font-medium rounded-md hover:bg-gray-100 transition" id="theme-satellite">Satellite</button>
             </div>
+            <button onclick="fitAllVehicles()" class="bg-blue-50 border border-blue-200 px-4 py-2 rounded-lg text-sm font-bold text-blue-700 hover:bg-blue-100 transition shadow-sm">
+                <i class="fas fa-compress-alt mr-2"></i>Fit All
+            </button>
             <button onclick="refreshMap()" class="bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition shadow-sm">
                 <i class="fas fa-sync-alt mr-2"></i>Sync
             </button>
@@ -183,66 +186,89 @@
             <div class="bg-white p-1 rounded-xl shadow-md border border-gray-200 relative">
                 <div id="map"></div>
 
+                <!-- Live Activity Ticker -->
+                <div id="activityTicker" class="absolute top-6 right-6 z-[1000] w-64 space-y-2 pointer-events-none">
+                    <!-- Ticker items go here -->
+                </div>
+
                 <!-- Map Overlay: Vehicle Detail Card -->
-                <div id="miniDetailCard" class="absolute bottom-6 left-6 z-[1000] bg-white rounded-xl shadow-2xl border border-gray-100 p-4 w-72 hidden transform transition-all duration-300">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <h3 id="cardReg" class="text-lg font-bold text-gray-900">---</h3>
-                            <p id="cardModel" class="text-xs text-gray-500">---</p>
-                        </div>
-                        <button onclick="closeDetailCard()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3 mb-3">
-                        <div class="bg-blue-50 p-2 rounded-lg border border-blue-100">
-                            <p class="text-[9px] text-blue-600 font-bold uppercase">Speed</p>
-                            <p id="cardSpeed" class="text-lg font-black text-blue-900">0 <span class="text-[10px] font-normal">km/h</span></p>
-                        </div>
-                        <div class="bg-emerald-50 p-2 rounded-lg border border-emerald-100">
-                            <p class="text-[9px] text-emerald-600 font-bold uppercase">Ignition</p>
-                            <p id="cardIgnition" class="text-sm font-bold text-emerald-900">On</p>
+                <div id="miniDetailCard" class="absolute bottom-6 left-6 z-[1000] bg-white rounded-2xl shadow-2xl border border-gray-100 w-80 hidden overflow-hidden transform transition-all duration-500 ease-out translate-y-4 opacity-0">
+                    <div id="cardHeader" class="bg-gray-900 p-5 text-white">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 id="cardReg" class="text-2xl font-black tracking-tight leading-none mb-1">---</h3>
+                                <p id="cardModel" class="text-[10px] uppercase tracking-widest opacity-60 font-bold">---</p>
+                            </div>
+                            <button onclick="closeDetailCard()" class="text-white/40 hover:text-white transition"><i class="fas fa-times"></i></button>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3 mb-4">
-                        <div class="bg-gray-50 p-2 rounded-lg border border-gray-100">
-                            <p class="text-[9px] text-gray-500 font-bold uppercase">Fuel Level</p>
-                            <div class="flex items-center gap-2 mt-0.5">
-                                <div class="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                    <div id="cardFuelBar" class="h-full bg-orange-500" style="width: 0%"></div>
+                    <div class="p-5">
+                        <div class="flex items-end gap-3 mb-6">
+                            <div class="flex-1">
+                                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Current Speed</p>
+                                <div class="flex items-baseline gap-1">
+                                    <span id="cardSpeed" class="text-5xl font-black text-gray-900 leading-none">0</span>
+                                    <span class="text-gray-400 font-bold">km/h</span>
                                 </div>
-                                <span id="cardFuelText" class="text-[10px] font-bold text-gray-700">0%</span>
+                            </div>
+                            <div id="cardIgnitionBadge" class="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-700">
+                                Ignition On
                             </div>
                         </div>
-                        <div class="bg-gray-50 p-2 rounded-lg border border-gray-100">
-                            <p class="text-[9px] text-gray-500 font-bold uppercase">Battery</p>
-                            <p id="cardBattery" class="text-sm font-bold text-gray-800">12.4V</p>
+
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div class="space-y-1.5">
+                                <div class="flex justify-between text-[10px] font-bold uppercase tracking-wider">
+                                    <span class="text-gray-400">Fuel Level</span>
+                                    <span id="cardFuelText" class="text-gray-900">0%</span>
+                                </div>
+                                <div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                                    <div id="cardFuelBar" class="h-full bg-blue-600 transition-all duration-1000" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="space-y-1.5">
+                                <div class="flex justify-between text-[10px] font-bold uppercase tracking-wider">
+                                    <span class="text-gray-400">Battery</span>
+                                    <span id="cardBattery" class="text-gray-900">12.4V</span>
+                                </div>
+                                <div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                                    <div class="h-full bg-emerald-500" style="width: 85%"></div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="space-y-2 text-xs text-gray-600">
-                        <div class="flex justify-between">
-                            <span>Driver:</span>
-                            <span id="cardDriver" class="font-bold text-gray-900">---</span>
+
+                        <div class="bg-gray-50 rounded-xl p-4 space-y-3 mb-6 border border-gray-100">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400">
+                                    <i class="fas fa-user-tie"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Assigned Driver</p>
+                                    <p id="cardDriver" class="text-sm font-bold text-gray-900 leading-none">---</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Last Reported Location</p>
+                                    <p id="cardLastSeen" class="text-sm font-bold text-gray-900 leading-none">Just now</p>
+                                </div>
+                            </div>
                         </div>
-                        <div class="flex justify-between">
-                            <span>Est. Arrival:</span>
-                            <span id="cardETA" class="font-bold text-gray-900">---</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span>Last Update:</span>
-                            <span id="cardLastSeen" class="text-gray-400">Just now</span>
-                        </div>
-                    </div>
-                    <div class="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-2">
-                        <div class="flex gap-2">
-                            <button id="historyBtn" class="flex-1 bg-gray-900 text-white py-2 rounded-lg text-xs font-bold hover:bg-black transition">
-                                <i class="fas fa-route mr-1"></i> History
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <button id="historyBtn" class="bg-gray-100 text-gray-900 py-3 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-gray-200 transition">
+                                <i class="fas fa-route mr-2"></i>History
                             </button>
-                            <button id="followBtn" onclick="toggleFollow()" class="flex-1 bg-blue-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-blue-700 transition">
-                                <i class="fas fa-crosshairs mr-1"></i> Follow
+                            <button id="followBtn" onclick="toggleFollow()" class="bg-blue-600 text-white py-3 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-blue-700 transition shadow-lg shadow-blue-200">
+                                <i class="fas fa-crosshairs mr-2"></i>Follow
                             </button>
                         </div>
-                        <a id="detailsLink" href="#" class="w-full bg-white border border-gray-200 text-center py-2 rounded-lg text-xs font-bold hover:bg-gray-50 transition">
-                            View Full Profile
+                        <a id="detailsLink" href="#" class="block w-full mt-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest hover:text-blue-600 transition">
+                            View Detailed Logistics Profile
                         </a>
                     </div>
                 </div>
@@ -332,6 +358,8 @@
     function fetchData() {
         const statusIndicator = document.getElementById('connectionStatus');
 
+        const oldDataMap = new Map(vehiclesData.map(v => [v.id, { ...v }]));
+
         return fetch('{{ route("vehicles.tracking.data") }}')
             .then(res => {
                 if (!res.ok) throw new Error('Network response was not ok');
@@ -339,7 +367,21 @@
             })
             .then(result => {
                 if (result.success) {
-                    vehiclesData = result.data;
+                    const newData = result.data;
+
+                    // Detect changes for activity ticker
+                    newData.forEach(newV => {
+                        const oldV = oldDataMap.get(newV.id);
+                        if (oldV) {
+                            if (oldV.speed === 0 && newV.speed > 0) {
+                                addActivityLog(newV.registration_number, 'Started moving', 'blue');
+                            } else if (oldV.speed > 0 && newV.speed === 0) {
+                                addActivityLog(newV.registration_number, 'Stopped', 'emerald');
+                            }
+                        }
+                    });
+
+                    vehiclesData = newData;
                     updateUI();
 
                     if (statusIndicator) {
@@ -629,23 +671,28 @@
 
     function updateDetailCard(v) {
         const card = document.getElementById('miniDetailCard');
-        card.classList.remove('hidden');
+        if (card.classList.contains('hidden')) {
+            card.classList.remove('hidden');
+            setTimeout(() => {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 10);
+        }
 
         document.getElementById('cardReg').innerText = v.registration_number;
         document.getElementById('cardModel').innerText = `${v.make} ${v.model}`;
-        document.getElementById('cardSpeed').innerHTML = `${v.speed} <span class="text-[10px] font-normal">km/h</span>`;
+        document.getElementById('cardSpeed').innerText = v.speed;
 
-        const ignitionEl = document.getElementById('cardIgnition');
-        ignitionEl.innerText = v.ignition === 'on' ? 'Ignition On' : 'Ignition Off';
-        ignitionEl.parentElement.className = `p-2 rounded-lg border ${v.ignition === 'on' ? 'bg-emerald-50 text-emerald-900 border-emerald-100' : 'bg-gray-100 text-gray-600 border-gray-200'}`;
+        const ignitionBadge = document.getElementById('cardIgnitionBadge');
+        ignitionBadge.innerText = v.ignition === 'on' ? 'Ignition On' : 'Ignition Off';
+        ignitionBadge.className = `px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${v.ignition === 'on' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-500'}`;
 
         document.getElementById('cardFuelText').innerText = `${v.fuel_level}%`;
         const fuelBar = document.getElementById('cardFuelBar');
         fuelBar.style.width = `${v.fuel_level}%`;
-        fuelBar.className = `h-full ${v.fuel_level < 20 ? 'bg-red-500' : (v.fuel_level < 50 ? 'bg-orange-500' : 'bg-green-500')}`;
+        fuelBar.className = `h-full transition-all duration-1000 ${v.fuel_level < 20 ? 'bg-red-500' : (v.fuel_level < 50 ? 'bg-orange-500' : 'bg-blue-600')}`;
 
-        document.getElementById('cardBattery').innerText = `${v.battery}V`;
-        document.getElementById('cardETA').innerText = v.is_on_trip ? `${v.eta} mins` : 'N/A';
+        document.getElementById('cardBattery').innerText = `${Number(v.battery).toFixed(1)}V`;
 
         document.getElementById('cardDriver').innerText = v.assigned_driver ? v.assigned_driver.name : 'Unassigned';
         document.getElementById('cardLastSeen').innerText = getTimeAgo(v.last_seen_at);
@@ -655,11 +702,55 @@
     }
 
     function closeDetailCard() {
-        document.getElementById('miniDetailCard').classList.add('hidden');
+        const card = document.getElementById('miniDetailCard');
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(16px)';
+        setTimeout(() => {
+            card.classList.add('hidden');
+        }, 500);
+
         selectedVehicleId = null;
         following = false;
         updateUI();
         clearHistory();
+    }
+
+    function addActivityLog(reg, action, color) {
+        const ticker = document.getElementById('activityTicker');
+        const item = document.createElement('div');
+
+        // Use full class names to ensure Tailwind compiler picks them up
+        const colorClasses = {
+            blue: 'border-blue-500',
+            emerald: 'border-emerald-500'
+        };
+        const borderClass = colorClasses[color] || 'border-gray-500';
+
+        item.className = `bg-white/90 backdrop-blur shadow-lg border-l-4 ${borderClass} p-3 rounded-r-lg transform transition-all duration-500 translate-x-full opacity-0`;
+        item.innerHTML = `
+            <div class="flex items-center gap-2">
+                <span class="font-black text-gray-900 text-xs">${reg}</span>
+                <span class="text-[10px] text-gray-500 font-medium">${action}</span>
+            </div>
+        `;
+        ticker.prepend(item);
+
+        setTimeout(() => {
+            item.classList.remove('translate-x-full', 'opacity-0');
+        }, 100);
+
+        setTimeout(() => {
+            item.classList.add('translate-x-full', 'opacity-0');
+            setTimeout(() => item.remove(), 500);
+        }, 5000);
+    }
+
+    function fitAllVehicles() {
+        const activeMarkers = Object.values(markers);
+        if (activeMarkers.length === 0) return;
+
+        const group = new L.featureGroup(activeMarkers);
+        map.fitBounds(group.getBounds(), { padding: [50, 50] });
     }
 
     function loadHistory(id) {
