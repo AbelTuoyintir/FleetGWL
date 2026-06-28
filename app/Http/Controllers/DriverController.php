@@ -68,7 +68,7 @@ class DriverController extends Controller
     {
         try {
             // Debug: Log incoming request
-            \Log::info('Driver store request received', $request->all());
+            \Log::info('Driver store request received', $request->except(['password', 'password_confirmation']));
 
             // Validate the request
             $validated = $request->validate([
