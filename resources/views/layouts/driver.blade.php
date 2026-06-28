@@ -35,6 +35,7 @@
         /* Navigation items */
         .nav-item-fleet { transition: all 0.2s ease; border-radius: 12px; margin-bottom: 2px; }
         .nav-item-fleet:hover { background: rgba(59,130,246,0.12); color: #1e40af; }
+        .nav-item-fleet:focus-visible { outline: 2px solid #3b82f6; outline-offset: -2px; background: rgba(59,130,246,0.12); }
         .nav-active-fleet { background: #eef2ff; color: #2563eb; font-weight: 500; border-left: 3px solid #3b82f6; }
         .submenu-item { padding-left: 2.5rem; transition: all 0.2s; }
         .rotate-180 { transform: rotate(180deg); }
@@ -137,14 +138,16 @@
 
 <!-- STICKY HEADER -->
 <header class="sticky top-0 z-30 glass-card shadow-sm flex items-center justify-between lg:justify-end px-5 py-3 border-b border-white/60">
-    <button id="menuToggleBtn" aria-label="Open Sidebar" class="lg:hidden text-gray-600 hover:text-green-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 rounded p-1">
+    <button id="menuToggleBtn" aria-label="Open Sidebar" title="Open Sidebar" aria-expanded="false" aria-controls="fleetSidebar" class="lg:hidden text-gray-600 hover:text-green-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 rounded p-1">
         <i class="fas fa-bars text-xl"></i>
     </button>
     <div class="flex items-center gap-4">
         <!-- Notification Bell -->
-        <div class="notification-bell" id="notificationBell">
-            <i class="fas fa-bell text-gray-500 text-xl hover:text-gray-700 transition"></i>
-            <span class="notification-badge" id="notificationCount">0</span>
+        <div class="relative">
+            <button class="notification-bell focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 rounded-full p-1" id="notificationBell" aria-label="Toggle Notifications" title="Toggle Notifications" aria-expanded="false" aria-controls="notificationDropdown">
+                <i class="fas fa-bell text-gray-500 text-xl hover:text-gray-700 transition"></i>
+                <span class="notification-badge" id="notificationCount">0</span>
+            </button>
             <div class="notification-dropdown" id="notificationDropdown">
                 <div class="p-3 border-b border-gray-200 bg-gray-50 rounded-t-2xl">
                     <div class="flex justify-between items-center">
@@ -172,7 +175,7 @@
                 }
                 $initials = $initials ?: 'KD';
             @endphp
-            <button id="userMenuToggle" type="button" class="flex items-center gap-2 bg-slate-50 rounded-full pl-2 pr-3 py-1 border border-slate-200 hover:bg-slate-100 transition">
+            <button id="userMenuToggle" type="button" aria-expanded="false" aria-controls="userMenuDropdown" class="flex items-center gap-2 bg-slate-50 rounded-full pl-2 pr-3 py-1 border border-slate-200 hover:bg-slate-100 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500">
                 <div class="w-7 h-7 bg-green-700 text-white rounded-full flex items-center justify-center text-xs font-bold">{{ $initials }}</div>
                 <span class="text-sm font-medium text-gray-700 hidden sm:inline">{{ $userName }}</span>
                 <span class="text-[11px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full hidden sm:inline">Driver</span>
@@ -214,7 +217,7 @@
                 <p class="text-[10px] text-gray-500 uppercase tracking-wide">Ghana Water Limited</p>
             </div>
         </div>
-        <button id="closeSidebarBtn" class="lg:hidden text-gray-500 hover:text-green-600"><i class="fas fa-times text-lg"></i></button>
+        <button id="closeSidebarBtn" aria-label="Close Sidebar" title="Close Sidebar" class="lg:hidden text-gray-500 hover:text-green-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 rounded p-1"><i class="fas fa-times text-lg"></i></button>
     </div>
 
     <!-- Driver Navigation Menu -->
@@ -257,16 +260,21 @@
     </div>
 </main>
 
+<!-- AI SUPPORT CHAT BOT -->
+@include('components.ai-chat-bot')
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     // Keep sidebar controls working even when a page doesn't define its own handlers.
     function toggleSubMenu(menuId) {
         const subMenu = document.getElementById(`${menuId}-submenu`);
         const chevron = document.getElementById(`${menuId}-chevron`);
+        const trigger = document.querySelector(`[aria-controls="${menuId}-submenu"]`);
 
         if (!subMenu) return;
-        subMenu.classList.toggle('hidden');
+        const isHidden = subMenu.classList.toggle('hidden');
         if (chevron) chevron.classList.toggle('rotate-180');
+        if (trigger) trigger.setAttribute('aria-expanded', !isHidden);
     }
     window.toggleSubMenu = window.toggleSubMenu || toggleSubMenu;
 
@@ -285,12 +293,16 @@
             sidebar?.classList.remove('sidebar-closed');
             overlay?.classList.add('overlay-open');
             document.body.style.overflow = 'hidden';
+            openBtn?.setAttribute('aria-expanded', 'true');
+            setTimeout(() => closeBtn?.focus(), 100);
         };
 
         const closeSidebar = () => {
             sidebar?.classList.add('sidebar-closed');
             overlay?.classList.remove('overlay-open');
             document.body.style.overflow = '';
+            openBtn?.setAttribute('aria-expanded', 'false');
+            openBtn?.focus();
         };
 
         if (openBtn) openBtn.addEventListener('click', openSidebar);
@@ -299,13 +311,17 @@
 
         // User menu
         const closeUserMenu = () => {
-            if (userMenuDropdown) userMenuDropdown.classList.add('hidden');
+            if (userMenuDropdown) {
+                userMenuDropdown.classList.add('hidden');
+                userMenuToggle?.setAttribute('aria-expanded', 'false');
+            }
         };
 
         if (userMenuToggle) {
             userMenuToggle.addEventListener('click', (event) => {
                 event.stopPropagation();
-                userMenuDropdown?.classList.toggle('hidden');
+                const isHidden = userMenuDropdown?.classList.toggle('hidden');
+                userMenuToggle?.setAttribute('aria-expanded', !isHidden);
             });
         }
 
@@ -323,13 +339,15 @@
         if (notificationBell) {
             notificationBell.addEventListener('click', (e) => {
                 e.stopPropagation();
-                notificationDropdown?.classList.toggle('show');
+                const isShown = notificationDropdown?.classList.toggle('show');
+                notificationBell.setAttribute('aria-expanded', !!isShown);
             });
         }
 
         document.addEventListener('click', (e) => {
             if (notificationDropdown && !notificationBell?.contains(e.target)) {
                 notificationDropdown.classList.remove('show');
+                notificationBell?.setAttribute('aria-expanded', 'false');
             }
         });
 

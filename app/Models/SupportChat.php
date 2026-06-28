@@ -10,7 +10,7 @@ class SupportChat extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['user_id', 'subject', 'status'];
+    protected $fillable = ['user_id', 'session_id', 'subject', 'status'];
 
     public function user()
     {

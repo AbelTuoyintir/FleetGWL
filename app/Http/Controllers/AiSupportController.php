@@ -22,7 +22,11 @@ class AiSupportController extends Controller
         ]);
 
         try {
-            $aiMessage = $this->aiSupportService->processMessage(Auth::id(), $request->message);
+            $aiMessage = $this->aiSupportService->processMessage(
+                Auth::id(),
+                $request->message,
+                $request->session()->getId()
+            );
 
             return response()->json([
                 'status' => 'success',
@@ -31,16 +35,24 @@ class AiSupportController extends Controller
                     : (string) ($aiMessage->message ?? $aiMessage ?? 'Sorry, I could not generate a response.'),
             ]);
         } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('AI Support Chat Error: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'exception' => $e
+            ]);
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'AI chat failed.',
+                'message' => 'I encountered an unexpected error processing your request. Please try again in a moment.',
             ], 500);
         }
     }
 
-    public function getHistory()
+    public function getHistory(Request $request)
     {
-        $history = $this->aiSupportService->getChatHistory(Auth::id());
+        $history = $this->aiSupportService->getChatHistory(
+            Auth::id(),
+            $request->session()->getId()
+        );
 
         return response()->json([
             'status' => 'success',

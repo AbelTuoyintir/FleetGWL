@@ -6,25 +6,25 @@ use App\Models\Driver;
 use App\Models\User;
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class DriverController extends Controller
 {
     /**
      * Generate a unique staff ID for newly created driver users.
      */
-     private function generateDriverStaffId(): string
+    private function generateDriverStaffId(): string
     {
         do {
-            $staffId = 'DRV' . now()->format('Ymd') . strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
+            $staffId = 'DRV'.now()->format('Ymd').strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
         } while (User::where('staffID', $staffId)->exists());
 
         return $staffId;
     }
-
 
     /**
      * Display a listing of the resource.
@@ -64,29 +64,29 @@ class DriverController extends Controller
         return view('admin.drivers.create', compact('users', 'vehicles'));
     }
 
-   public function store(Request $request)
+    public function store(Request $request)
     {
         try {
             // Debug: Log incoming request
-            \Log::info('Driver store request received', $request->all());
+            \Log::info('Driver store request received', $request->except(['password', 'password_confirmation']));
 
             // Validate the request
             $validated = $request->validate([
                 'registration_mode' => 'required|in:existing,new',
-                
+
                 // For existing user
                 'user_id' => [
                     'nullable',
                     'exists:users,id',
-                    Rule::unique('drivers', 'user_id')->whereNull('deleted_at')
+                    Rule::unique('drivers', 'user_id')->whereNull('deleted_at'),
                 ],
-                
+
                 // For new user
                 'name' => 'required_if:registration_mode,new|string|max:255',
                 'email' => 'required_if:registration_mode,new|email|unique:users,email',
                 'phone' => 'nullable|string|max:20',
                 'password' => 'required_if:registration_mode,new|string|min:8|confirmed',
-                
+
                 // Driver specific fields
                 'license_number' => 'required|string|max:50|unique:drivers,license_number',
                 'license_expiry_date' => 'nullable|date',
@@ -174,37 +174,48 @@ class DriverController extends Controller
             return redirect()->route('drivers.index')
                 ->with('success', 'Driver created successfully.');
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             DB::rollBack();
             \Log::error('Validation failed', ['errors' => $e->errors()]);
+
             return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Driver creation failed', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            return back()->with('error', 'Failed to create driver: ' . $e->getMessage())->withInput();
+
+            return back()->with('error', 'Failed to create driver: '.$e->getMessage())->withInput();
         }
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Driver $driver)
+    public function show($id)
     {
-        $driver->load(['user', 'vehicle', 'mileageLogs' => function($query) {
-            $query->latest()->limit(10);
-        }, 'fuelLogs' => function($query) {
-            $query->latest()->limit(10);
-        }]);
+        // Bolt: Consolidate stats and relationship loading into a single query using withCount, withSum, and withAvg.
+        // This fixes the 500 error caused by the missing 'distance_traveled' column and significantly reduces database roundtrips.
+        $driver = Driver::where('status', '!=', 'deleted')
+            ->with(['user', 'vehicle', 'mileageLogs' => function ($query) {
+                $query->latest()->limit(10);
+            }])
+            ->withCount('maintenances')
+            ->withSum('fuelLogs as total_fuel', 'fuel_quantity')
+            ->withAvg('fuelLogs as avg_efficiency', 'fuel_efficiency')
+            ->findOrFail($id);
 
-        // Get statistics
+        // Calculate mileage by summing the difference between end and start readings
+        $totalMileage = $driver->mileageLogs()
+            ->selectRaw('SUM(COALESCE(end_mileage, 0) - COALESCE(start_mileage, 0)) as total')
+            ->value('total') ?? 0;
+
         $stats = [
-            'total_mileage' => $driver->mileageLogs()->sum('distance_traveled'),
-            'total_fuel' => $driver->fuelLogs()->sum('fuel_quantity'),
-            'total_maintenances' => $driver->maintenances()->count(),
-            'avg_efficiency' => $driver->fuelLogs()->avg('fuel_efficiency'),
+            'total_mileage' => (int) $totalMileage,
+            'total_fuel' => (float) ($driver->total_fuel ?? 0),
+            'total_maintenances' => (int) ($driver->maintenances_count ?? 0),
+            'avg_efficiency' => (float) ($driver->avg_efficiency ?? 0),
         ];
 
         return view('admin.drivers.show', compact('driver', 'stats'));
@@ -229,7 +240,7 @@ class DriverController extends Controller
     public function update(Request $request, Driver $driver)
     {
         $validated = $request->validate([
-            'license_number' => 'required|string|max:50|unique:drivers,license_number,' . $driver->id,
+            'license_number' => 'required|string|max:50|unique:drivers,license_number,'.$driver->id,
             'license_expiry_date' => 'nullable|date',
             'license_class' => 'nullable|in:A,B,C,D,E',
             'address' => 'nullable|string|max:255',
@@ -295,10 +306,11 @@ class DriverController extends Controller
 
             return redirect()->route('drivers.index')
                 ->with('success', 'Driver updated successfully.');
-                
+
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Failed to update driver: ' . $e->getMessage());
+
+            return back()->with('error', 'Failed to update driver: '.$e->getMessage());
         }
     }
 
@@ -321,9 +333,9 @@ class DriverController extends Controller
 
             return redirect()->route('drivers.index')
                 ->with('success', 'Driver deleted successfully.');
-                
+
         } catch (\Exception $e) {
-            return back()->with('error', 'Failed to delete driver: ' . $e->getMessage());
+            return back()->with('error', 'Failed to delete driver: '.$e->getMessage());
         }
     }
 
@@ -333,7 +345,7 @@ class DriverController extends Controller
     public function assignVehicle(Request $request, Driver $driver)
     {
         $request->validate([
-            'vehicle_id' => 'required|exists:vehicles,id'
+            'vehicle_id' => 'required|exists:vehicles,id',
         ]);
 
         $vehicle = Vehicle::findOrFail($request->vehicle_id);
@@ -354,7 +366,7 @@ class DriverController extends Controller
      */
     public function unassignVehicle(Driver $driver)
     {
-        if (!$driver->vehicle) {
+        if (! $driver->vehicle) {
             return back()->with('error', 'No vehicle assigned to this driver.');
         }
 
@@ -399,41 +411,42 @@ class DriverController extends Controller
     {
         try {
             $search = $request->query('search');
-            
-            if (!$search || strlen($search) < 2) {
+
+            if (! $search || strlen($search) < 2) {
                 return response()->json([
                     'success' => false,
-                    'drivers' => []
+                    'drivers' => [],
                 ]);
             }
-            
+
             $drivers = Driver::where('status', 'active')
-                ->whereHas('user', function($query) use ($search) {
+                ->whereHas('user', function ($query) use ($search) {
                     $query->where('first_name', 'LIKE', "%{$search}%")
-                          ->orWhere('last_name', 'LIKE', "%{$search}%")
-                          ->orWhere('email', 'LIKE', "%{$search}%");
+                        ->orWhere('last_name', 'LIKE', "%{$search}%")
+                        ->orWhere('email', 'LIKE', "%{$search}%");
                 })
                 ->with('user:id,first_name,last_name,email')
                 ->limit(10)
                 ->get()
-                ->map(function($driver) {
+                ->map(function ($driver) {
                     return [
                         'id' => $driver->id,
-                        'name' => $driver->user ? $driver->user->first_name . ' ' . $driver->user->last_name : 'Unknown',
+                        'name' => $driver->user ? $driver->user->first_name.' '.$driver->user->last_name : 'Unknown',
                         'email' => $driver->user ? $driver->user->email : null,
                     ];
                 });
-            
+
             return response()->json([
                 'success' => true,
-                'drivers' => $drivers
+                'drivers' => $drivers,
             ]);
-            
+
         } catch (\Exception $e) {
-            \Log::error('Driver search error: ' . $e->getMessage());
+            \Log::error('Driver search error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'drivers' => []
+                'drivers' => [],
             ], 500);
         }
     }
@@ -446,7 +459,7 @@ class DriverController extends Controller
         $user = auth()->user();
         $driver = Driver::where('user_id', $user->id)->first();
 
-        if (!$driver) {
+        if (! $driver) {
             return redirect()->route('dashboard')->with('error', 'Driver profile not found.');
         }
 
@@ -461,16 +474,16 @@ class DriverController extends Controller
         $user = auth()->user();
         $driver = Driver::where('user_id', $user->id)->first();
 
-        if (!$driver) {
+        if (! $driver) {
             return redirect()->route('dashboard')->with('error', 'Driver profile not found.');
         }
 
         $validated = $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'email' => 'required|email|unique:users,email,'.$user->id,
             'phone' => 'nullable|string|max:20',
-            'license_number' => 'required|string|max:50|unique:drivers,license_number,' . $driver->id,
+            'license_number' => 'required|string|max:50|unique:drivers,license_number,'.$driver->id,
             'license_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
@@ -503,10 +516,11 @@ class DriverController extends Controller
             DB::commit();
 
             return redirect()->route('driver.profile')->with('success', 'Profile updated successfully.');
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Failed to update profile: ' . $e->getMessage());
+
+            return back()->with('error', 'Failed to update profile: '.$e->getMessage());
         }
     }
 }

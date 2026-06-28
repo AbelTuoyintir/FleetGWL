@@ -86,6 +86,10 @@ class DocumentController extends Controller
      */
     public function create()
     {
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Only administrators can create documents.');
+        }
+
         $vehicles = Vehicle::where('status', 'active')->get();
         $documentTypes = Document::getDocumentTypes();
 
@@ -96,6 +100,10 @@ class DocumentController extends Controller
      */
     public function store(Request $request)
     {
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Only administrators can store documents.');
+        }
+
         try {
             $validated = $request->validate([
                 'title' => 'required|string|max:255',
@@ -216,7 +224,7 @@ class DocumentController extends Controller
     public function edit(Document $document)
     {
         // Check authorization
-        $this->authorizeDocumentAccess($document);
+        $this->authorizeDocumentAccess($document, 'modify');
 
         $vehicles = Vehicle::where('status', 'active')->get();
         $documentTypes = Document::getDocumentTypes();
@@ -230,7 +238,7 @@ class DocumentController extends Controller
     public function update(Request $request, Document $document)
     {
         // Check authorization
-        $this->authorizeDocumentAccess($document);
+        $this->authorizeDocumentAccess($document, 'modify');
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -299,7 +307,7 @@ class DocumentController extends Controller
     public function destroy(Document $document)
     {
         // Check authorization
-        $this->authorizeDocumentAccess($document);
+        $this->authorizeDocumentAccess($document, 'modify');
 
         // Custom soft delete (sets status to 'deleted' and tracks user)
         $document->softDelete();
@@ -339,7 +347,7 @@ class DocumentController extends Controller
         $document = Document::where('status', 'deleted')->findOrFail($id);
 
         // Check authorization
-        $this->authorizeDocumentAccess($document);
+        $this->authorizeDocumentAccess($document, 'modify');
 
         $document->update(['status' => 'active']);
 
@@ -371,7 +379,7 @@ class DocumentController extends Controller
     public function download(Document $document)
     {
         // Check authorization
-        $this->authorizeDocumentAccess($document);
+        $this->authorizeDocumentAccess($document, 'view');
 
         if (!Storage::disk('public')->exists($document->file_path)) {
             abort(404, 'File not found.');
@@ -393,7 +401,7 @@ class DocumentController extends Controller
     public function preview(Document $document)
     {
         // Check authorization
-        $this->authorizeDocumentAccess($document);
+        $this->authorizeDocumentAccess($document, 'view');
 
         if (!Storage::disk('public')->exists($document->file_path)) {
             abort(404, 'File not found.');
@@ -412,6 +420,9 @@ class DocumentController extends Controller
      */
     public function acknowledge(Document $document)
     {
+        // Check authorization
+        $this->authorizeDocumentAccess($document, 'view');
+
         if (!$document->requires_acknowledgement) {
             return redirect()->back()->with('error', 'This document does not require acknowledgement.');
         }
@@ -435,6 +446,10 @@ class DocumentController extends Controller
      */
     public function bulkAction(Request $request)
     {
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Only administrators can perform bulk actions on documents.');
+        }
+
         $request->validate([
             'action' => 'required|in:delete,archive,restore,download',
             'documents' => 'required|array',
@@ -444,13 +459,6 @@ class DocumentController extends Controller
         $documents = Document::whereIn('id', $request->documents)->get();
 
         foreach ($documents as $document) {
-            // Check authorization for each document
-            try {
-                $this->authorizeDocumentAccess($document);
-            } catch (\Exception $e) {
-                continue; // Skip unauthorized documents
-            }
-
             switch ($request->action) {
                 case 'delete':
                     $document->delete();
@@ -478,6 +486,10 @@ class DocumentController extends Controller
      */
     public function expiringSoon()
     {
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Only administrators can view expiring documents.');
+        }
+
         $days = request('days', 30); // Default: 30 days
         $date = now()->addDays($days);
 
@@ -496,6 +508,10 @@ class DocumentController extends Controller
      */
     public function statistics()
     {
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Only administrators can view document statistics.');
+        }
+
         $stats = [
             'total' => Document::count(),
             'active' => Document::where('status', 'active')->count(),
@@ -529,7 +545,7 @@ class DocumentController extends Controller
     /**
      * Authorize document access
      */
-    private function authorizeDocumentAccess(Document $document)
+    private function authorizeDocumentAccess(Document $document, string $action = 'view')
     {
         $user = auth()->user();
 
@@ -543,11 +559,20 @@ class DocumentController extends Controller
             return true;
         }
 
-        // Public documents are accessible to all authenticated users
-        if ($document->is_public) {
-            return true;
+        // Non-admins can only view certain documents
+        if ($action === 'view') {
+            // Public documents are accessible to all authenticated users
+            if ($document->is_public) {
+                return true;
+            }
+
+            // Drivers can see documents for their assigned vehicle
+            $userVehicleId = $user->driver?->vehicle?->id;
+            if ($userVehicleId && $document->vehicle_id === $userVehicleId) {
+                return true;
+            }
         }
 
-        abort(403, 'You are not authorized to access this document.');
+        abort(403, 'You are not authorized to ' . $action . ' this document.');
     }
 }
