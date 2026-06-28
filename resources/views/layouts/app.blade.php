@@ -136,15 +136,6 @@
             <i class="fas fa-chart-line w-5 text-center text-gray-500"></i><span>Fleet Overview</span>
         </a>
 
-        <!-- Live Command Center -->
-        <a href="#" data-nav="live-tracking" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl transition">
-            <i class="fas fa-satellite-dish w-5 text-center text-blue-600"></i><span class="font-bold">Live Tracking</span>
-            <span class="ml-auto flex h-2 w-2">
-                <span class="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-blue-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-            </span>
-        </a>
-
         <!-- Vehicle Registry -->
         <div class="space-y-1">
             <button onclick="toggleSubMenu('vehicles')" aria-expanded="false" aria-controls="vehicles-submenu" class="nav-item-fleet w-full flex items-center justify-between px-3 py-2.5 rounded-xl focus:outline-none">
@@ -153,6 +144,7 @@
             </button>
             <div id="vehicles-submenu" class="hidden pl-5 space-y-1">
                 <a href="#" data-nav="all-vehicles" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-list-ul text-sm"></i><span>All Fleet Units</span></a>
+                <a href="#" data-nav="live-tracking" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-map-marked-alt text-sm"></i><span>Live Tracking</span></a>
                 <a href="#" data-nav="add-vehicle" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-plus-circle text-sm"></i><span>Register New Vehicle</span></a>
                 <a href="#" data-nav="vehicle-status" class="nav-item-fleet submenu-item flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-chart-simple text-sm"></i><span>Status Overview</span></a>
             </div>

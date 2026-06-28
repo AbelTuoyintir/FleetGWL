@@ -74,6 +74,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('vehicles')->name('vehicles.')
 });
 
 Route::middleware(['auth'])->prefix('fuel-management')->name('fuel-management.')->group(function () {
+    Route::post('/bulk-store', [FuelManagementController::class, 'bulkStore'])->name('bulk-store');
     Route::get('/', [FuelManagementController::class, 'index'])->name('index');
     Route::post('/', [FuelManagementController::class, 'store'])->name('store');
     Route::get('/quick-stats', [FuelManagementController::class, 'quickStats'])->name('quick-stats');
@@ -187,18 +188,18 @@ Route::middleware(['auth'])->prefix('reports')->name('reports.')->group(function
 
 // Maintenance Alert Routes
 Route::middleware(['auth'])->prefix('maintenance')->name('maintenance.')->group(function () {
-    Route::get('/vehicles-needing', [VehicleController::class, 'vehiclesNeedingPage'])->name('vehicles-needing');
-    Route::get('/vehicles-needing/data', [VehicleController::class, 'getVehiclesNeedingMaintenance'])->name('vehicles-needing.data');
-    Route::post('/vehicle/{id}/acknowledge', [VehicleController::class, 'acknowledgeAlert'])->name('acknowledge');
-    Route::get('/schedule/{vehicleId}', [VehicleController::class, 'create'])->name('schedule');
-    Route::get('/', [VehicleController::class, 'index'])->name('index');
-    Route::get('/create', [VehicleController::class, 'create'])->name('create');
-    Route::post('/store', [VehicleController::class, 'store'])->name('store');
-    Route::get('/{id}', [VehicleController::class, 'show'])->name('show');
-    Route::get('/{id}/edit', [VehicleController::class, 'edit'])->name('edit');
-    Route::put('/{id}', [VehicleController::class, 'update'])->name('update');
-    Route::delete('/{id}', [VehicleController::class, 'destroy'])->name('destroy');
-    Route::get('/statistics', [VehicleController::class, 'statistics'])->name('statistics');
+    Route::get('/vehicles-needing', [AdminMaintenanceController::class, 'vehiclesNeedingPage'])->name('vehicles-needing');
+    Route::get('/vehicles-needing/data', [AdminMaintenanceController::class, 'getVehiclesNeedingMaintenance'])->name('vehicles-needing.data');
+    Route::post('/vehicle/{id}/acknowledge', [AdminMaintenanceController::class, 'acknowledgeAlert'])->name('acknowledge');
+    Route::get('/schedule/{vehicleId}', [AdminMaintenanceController::class, 'create'])->name('schedule');
+    Route::get('/', [AdminMaintenanceController::class, 'index'])->name('index');
+    Route::get('/create', [AdminMaintenanceController::class, 'create'])->name('create');
+    Route::post('/store', [AdminMaintenanceController::class, 'store'])->name('store');
+    Route::get('/{id}', [AdminMaintenanceController::class, 'show'])->name('show');
+    Route::get('/{id}/edit', [AdminMaintenanceController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [AdminMaintenanceController::class, 'update'])->name('update');
+    Route::delete('/{id}', [AdminMaintenanceController::class, 'destroy'])->name('destroy');
+    Route::get('/statistics', [AdminMaintenanceController::class, 'statistics'])->name('statistics');
 });
 
 

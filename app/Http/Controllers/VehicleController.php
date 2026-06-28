@@ -240,82 +240,55 @@ class VehicleController extends Controller
 
     private function getMileageBreakdown($vehicle)
     {
-        // Bolt: Use a consistent time reference for all period calculations
-        $now = Carbon::now();
-
         $periods = [
-            'Last Week' => [
-                'start' => $now->copy()->subWeek()->startOfWeek(),
-                'end' => $now->copy()->subWeek()->endOfWeek(),
+            [
+                'label' => 'Last Week',
+                'start' => Carbon::now()->subWeek()->startOfWeek(),
+                'end' => Carbon::now()->subWeek()->endOfWeek(),
             ],
-            'This Month' => [
-                'start' => $now->copy()->startOfMonth(),
-                'end' => $now->copy(),
+            [
+                'label' => 'This Month',
+                'start' => Carbon::now()->startOfMonth(),
+                'end' => Carbon::now(),
             ],
-            'Last Month' => [
-                'start' => $now->copy()->subMonth()->startOfMonth(),
-                'end' => $now->copy()->subMonth()->endOfMonth(),
+            [
+                'label' => 'Last Month',
+                'start' => Carbon::now()->subMonth()->startOfMonth(),
+                'end' => Carbon::now()->subMonth()->endOfMonth(),
             ],
-            'Last 3 Months' => [
-                'start' => $now->copy()->subMonths(3)->startOfMonth(),
-                'end' => $now->copy(),
+            [
+                'label' => 'Last 3 Months',
+                'start' => Carbon::now()->subMonths(3)->startOfMonth(),
+                'end' => Carbon::now(),
             ],
         ];
-
-        // Bolt: Consolidate 8 separate database queries into 2 bulk queries using conditional aggregation.
-        // This avoids N+1 style query loops and expensive in-memory collection processing.
-
-        $mileageStats = MileageLog::where('vehicle_id', $vehicle->id)
-            ->selectRaw("
-                SUM(CASE WHEN created_at BETWEEN ? AND ? THEN CASE WHEN (COALESCE(end_mileage, 0) - COALESCE(start_mileage, 0)) > 0 THEN (COALESCE(end_mileage, 0) - COALESCE(start_mileage, 0)) ELSE 0 END ELSE 0 END) as last_week,
-                SUM(CASE WHEN created_at BETWEEN ? AND ? THEN CASE WHEN (COALESCE(end_mileage, 0) - COALESCE(start_mileage, 0)) > 0 THEN (COALESCE(end_mileage, 0) - COALESCE(start_mileage, 0)) ELSE 0 END ELSE 0 END) as this_month,
-                SUM(CASE WHEN created_at BETWEEN ? AND ? THEN CASE WHEN (COALESCE(end_mileage, 0) - COALESCE(start_mileage, 0)) > 0 THEN (COALESCE(end_mileage, 0) - COALESCE(start_mileage, 0)) ELSE 0 END ELSE 0 END) as last_month,
-                SUM(CASE WHEN created_at BETWEEN ? AND ? THEN CASE WHEN (COALESCE(end_mileage, 0) - COALESCE(start_mileage, 0)) > 0 THEN (COALESCE(end_mileage, 0) - COALESCE(start_mileage, 0)) ELSE 0 END ELSE 0 END) as last_3_months
-            ", [
-                $periods['Last Week']['start'], $periods['Last Week']['end'],
-                $periods['This Month']['start'], $periods['This Month']['end'],
-                $periods['Last Month']['start'], $periods['Last Month']['end'],
-                $periods['Last 3 Months']['start'], $periods['Last 3 Months']['end'],
-            ])
-            ->first();
-
-        $fuelStats = FuelLog::where('vehicle_id', $vehicle->id)
-            ->selectRaw("
-                SUM(CASE WHEN date BETWEEN ? AND ? THEN fuel_quantity ELSE 0 END) as last_week_fuel,
-                SUM(CASE WHEN date BETWEEN ? AND ? THEN fuel_cost ELSE 0 END) as last_week_cost,
-                SUM(CASE WHEN date BETWEEN ? AND ? THEN fuel_quantity ELSE 0 END) as this_month_fuel,
-                SUM(CASE WHEN date BETWEEN ? AND ? THEN fuel_cost ELSE 0 END) as this_month_cost,
-                SUM(CASE WHEN date BETWEEN ? AND ? THEN fuel_quantity ELSE 0 END) as last_month_fuel,
-                SUM(CASE WHEN date BETWEEN ? AND ? THEN fuel_cost ELSE 0 END) as last_month_cost,
-                SUM(CASE WHEN date BETWEEN ? AND ? THEN fuel_quantity ELSE 0 END) as last_3_months_fuel,
-                SUM(CASE WHEN date BETWEEN ? AND ? THEN fuel_cost ELSE 0 END) as last_3_months_cost
-            ", [
-                $periods['Last Week']['start']->toDateString(), $periods['Last Week']['end']->toDateString(),
-                $periods['Last Week']['start']->toDateString(), $periods['Last Week']['end']->toDateString(),
-                $periods['This Month']['start']->toDateString(), $periods['This Month']['end']->toDateString(),
-                $periods['This Month']['start']->toDateString(), $periods['This Month']['end']->toDateString(),
-                $periods['Last Month']['start']->toDateString(), $periods['Last Month']['end']->toDateString(),
-                $periods['Last Month']['start']->toDateString(), $periods['Last Month']['end']->toDateString(),
-                $periods['Last 3 Months']['start']->toDateString(), $periods['Last 3 Months']['end']->toDateString(),
-                $periods['Last 3 Months']['start']->toDateString(), $periods['Last 3 Months']['end']->toDateString(),
-            ])
-            ->first();
 
         $breakdown = [];
-        $mapping = [
-            'Last Week' => ['distance' => 'last_week', 'fuel' => 'last_week_fuel', 'cost' => 'last_week_cost'],
-            'This Month' => ['distance' => 'this_month', 'fuel' => 'this_month_fuel', 'cost' => 'this_month_cost'],
-            'Last Month' => ['distance' => 'last_month', 'fuel' => 'last_month_fuel', 'cost' => 'last_month_cost'],
-            'Last 3 Months' => ['distance' => 'last_3_months', 'fuel' => 'last_3_months_fuel', 'cost' => 'last_3_months_cost'],
-        ];
 
-        foreach ($mapping as $label => $keys) {
+        foreach ($periods as $period) {
+            // Get mileage logs for the period
+            $distance = MileageLog::where('vehicle_id', $vehicle->id)
+                ->whereBetween('created_at', [$period['start'], $period['end']])
+                ->get()
+                ->sum(function ($log) {
+                    return max(0, ($log->end_mileage ?? 0) - ($log->start_mileage ?? 0));
+                });
+
+            // Get fuel logs for the period
+            $fuelData = FuelLog::where('vehicle_id', $vehicle->id)
+                ->whereBetween('date', [$period['start'], $period['end']])
+                ->select(
+                    DB::raw('SUM(fuel_quantity) as total_fuel'),
+                    DB::raw('SUM(fuel_cost) as total_cost')
+                )
+                ->first();
+
             $breakdown[] = [
-                'period' => $label,
-                'mileage' => $vehicle->mileage,
-                'distance' => (float) ($mileageStats->{$keys['distance']} ?? 0),
-                'fuel_used' => (float) ($fuelStats->{$keys['fuel']} ?? 0),
-                'cost' => (float) ($fuelStats->{$keys['cost']} ?? 0),
+                'period' => $period['label'],
+                'mileage' => $vehicle->mileage, // Using current vehicle mileage as base
+                'distance' => $distance,
+                'fuel_used' => (float) ($fuelData->total_fuel ?? 0),
+                'cost' => (float) ($fuelData->total_cost ?? 0),
             ];
         }
 
@@ -443,6 +416,14 @@ class VehicleController extends Controller
             ]);
 
             $vehicle->update(['status' => 'maintenance']);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Vehicle dispatched for maintenance. Record #'.$maintenance->id.' created.',
+                    'maintenance_id' => $maintenance->id
+                ]);
+            }
 
             return redirect()->back()->with('success', 'Vehicle dispatched for maintenance. Record #'.$maintenance->id.' created.');
         } catch (\Exception $e) {

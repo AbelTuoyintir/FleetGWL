@@ -1583,12 +1583,6 @@ $(document).ready(function() {
     $('#mileageForm').on('submit', function(e) {
         e.preventDefault();
         
-        const $form = $(this);
-        const $submitBtn = $form.find('button[type="submit"]');
-        const originalHtml = $submitBtn.html();
-
-        $submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Saving...');
-
         let formData = $(this).serialize();
         
         $.ajax({
@@ -1604,9 +1598,6 @@ $(document).ready(function() {
             },
             error: function(xhr) {
                 Swal.fire('Error', xhr.responseJSON?.message || 'Failed to record mileage', 'error');
-            },
-            complete: function() {
-                $submitBtn.prop('disabled', false).html(originalHtml);
             }
         });
     });
@@ -2033,10 +2024,6 @@ $('#maintenanceJobOrderForm').on('submit', function(e) {
         confirmButtonText: 'Yes, create it!'
     }).then((result) => {
         if (result.isConfirmed) {
-        const $submitBtn = $('#maintenanceJobOrderForm').find('button[type="submit"]');
-        const originalHtml = $submitBtn.html();
-        $submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Creating...');
-
             $.ajax({
                 url: '{{ route("vehicles.maintenance.job-order.store", $vehicle->id) }}',
                 method: 'POST',
@@ -2070,9 +2057,6 @@ $('#maintenanceJobOrderForm').on('submit', function(e) {
                         icon: 'error',
                         confirmButtonColor: '#3160ED'
                     });
-            },
-            complete: function() {
-                $submitBtn.prop('disabled', false).html(originalHtml);
                 }
             });
         }

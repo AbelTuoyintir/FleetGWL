@@ -48,6 +48,36 @@
             font-weight: 500;
         }
         
+        .sidebar-fleet {
+            position: fixed; top: 0; left: 0;
+            height: 100vh; width: 280px;
+            background: white;
+            border-right: 1px solid #e2e8f0;
+            z-index: 40;
+            transition: transform 0.25s ease;
+            overflow-y: auto;
+        }
+        .sidebar-closed { transform: translateX(-100%); }
+        @media (min-width: 1024px) { .sidebar-fleet { transform: translateX(0); } }
+
+        .nav-item-fleet {
+            transition: all 0.2s;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .nav-item-fleet:hover { background-color: #f1f5f9; color: #1e40af; }
+        .nav-item-fleet:focus-visible { outline: 2px solid #3b82f6; outline-offset: -2px; background-color: #f1f5f9; }
+        .nav-active-fleet { background-color: #eff6ff; color: #2563eb; font-weight: 500; border-left: 3px solid #3b82f6; }
+
+        .overlay-fleet {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(2px);
+            z-index: 35;
+            display: none;
+        }
+        .overlay-open { display: block; }
+
         .form-input {
             width: 100%;
             padding: 8px 12px;
@@ -158,13 +188,19 @@
         <!-- Header -->
         <div class="mb-6 flex justify-between items-center flex-wrap gap-4">
             <div class="flex items-center gap-3">
+                <button id="menuToggleBtn" class="lg:hidden p-2 text-gray-600 hover:text-blue-600">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
                 <div>
                     <h1 class="text-2xl font-bold text-gray-800">Fuel Management</h1>
                     <p class="text-gray-500 text-sm mt-1">Track fuel consumption, costs, and efficiency across your fleet</p>
                 </div>
             </div>
             <div class="flex gap-3 no-print">
-                <button onclick="openAddModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition">
+                <button onclick="openBulkModal()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 transition shadow-sm">
+                    <i class="fas fa-gas-pump mr-1"></i>Bulk Allocation
+                </button>
+                <button onclick="openAddModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition shadow-sm">
                     <i class="fas fa-plus mr-1"></i>Add Fuel Log
                 </button>
                 <button onclick="window.print()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition">
@@ -330,10 +366,10 @@
                                 <td><span class="status-badge status-{{ $log->status }}">{{ ucfirst($log->status) }}</span></td>
                                 <td>
                                     <div class="flex gap-2">
-                                        <button onclick="editLog({{ $log->id }})" class="text-blue-600 hover:text-blue-800 transition-colors" aria-label="Edit Fuel Log" title="Edit Fuel Log">
+                                        <button onclick="editLog({{ $log->id }})" class="text-blue-600 hover:text-blue-800 transition-colors p-1" aria-label="Edit Fuel Log" title="Edit Fuel Log">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button onclick="deleteLog({{ $log->id }})" class="text-red-600 hover:text-red-800 transition-colors" aria-label="Delete Fuel Log" title="Delete Fuel Log">
+                                        <button onclick="deleteLog({{ $log->id }})" class="text-red-600 hover:text-red-800 transition-colors p-1" aria-label="Delete Fuel Log" title="Delete Fuel Log">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
@@ -341,14 +377,19 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="12" class="py-12 text-center">
+                                    <td colspan="11" class="px-6 py-12 text-center">
                                     <div class="flex flex-col items-center justify-center text-gray-400">
                                         <i class="fas fa-gas-pump text-5xl mb-4 opacity-20"></i>
                                         <p class="text-lg font-medium text-gray-500">No fuel logs found</p>
-                                        <p class="text-sm mb-6">Start tracking consumption by adding your first fuel log.</p>
-                                        <button onclick="openAddModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition shadow-sm">
-                                            <i class="fas fa-plus mr-1"></i>Add Fuel Log
-                                        </button>
+                                        <p class="text-sm mb-6">Track consumption or request extra allocation.</p>
+                                        <div class="flex gap-3">
+                                            <button onclick="openAddModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition shadow-sm">
+                                                <i class="fas fa-plus mr-1"></i>Add Fuel Log
+                                            </button>
+                                            <button onclick="requestExtraAllocation()" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition shadow-sm" aria-label="Request Extra Allocation" title="Request Extra Allocation">
+                                                <i class="fas fa-gas-pump mr-1 text-amber-500"></i>Request Extra Allocation
+                                            </button>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>
@@ -447,6 +488,89 @@
                 </div>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Bulk Allocation Modal -->
+<div id="bulkAllocationModal" class="modal">
+    <div class="modal-content">
+        <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+            <h3 class="text-xl font-semibold text-gray-800">
+                <i class="fas fa-gas-pump text-emerald-600 mr-2"></i>Bulk Fuel Allocation
+            </h3>
+            <button onclick="closeBulkModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+
+        <form id="bulk-allocation-form" class="p-6 space-y-4">
+            @csrf
+            <div class="space-y-4">
+                <div>
+                    <label class="form-label">Select Vehicles *</label>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 bg-gray-50 rounded-lg border max-h-48 overflow-y-auto">
+                        @foreach($vehicles as $vehicle)
+                        <label class="flex items-center gap-2 p-1 hover:bg-white rounded transition cursor-pointer">
+                            <input type="checkbox" name="vehicle_ids[]" value="{{ $vehicle->id }}" class="rounded text-emerald-600">
+                            <span class="text-xs font-medium">{{ $vehicle->registration_number }}</span>
+                        </label>
+                        @endforeach
+                    </div>
+                    <div class="mt-2 flex gap-2">
+                        <button type="button" onclick="selectAllVehicles(true)" class="text-[10px] text-emerald-600 hover:underline">Select All</button>
+                        <button type="button" onclick="selectAllVehicles(false)" class="text-[10px] text-gray-500 hover:underline">Deselect All</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="form-label">Allocation Date *</label>
+                        <input type="date" name="bulk_date" id="bulk_date" class="form-input" required>
+                    </div>
+                    <div>
+                        <label class="form-label">Fuel Type *</label>
+                        <select name="bulk_fuel_type" id="bulk_fuel_type" class="form-input" required>
+                            <option value="diesel">Diesel</option>
+                            <option value="petrol">Petrol</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Liters per Vehicle *</label>
+                        <input type="number" name="bulk_quantity" id="bulk_quantity" class="form-input" step="0.01" required>
+                    </div>
+                    <div>
+                        <label class="form-label">Unit Price (GHS/L) *</label>
+                        <input type="number" name="bulk_price" id="bulk_price" class="form-input" step="0.01" required>
+                    </div>
+                    <div>
+                        <label class="form-label">Payment Method</label>
+                        <select name="bulk_payment" id="bulk_payment" class="form-input">
+                            <option value="fuel_card">Fuel Card</option>
+                            <option value="tomb_card">Tomb Card</option>
+                            <option value="company_account">Company Account</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Fuel Station</label>
+                        <input type="text" name="bulk_station" id="bulk_station" class="form-input" placeholder="e.g., TotalEnergies">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label">Notes</label>
+                    <textarea name="bulk_notes" id="bulk_notes" rows="2" class="form-input" placeholder="Bulk allocation notes..."></textarea>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4 border-t mt-6">
+                <button type="button" onclick="closeBulkModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 shadow-sm">
+                    <i class="fas fa-check-circle mr-2"></i>Process Bulk Allocation
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -669,6 +793,12 @@ $(document).ready(function() {
     
     // Analytics
     $('#update-analytics').click(() => loadAnalyticsData());
+
+    // Bulk allocation form submission
+    $('#bulk-allocation-form').on('submit', function(e) {
+        e.preventDefault();
+        processBulkAllocation();
+    });
 });
 
 // Vehicle Search Functionality
@@ -945,6 +1075,74 @@ function deleteLog(id) {
                     Swal.fire('Error!', 'Failed to delete fuel log.', 'error');
                 }
             });
+        }
+    });
+}
+
+// ==================== BULK ALLOCATION FUNCTIONS ====================
+
+function openBulkModal() {
+    $('#bulk-allocation-form')[0].reset();
+    $('#bulk_date').val(new Date().toISOString().split('T')[0]);
+    $('#bulkAllocationModal').addClass('active');
+}
+
+function closeBulkModal() {
+    $('#bulkAllocationModal').removeClass('active');
+}
+
+function selectAllVehicles(checked) {
+    $('#bulk-allocation-form input[name="vehicle_ids[]"]').prop('checked', checked);
+}
+
+function processBulkAllocation() {
+    let vehicleIds = [];
+    $('#bulk-allocation-form input[name="vehicle_ids[]"]:checked').each(function() {
+        vehicleIds.push($(this).val());
+    });
+
+    if (vehicleIds.length === 0) {
+        Swal.fire('Error', 'Please select at least one vehicle', 'error');
+        return;
+    }
+
+    let formData = {
+        vehicle_ids: vehicleIds,
+        date: $('#bulk_date').val(),
+        fuel_quantity: $('#bulk_quantity').val(),
+        fuel_price_per_unit: $('#bulk_price').val(),
+        fuel_cost: parseFloat($('#bulk_quantity').val() || 0) * parseFloat($('#bulk_price').val() || 0),
+        fuel_type: $('#bulk_fuel_type').val(),
+        fuel_station: $('#bulk_station').val(),
+        payment_method: $('#bulk_payment').val(),
+        notes: $('#bulk_notes').val(),
+        _token: '{{ csrf_token() }}'
+    };
+
+    let submitBtn = $('#bulk-allocation-form').find('button[type="submit"]');
+    let originalText = submitBtn.html();
+    submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Processing...');
+
+    $.ajax({
+        url: '{{ route("fuel-management.bulk-store") }}',
+        method: 'POST',
+        data: formData,
+        success: function(response) {
+            Swal.fire({
+                title: 'Success!',
+                text: response.message,
+                icon: 'success',
+                timer: 2000
+            }).then(() => {
+                closeBulkModal();
+                location.reload();
+            });
+        },
+        error: function(xhr) {
+            Swal.fire('Error', xhr.responseJSON?.message || 'Failed to process bulk allocation', 'error');
+        },
+        complete: function() {
+            submitBtn.prop('disabled', false).html(originalText);
         }
     });
 }

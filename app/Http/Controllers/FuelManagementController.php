@@ -132,6 +132,55 @@ public function index(Request $request)
     }
 
     /**
+     * Store bulk fuel logs for multiple vehicles.
+     */
+    public function bulkStore(Request $request)
+    {
+        $validated = $request->validate([
+            'vehicle_ids' => 'required|array',
+            'vehicle_ids.*' => 'exists:vehicles,id',
+            'date' => 'required|date',
+            'fuel_quantity' => 'required|numeric|min:0.1',
+            'fuel_cost' => 'required|numeric|min:0',
+            'fuel_price_per_unit' => 'required|numeric|min:0',
+            'fuel_type' => 'required|string|in:petrol,diesel,electric,hybrid,cng,lpg',
+            'fuel_station' => 'nullable|string|max:255',
+            'payment_method' => 'nullable|string|max:50',
+            'notes' => 'nullable|string',
+        ]);
+
+        $count = 0;
+        foreach ($validated['vehicle_ids'] as $vehicleId) {
+            $vehicle = Vehicle::find($vehicleId);
+            $previousLog = FuelLog::where('vehicle_id', $vehicleId)
+                                 ->where('date', '<', $validated['date'])
+                                 ->orderBy('date', 'desc')
+                                 ->orderBy('created_at', 'desc')
+                                 ->first();
+
+            FuelLog::create([
+                'vehicle_id' => $vehicleId,
+                'date' => $validated['date'],
+                'odometer' => $vehicle->current_odometer ?? $vehicle->mileage ?? 0,
+                'previous_odometer' => $previousLog ? $previousLog->odometer : 0,
+                'distance_traveled' => 0,
+                'fuel_quantity' => $validated['fuel_quantity'],
+                'fuel_cost' => $validated['fuel_cost'],
+                'fuel_price_per_unit' => $validated['fuel_price_per_unit'],
+                'fuel_type' => $validated['fuel_type'],
+                'fuel_station' => $validated['fuel_station'],
+                'payment_method' => $validated['payment_method'],
+                'notes' => $validated['notes'],
+                'logged_by' => auth()->id(),
+                'status' => 'recorded',
+            ]);
+            $count++;
+        }
+
+        return response()->json(['success' => true, 'message' => "Successfully allocated fuel to $count vehicles."]);
+    }
+
+    /**
      * Store a newly created fuel log.
      */
     public function store(Request $request)

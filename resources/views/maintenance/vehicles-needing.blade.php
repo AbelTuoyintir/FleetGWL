@@ -89,9 +89,14 @@
                     <td class="px-4 py-3 text-right">${item.excess_mileage ?? 0}</td>
                     <td class="px-4 py-3 text-center">${progressHtml}</td>
                     <td class="px-4 py-3 text-center">
-                        <button class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs" onclick="acknowledgeAlert(${item.id})">
-                            <i class="fas fa-check mr-2"></i>Acknowledge
-                        </button>
+                        <div class="flex justify-center gap-2">
+                            <button class="px-3 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg text-xs font-medium transition shadow-sm" onclick="acknowledgeAlert(${item.id})" title="Acknowledge Alert">
+                                <i class="fas fa-check text-green-500 mr-1"></i>Acknowledge
+                            </button>
+                            <button class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition shadow-sm" onclick="dispatchVehicle(${item.id})" title="Dispatch for Maintenance">
+                                <i class="fas fa-truck-ramp-box mr-1"></i>Dispatch
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `);
@@ -119,6 +124,56 @@
             load();
         } catch (e) {
             Swal.fire({ icon: 'error', title: 'Error', text: 'Something went wrong.' });
+        }
+    }
+
+    async function dispatchVehicle(vehicleId) {
+        const { value: notes } = await Swal.fire({
+            title: 'Dispatch Vehicle',
+            input: 'textarea',
+            inputLabel: 'Maintenance Notes',
+            inputPlaceholder: 'Enter any specific maintenance requirements or issues...',
+            showCancelButton: true,
+            confirmButtonText: 'Dispatch to Workshop',
+            confirmButtonColor: '#2563eb',
+            inputAttributes: {
+                'aria-label': 'Maintenance Notes'
+            }
+        });
+
+        if (notes !== undefined) {
+            try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                const formData = new FormData();
+                formData.append('maintenance_notes', notes);
+
+                const res = await fetch(`/vehicles/${vehicleId}/maintenance`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                });
+
+                if (res.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Dispatched',
+                        text: 'Vehicle has been dispatched for maintenance.',
+                        timer: 2000
+                    });
+                    // Also acknowledge the alert if it exists
+                    await acknowledgeAlert(vehicleId);
+                    load();
+                } else {
+                    const data = await res.json();
+                    Swal.fire('Error', data.message || 'Failed to dispatch vehicle.', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                Swal.fire('Error', 'An unexpected error occurred.', 'error');
+            }
         }
     }
 
