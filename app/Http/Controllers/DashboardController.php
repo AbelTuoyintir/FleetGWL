@@ -174,33 +174,65 @@ class DashboardController extends Controller
                 : (Schema::hasColumn($maintenanceTable, 'updated_at') ? 'updated_at' : null))
             : null;
 
+        // Bolt: Consolidate multiple count queries into single queries using conditional aggregation
+        $docStats = DB::table('documents')
+            ->where('status', '!=', 'deleted')
+            ->selectRaw("
+                SUM(CASE WHEN document_type = 'insurance' AND expiry_date < ? THEN 1 ELSE 0 END) as expired_insurances,
+                SUM(CASE WHEN document_type = 'registration' AND expiry_date < ? THEN 1 ELSE 0 END) as expired_registrations
+            ", [$now, $now])
+            ->first();
+
+        $vehicleStats = DB::table('vehicles')
+            ->where('status', '!=', 'deleted')
+            ->selectRaw("
+                COUNT(*) as total,
+                SUM(CASE WHEN assigned_driver_id IS NULL THEN 1 ELSE 0 END) as unassigned,
+                SUM(CASE WHEN assigned_driver_id IS NOT NULL THEN 1 ELSE 0 END) as assigned,
+                SUM(CASE WHEN status IN ('needs_repair', 'in_shop') THEN 1 ELSE 0 END) as needing_attention,
+                SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END) as added_this_month,
+                ROUND((SUM(CASE WHEN assigned_driver_id IS NOT NULL THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0)), 1) as utilization_rate,
+                SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+                SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END) as inactive,
+                SUM(CASE WHEN status = 'maintenance' THEN 1 ELSE 0 END) as maintenance,
+                SUM(CASE WHEN status = 'disposed' THEN 1 ELSE 0 END) as disposed,
+                SUM(CASE WHEN status = 'operational' THEN 1 ELSE 0 END) as operational
+            ", [$startOfMonth])
+            ->first();
+
+        $maintenanceVehStats = (object) ['overdue' => 0, 'due_soon' => 0];
+        if ($hasVehicleMaintenanceTable && $maintenanceDueColumn) {
+            $maintenanceVehStats = DB::table('vehicles')
+                ->where('status', '!=', 'deleted')
+                ->selectRaw("
+                    SUM(CASE WHEN EXISTS (
+                        SELECT 1 FROM {$maintenanceTable}
+                        WHERE vehicle_id = vehicles.id
+                        AND status != 'deleted'
+                        AND status IN ('pending', 'scheduled', 'waiting', 'dispatched')
+                        AND {$maintenanceDueColumn} < ?
+                    ) THEN 1 ELSE 0 END) as overdue,
+                    SUM(CASE WHEN EXISTS (
+                        SELECT 1 FROM {$maintenanceTable}
+                        WHERE vehicle_id = vehicles.id
+                        AND status != 'deleted'
+                        AND status IN ('pending', 'scheduled', 'waiting', 'dispatched')
+                        AND {$maintenanceDueColumn} <= ?
+                    ) THEN 1 ELSE 0 END) as due_soon
+                ", [$now, $thirtyDaysFromNow])
+                ->first();
+        }
+
         // 1. Critical Alerts
         $criticalAlerts = (object) [
-            'overdue_maintenance' => $hasVehicleMaintenanceTable
-                ? Vehicle::where('status', '!=', 'deleted')
-                    ->whereHas('maintenances', function($q) use ($now, $maintenanceDueColumn) {
-                        $q->where('status', '!=', 'deleted')
-                          ->whereIn('status', ['pending', 'scheduled', 'waiting', 'dispatched'])
-                          ->when($maintenanceDueColumn, function ($query) use ($maintenanceDueColumn, $now) {
-                              $query->where($maintenanceDueColumn, '<', $now);
-                          });
-                    })->count()
-                : 0,
-            'expired_insurances' => Document::where('status', '!=', 'deleted')
-                ->where('document_type', 'insurance')
-                ->where('expiry_date', '<', $now)
-                ->count(),
-            'expired_registrations' => Document::where('status', '!=', 'deleted')
-                ->where('document_type', 'registration')
-                ->where('expiry_date', '<', $now)
-                ->count(),
-            'vehicles_needing_attention' => Vehicle::where('status', '!=', 'deleted')
-                ->whereIn('status', ['needs_repair', 'in_shop'])
-                ->count(),
+            'overdue_maintenance' => (int) ($maintenanceVehStats->overdue ?? 0),
+            'expired_insurances' => (int) ($docStats->expired_insurances ?? 0),
+            'expired_registrations' => (int) ($docStats->expired_registrations ?? 0),
+            'vehicles_needing_attention' => (int) ($vehicleStats->needing_attention ?? 0),
         ];
 
         // 2. Vehicle Statistics
-        $totalVehicles = Vehicle::where('status', '!=', 'deleted')->count();
+        $totalVehicles = (int) ($vehicleStats->total ?? 0);
         
         $vehiclesByRegion = Vehicle::where('vehicles.status', '!=', 'deleted')
             ->select('regions.name as region_name', DB::raw('count(*) as count'))
@@ -221,53 +253,34 @@ class DashboardController extends Controller
             })
             ->count();
         
-        $unassignedVehicles = Vehicle::where('status', '!=', 'deleted')
-            ->whereNull('assigned_driver_id')
-            ->count();
+        $unassignedVehicles = (int) ($vehicleStats->unassigned ?? 0);
 
         // 3. Performance Metrics
-        $utilizationData = DB::table('vehicles')
-            ->where('status', '!=', 'deleted')
-            ->selectRaw('
-                COUNT(*) as total,
-                SUM(CASE WHEN assigned_driver_id IS NOT NULL THEN 1 ELSE 0 END) as assigned,
-                ROUND((SUM(CASE WHEN assigned_driver_id IS NOT NULL THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0)) * 100, 1) as utilization_rate
-            ')
-            ->first();
-        
         $vehicleUtilization = (object) [
-            'total' => $utilizationData->total ?? 0,
-            'assigned' => $utilizationData->assigned ?? 0,
-            'utilization_rate' => $utilizationData->utilization_rate ?? 0
+            'total' => (int) ($vehicleStats->total ?? 0),
+            'assigned' => (int) ($vehicleStats->assigned ?? 0),
+            'utilization_rate' => (float) ($vehicleStats->utilization_rate ?? 0)
         ];
 
-        $costData = (object) ['monthly_cost' => 0, 'ytd_cost' => 0];
+        $mainStats = (object) ['monthly_cost' => 0, 'ytd_cost' => 0, 'completed_this_month' => 0];
         if ($hasVehicleMaintenanceTable) {
-            $costData = DB::table($maintenanceTable)
+            $mainStats = DB::table($maintenanceTable)
                 ->where('status', '!=', 'deleted')
-                ->selectRaw('
+                ->selectRaw("
                     SUM(CASE WHEN created_at >= ? THEN COALESCE(cost, 0) ELSE 0 END) as monthly_cost,
-                    SUM(COALESCE(cost, 0)) as ytd_cost
-                ', [$startOfMonth])
+                    SUM(COALESCE(cost, 0)) as ytd_cost,
+                    SUM(CASE WHEN status = 'completed' AND " . ($maintenanceCompletedAtColumn ?: 'updated_at') . " >= ? THEN 1 ELSE 0 END) as completed_this_month
+                ", [$startOfMonth, $startOfMonth])
                 ->first();
         }
         
         $maintenanceCosts = (object) [
-            'monthly_cost' => (int)($costData->monthly_cost ?? 0),
-            'ytd_cost' => (int)($costData->ytd_cost ?? 0)
+            'monthly_cost' => (int)($mainStats->monthly_cost ?? 0),
+            'ytd_cost' => (int)($mainStats->ytd_cost ?? 0)
         ];
 
         // 4. Maintenance Data
-        $maintenanceDueVehicles = 0;
-        if ($hasVehicleMaintenanceTable && $maintenanceDueColumn) {
-            $maintenanceDueVehicles = Vehicle::where('status', '!=', 'deleted')
-                ->whereHas('maintenances', function($query) use ($thirtyDaysFromNow, $maintenanceDueColumn) {
-                    $query->where('status', '!=', 'deleted')
-                          ->whereIn('status', ['pending', 'scheduled', 'waiting', 'dispatched'])
-                          ->where($maintenanceDueColumn, '<=', $thirtyDaysFromNow);
-                })
-                ->count();
-        }
+        $maintenanceDueVehicles = (int) ($maintenanceVehStats->due_soon ?? 0);
 
         // Get upcoming maintenance with vehicle details
         $upcomingVehicleMaintenance = collect();
@@ -333,40 +346,22 @@ class DashboardController extends Controller
             });
 
         // 8. Vehicle Status Distribution
-        $statusCounts = Vehicle::where('status', '!=', 'deleted')
-            ->select('status', DB::raw('count(*) as count'))
-            ->groupBy('status')
-            ->get()
-            ->pluck('count', 'status')
-            ->toArray();
+        $vehicleStatus = [
+            'active' => (int) ($vehicleStats->active ?? 0),
+            'inactive' => (int) ($vehicleStats->inactive ?? 0),
+            'maintenance' => (int) ($vehicleStats->maintenance ?? 0),
+            'disposed' => (int) ($vehicleStats->disposed ?? 0),
+        ];
         
-        // If no status field, use assignment status
-        if (empty($statusCounts)) {
-            $vehicleStatus = [
-                'Operational' => Vehicle::whereNotNull('assigned_driver_id')->where('status', 'operational')->count(),
-                'Needs Repair' => Vehicle::where('status', 'needs_repair')->count(),
-                'In Shop' => Vehicle::where('status', 'in_shop')->count(),
-                'Unassigned' => $unassignedVehicles
-            ];
-        } else {
-            $vehicleStatus = $statusCounts;
+        // Add operational if it exists
+        if (($vehicleStats->operational ?? 0) > 0) {
+            $vehicleStatus['Operational'] = (int) $vehicleStats->operational;
         }
 
         // 9. Monthly Summary
         $monthlySummary = (object) [
-            'vehicles_added' => Vehicle::where('status', '!=', 'deleted')
-                ->whereYear('created_at', $now->year)
-                ->whereMonth('created_at', $now->month)
-                ->count(),
-            'maintenance_completed' => $hasVehicleMaintenanceTable
-                ? Maintenance::where('status', '!=', 'deleted')
-                    ->where('status', 'completed')
-                    ->when($maintenanceCompletedAtColumn, function ($query) use ($maintenanceCompletedAtColumn, $now) {
-                        $query->whereYear($maintenanceCompletedAtColumn, $now->year)
-                            ->whereMonth($maintenanceCompletedAtColumn, $now->month);
-                    })
-                    ->count()
-                : 0,
+            'vehicles_added' => (int) ($vehicleStats->added_this_month ?? 0),
+            'maintenance_completed' => (int) ($mainStats->completed_this_month ?? 0),
             'drivers_added' => Driver::where('status', '!=', 'deleted')
                 ->whereYear('created_at', $now->year)
                 ->whereMonth('created_at', $now->month)
