@@ -114,7 +114,7 @@
             <div id="connectionStatus" class="flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
                 <span class="relative flex h-2 w-2 mr-2">
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-green-600"></span>
                 </span>
                 LIVE UPDATING
             </div>
