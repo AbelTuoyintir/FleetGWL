@@ -98,6 +98,18 @@ class AiSupportTest extends TestCase
         $this->assertStringContainsString('Manage fuel consumption', $response->json('ai_message'));
     }
 
+    public function test_user_can_ask_about_follow_mode_in_fallback()
+    {
+        $user = User::factory()->create();
+        Http::fake(['*' => Http::response([], 500)]);
+
+        $response = $this->actingAs($user)
+            ->postJson(route('ai-support.chat'), ['message' => 'how to follow a vehicle?']);
+
+        $response->assertStatus(200);
+        $this->assertStringContainsString('select \'Follow\'', $response->json('ai_message'));
+    }
+
     public function test_user_can_get_chat_history()
     {
         $user = User::factory()->create();
