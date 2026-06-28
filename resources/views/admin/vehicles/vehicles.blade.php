@@ -137,6 +137,9 @@
                 <button id="tab-add-vehicle" role="tab" aria-controls="add-vehicle-tab" aria-selected="false" data-tab="add-vehicle" class="tab-btn py-4 text-sm font-medium text-gray-600 hover:text-blue-600 transition focus:outline-none focus-visible:text-blue-600">
                     <i class="fas fa-plus-circle mr-2"></i>Add New Vehicle
                 </button>
+                <button id="tab-live-map" role="tab" data-tab="live-map" class="tab-btn py-4 text-sm font-medium text-gray-600 hover:text-blue-600 transition focus:outline-none focus-visible:text-blue-600">
+                    <i class="fas fa-map-location-dot mr-2"></i>Live Map View
+                </button>
                 <button id="tab-status-overview" role="tab" aria-controls="status-overview-tab" aria-selected="false" data-tab="status-overview" class="tab-btn py-4 text-sm font-medium text-gray-600 hover:text-blue-600 transition focus:outline-none focus-visible:text-blue-600">
                     <i class="fas fa-chart-simple mr-2"></i>Status Overview
                 </button>
@@ -471,6 +474,11 @@ let typeChart = null;
 
 function activateTab(tabId, updateHistory = true) {
     if (!tabId) return;
+
+    if (tabId === 'live-map') {
+        window.location.href = '{{ route("vehicles.tracking") }}';
+        return;
+    }
 
     $('.tab-btn').removeClass('tab-active text-blue-600 border-blue-600').addClass('text-gray-600').attr('aria-selected', 'false');
     const $activeTab = $(`.tab-btn[data-tab="${tabId}"]`);
