@@ -18,7 +18,7 @@ require __DIR__ . '/auth.php';
 
 use App\Http\Controllers\AiSupportController;
 
-Route::middleware(['auth'])->prefix('ai-support')->name('ai-support.')->group(function () {
+Route::prefix('ai-support')->name('ai-support.')->group(function () {
     Route::post('/chat', [AiSupportController::class, 'sendMessage'])->name('chat');
     Route::get('/history', [AiSupportController::class, 'getHistory'])->name('history');
 });

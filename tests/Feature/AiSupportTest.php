@@ -12,13 +12,19 @@ class AiSupportTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_guest_cannot_access_ai_support()
+    public function test_guest_can_access_ai_support()
     {
+        Http::fake([
+            '*' => Http::response(['choices' => [['message' => ['content' => 'AI Response']]]], 200)
+        ]);
+
         $this->postJson(route('ai-support.chat'), ['message' => 'Hello'])
-            ->assertStatus(401);
+            ->assertStatus(200)
+            ->assertJson(['status' => 'success']);
 
         $this->getJson(route('ai-support.history'))
-            ->assertStatus(401);
+            ->assertStatus(200)
+            ->assertJson(['status' => 'success']);
     }
 
     public function test_user_can_send_message_and_get_openai_response()

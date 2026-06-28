@@ -21,21 +21,40 @@ class AiSupportService
 
     Be professional, helpful, and concise.";
 
-    public function getOrCreateChat(int $userId)
+    public function getOrCreateChat(?int $userId, string $sessionId = null)
     {
         try {
-            return SupportChat::firstOrCreate(
-                ['user_id' => $userId, 'status' => 'active'],
-                ['subject' => 'AI System Support']
-            );
+            $query = SupportChat::where('status', 'active');
+
+            if ($userId) {
+                $query->where('user_id', $userId);
+            } elseif ($sessionId) {
+                $query->where('session_id', $sessionId);
+            } else {
+                return null;
+            }
+
+            $chat = $query->first();
+
+            if (!$chat) {
+                $chat = SupportChat::create([
+                    'user_id' => $userId,
+                    'session_id' => $sessionId,
+                    'subject' => 'AI System Support',
+                    'status' => 'active'
+                ]);
+            }
+
+            return $chat;
         } catch (\Throwable $e) {
+            Log::error('Error in getOrCreateChat: ' . $e->getMessage());
             return null;
         }
     }
 
-    public function processMessage(int $userId, string $messageText)
+    public function processMessage(?int $userId, string $messageText, string $sessionId = null)
     {
-        $chat = $this->getOrCreateChat($userId);
+        $chat = $this->getOrCreateChat($userId, $sessionId);
         $history = collect();
 
         if ($chat) {
@@ -207,9 +226,9 @@ class AiSupportService
         return "I'm your 24/7 AI support agent for the Ghana Water Limited Fleet Management system. How can I assist you with your fleet, fuel, or maintenance needs today?";
     }
 
-    public function getChatHistory(int $userId)
+    public function getChatHistory(?int $userId, string $sessionId = null)
     {
-        $chat = $this->getOrCreateChat($userId);
+        $chat = $this->getOrCreateChat($userId, $sessionId);
         if (!$chat) {
             return collect();
         }

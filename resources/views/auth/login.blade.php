@@ -147,5 +147,6 @@
     }
   });
 </script>
+@include('components.ai-chat-bot')
 </body>
 </html>
