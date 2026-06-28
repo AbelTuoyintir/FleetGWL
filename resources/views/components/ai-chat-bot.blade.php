@@ -30,6 +30,19 @@
             <!-- Messages will be loaded here -->
         </div>
 
+        <!-- Quick Actions -->
+        <div id="quick-actions" class="px-4 py-2 bg-gray-50 border-t border-gray-100 flex flex-wrap gap-2">
+            <button type="button" class="quick-action-btn text-[11px] bg-white border border-gray-200 hover:border-blue-400 hover:text-blue-600 px-3 py-1.5 rounded-full transition-all shadow-sm" data-message="Log Fuel">
+                <i class="fas fa-gas-pump mr-1 text-blue-500"></i> Log Fuel
+            </button>
+            <button type="button" class="quick-action-btn text-[11px] bg-white border border-gray-200 hover:border-blue-400 hover:text-blue-600 px-3 py-1.5 rounded-full transition-all shadow-sm" data-message="Live Tracking">
+                <i class="fas fa-map-marker-alt mr-1 text-emerald-500"></i> Live Tracking
+            </button>
+            <button type="button" class="quick-action-btn text-[11px] bg-white border border-gray-200 hover:border-blue-400 hover:text-blue-600 px-3 py-1.5 rounded-full transition-all shadow-sm" data-message="Reset Password">
+                <i class="fas fa-key mr-1 text-amber-500"></i> Reset Password
+            </button>
+        </div>
+
         <!-- Input Area -->
         <div class="p-4 bg-white border-t border-gray-100">
             <form id="chat-form" class="flex gap-2">
@@ -119,6 +132,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     chatToggle.addEventListener('click', () => toggleChat());
     closeChat.addEventListener('click', () => toggleChat(true));
+
+    // Quick Actions
+    document.querySelectorAll('.quick-action-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const message = btn.getAttribute('data-message');
+            chatInput.value = message;
+            chatForm.dispatchEvent(new Event('submit'));
+        });
+    });
 
     // Load Chat History
     function loadHistory() {
