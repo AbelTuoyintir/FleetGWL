@@ -405,6 +405,13 @@
 
 <script>
 $(document).ready(function() {
+    // Edit Vehicle form submission
+    $('#editVehicleForm').on('submit', function() {
+        const $submitBtn = $(this).find('button[type="submit"]');
+        const originalHtml = $submitBtn.html();
+        $submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Updating...');
+    });
+
     // Color picker sync
     $('#color_picker').on('input', function() {
         $('#color_text').val($(this).val());
@@ -507,6 +514,11 @@ if (overlay) {
 $('#maintenanceForm').on('submit', function(e) {
     e.preventDefault();
     const formData = $(this).serialize();
+    const $form = $(this);
+    const $submitBtn = $form.find('button[type="submit"]');
+    const originalHtml = $submitBtn.html();
+
+    $submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Dispatching...');
     
     $.ajax({
         url: $(this).attr('action'),
@@ -520,6 +532,9 @@ $('#maintenanceForm').on('submit', function(e) {
         },
         error: function() {
             Swal.fire('Error', 'Failed to dispatch vehicle', 'error');
+        },
+        complete: function() {
+            $submitBtn.prop('disabled', false).html(originalHtml);
         }
     });
 });

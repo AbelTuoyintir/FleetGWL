@@ -517,7 +517,9 @@ $(document).ready(function() {
     });
     
     // Refresh button
-    $('#refresh-vehicles').click(() => loadVehicles());
+    $('#refresh-vehicles').click(function() {
+        loadVehicles();
+    });
 
     // Import button
     $('#import-vehicles').click(() => openImportModal());
@@ -531,6 +533,11 @@ $(document).ready(function() {
     $('#vehicle-form').submit(function(e) {
         e.preventDefault();
         const formData = new FormData(this);
+        const $form = $(this);
+        const $submitBtn = $form.find('button[type="submit"]');
+        const originalHtml = $submitBtn.html();
+
+        $submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Adding...');
         
         $.ajax({
             url: '{{ route("vehicles.store") }}',
@@ -557,6 +564,9 @@ $(document).ready(function() {
                 } else {
                     Swal.fire('Error', 'Failed to add vehicle', 'error');
                 }
+            },
+            complete: function() {
+                $submitBtn.prop('disabled', false).html(originalHtml);
             }
         });
     });
@@ -668,6 +678,12 @@ function submitImport() {
 
 // Load vehicles with filters
 function loadVehicles() {
+    const $refreshBtn = $('#refresh-vehicles');
+    const $refreshIcon = $refreshBtn.find('i');
+
+    $refreshBtn.prop('disabled', true);
+    $refreshIcon.addClass('fa-spin');
+
     const filters = {
         status: $('#filter-status').val(),
         vehicle_type: $('#filter-type').val(),
@@ -689,6 +705,10 @@ function loadVehicles() {
         },
         error: function() {
             $('#vehicles-table-body').html('<tr><td colspan="8" class="text-center py-8 text-red-500">Failed to load vehicles</td></tr>');
+        },
+        complete: function() {
+            $refreshBtn.prop('disabled', false);
+            $refreshIcon.removeClass('fa-spin');
         }
     });
 }
