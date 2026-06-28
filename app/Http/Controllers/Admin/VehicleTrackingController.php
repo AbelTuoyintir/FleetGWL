@@ -55,23 +55,41 @@ class VehicleTrackingController extends Controller
             $timeBucket = floor(time() / 10);
             $seedHash = crc32($vehicle->id . '_' . $timeBucket);
 
-            $vehicle->speed = $seedHash % 66; // 0-65
+            // Speed ranges based on vehicle type
+            $maxSpeed = match(strtolower($vehicle->vehicle_type)) {
+                'truck' => 50,
+                'bus' => 60,
+                'suv' => 85,
+                'pickup' => 80,
+                default => 70
+            };
+
+            $vehicle->speed = $seedHash % ($maxSpeed + 1);
             $vehicle->heading = ($seedHash >> 8) % 361; // 0-360
 
             if ($vehicle->speed > 0) {
                 $angleRad = deg2rad($vehicle->heading);
-                // Drift by ~5-15 meters per 10s
-                $driftDist = (($seedHash >> 16) % 11 + 5);
+                // Drift by ~5-25 meters per 10s depending on speed
+                $driftDist = (($seedHash >> 16) % 11 + 5) * ($vehicle->speed / 30);
                 $dist = $driftDist / 111111;
                 $vehicle->current_latitude += cos($angleRad) * $dist;
                 $vehicle->current_longitude += sin($angleRad) * $dist;
             }
 
             // Dynamic properties for UI
-            $vehicle->is_on_trip = (bool)rand(0, 1);
-            $vehicle->fuel_level = rand(15, 95); // Simulated fuel percentage
-            $vehicle->ignition = $vehicle->speed > 0 ? 'on' : (rand(0, 10) > 2 ? 'on' : 'off'); // Simulated ignition status
-            $vehicle->battery = (rand(118, 142) / 10); // Simulated 12V battery voltage
+            $vehicle->is_on_trip = $vehicle->speed > 0 || (rand(0, 10) > 4);
+
+            // Deterministic drift for fuel and battery to simulate consumption
+            // Base values derived from vehicle ID to stay consistent across refreshes
+            $baseFuel = 65 + (crc32($vehicle->id . '_fuel') % 30); // 65-95%
+            $slowTrend = (floor(time() / 120) % 5); // Drops 1% every 2 mins, cycles every 10 mins
+            $vehicle->fuel_level = max(5, $baseFuel - $slowTrend);
+
+            $vehicle->ignition = $vehicle->speed > 0 ? 'on' : (rand(0, 10) > 2 ? 'on' : 'off');
+
+            $baseBattery = 12.4 + (crc32($vehicle->id . '_batt') % 10) / 10; // 12.4 - 13.4V
+            $battOscillation = (sin(time() / 60) * 0.2); // Smoothly oscillate +/- 0.2V
+            $vehicle->battery = round($baseBattery + $battOscillation, 1);
             $vehicle->eta = rand(5, 45); // Simulated ETA in minutes
 
             return $vehicle;

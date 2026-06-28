@@ -137,6 +137,9 @@
                 <button id="tab-add-vehicle" role="tab" aria-controls="add-vehicle-tab" aria-selected="false" data-tab="add-vehicle" class="tab-btn py-4 text-sm font-medium text-gray-600 hover:text-blue-600 transition focus:outline-none focus-visible:text-blue-600">
                     <i class="fas fa-plus-circle mr-2"></i>Add New Vehicle
                 </button>
+                <button id="tab-live-map" role="tab" data-tab="live-map" class="tab-btn py-4 text-sm font-medium text-gray-600 hover:text-blue-600 transition focus:outline-none focus-visible:text-blue-600">
+                    <i class="fas fa-map-location-dot mr-2"></i>Live Map View
+                </button>
                 <button id="tab-status-overview" role="tab" aria-controls="status-overview-tab" aria-selected="false" data-tab="status-overview" class="tab-btn py-4 text-sm font-medium text-gray-600 hover:text-blue-600 transition focus:outline-none focus-visible:text-blue-600">
                     <i class="fas fa-chart-simple mr-2"></i>Status Overview
                 </button>
@@ -472,6 +475,11 @@ let typeChart = null;
 function activateTab(tabId, updateHistory = true) {
     if (!tabId) return;
 
+    if (tabId === 'live-map') {
+        window.location.href = '{{ route("vehicles.tracking") }}';
+        return;
+    }
+
     $('.tab-btn').removeClass('tab-active text-blue-600 border-blue-600').addClass('text-gray-600').attr('aria-selected', 'false');
     const $activeTab = $(`.tab-btn[data-tab="${tabId}"]`);
     $activeTab.addClass('tab-active text-blue-600 border-blue-600').attr('aria-selected', 'true');
@@ -517,7 +525,9 @@ $(document).ready(function() {
     });
     
     // Refresh button
-    $('#refresh-vehicles').click(() => loadVehicles());
+    $('#refresh-vehicles').click(function() {
+        loadVehicles();
+    });
 
     // Import button
     $('#import-vehicles').click(() => openImportModal());
@@ -531,6 +541,11 @@ $(document).ready(function() {
     $('#vehicle-form').submit(function(e) {
         e.preventDefault();
         const formData = new FormData(this);
+        const $form = $(this);
+        const $submitBtn = $form.find('button[type="submit"]');
+        const originalHtml = $submitBtn.html();
+
+        $submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Adding...');
         
         $.ajax({
             url: '{{ route("vehicles.store") }}',
@@ -557,6 +572,9 @@ $(document).ready(function() {
                 } else {
                     Swal.fire('Error', 'Failed to add vehicle', 'error');
                 }
+            },
+            complete: function() {
+                $submitBtn.prop('disabled', false).html(originalHtml);
             }
         });
     });
@@ -668,6 +686,12 @@ function submitImport() {
 
 // Load vehicles with filters
 function loadVehicles() {
+    const $refreshBtn = $('#refresh-vehicles');
+    const $refreshIcon = $refreshBtn.find('i');
+
+    $refreshBtn.prop('disabled', true);
+    $refreshIcon.addClass('fa-spin');
+
     const filters = {
         status: $('#filter-status').val(),
         vehicle_type: $('#filter-type').val(),
@@ -689,6 +713,10 @@ function loadVehicles() {
         },
         error: function() {
             $('#vehicles-table-body').html('<tr><td colspan="8" class="text-center py-8 text-red-500">Failed to load vehicles</td></tr>');
+        },
+        complete: function() {
+            $refreshBtn.prop('disabled', false);
+            $refreshIcon.removeClass('fa-spin');
         }
     });
 }
