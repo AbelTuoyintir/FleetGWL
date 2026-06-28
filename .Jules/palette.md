@@ -9,3 +9,7 @@
 ## 2026-06-27 - [Semantic Navigation & Focus Management]
 **Learning:** Standardizing ARIA attributes (`aria-expanded`, `aria-controls`) across both sidebar and tab navigation ensures a coherent experience for screen reader users. Crucially, managing focus during mobile sidebar transitions (focusing the close button on open and returning focus to the trigger on close) prevents "focus loss," a major barrier in keyboard navigation. Additionally, centralizing this logic in layouts rather than individual views ensures consistency and reduces maintenance overhead.
 **Action:** Always implement explicit focus shifts for modal-like transitions and verify ARIA state synchronization in centralized layout handlers.
+
+## 2026-06-28 - [Empty State Pattern & Style Consistency]
+**Learning:** Standardizing the use of Laravel's `@forelse` directive in data tables provides a consistent and delightful "Empty State" that guides users when no records exist. Additionally, ensuring that essential form styles (`.form-input`, `.form-label`) are either globalized or explicitly included in child views prevents broken modal/form UI when cleaning up redundant layout code.
+**Action:** Always use `@forelse` for data tables with a relevant icon and CTA, and verify that shared UI classes like forms are correctly scoped or available globally before removing local style blocks.
