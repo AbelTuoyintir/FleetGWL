@@ -9,3 +9,7 @@
 ## 2026-06-27 - [Semantic Navigation & Focus Management]
 **Learning:** Standardizing ARIA attributes (`aria-expanded`, `aria-controls`) across both sidebar and tab navigation ensures a coherent experience for screen reader users. Crucially, managing focus during mobile sidebar transitions (focusing the close button on open and returning focus to the trigger on close) prevents "focus loss," a major barrier in keyboard navigation. Additionally, centralizing this logic in layouts rather than individual views ensures consistency and reduces maintenance overhead.
 **Action:** Always implement explicit focus shifts for modal-like transitions and verify ARIA state synchronization in centralized layout handlers.
+
+## 2026-06-29 - [Fuel Management UX: Empty States & Payment Context]
+**Learning:** For business-critical modules like fuel management, "empty states" are an opportunity to provide delightful shortcuts (e.g., "Request Extra Allocation") that align with the user's specific workflow. Furthermore, surfacing context-specific data like "Payment Method" (Fuel Card vs. Cash) directly in the table reduces cognitive load for admins auditing allocations.
+**Action:** Use `@forelse` to provide actionable empty states and ensure all business-relevant fields mentioned in user context are surfaced in the primary UI views.

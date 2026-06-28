@@ -321,6 +321,7 @@
                                 <th>Cost (GHS)</th>
                                 <th>Price/L</th>
                                 <th>Type</th>
+                                <th>Payment</th>
                                 <th>Distance</th>
                                 <th>Efficiency</th>
                                 <th>Status</th>
@@ -328,7 +329,7 @@
                             </tr>
                         </thead>
                         <tbody id="fuel-logs-body">
-                            @foreach($fuelLogs as $log)
+                            @forelse($fuelLogs as $log)
                             <tr>
                                 <td>{{ $log->date->format('Y-m-d') }}</td>
                                 <td>
@@ -341,6 +342,16 @@
                                 <td class="font-medium">GHS {{ number_format($log->fuel_cost, 2) }}</td>
                                 <td>GHS {{ number_format($log->fuel_price_per_unit, 2) }}</td>
                                 <td><span class="fuel-type-badge bg-blue-100 text-blue-700 px-2 py-1 rounded">{{ ucfirst($log->fuel_type) }}</span></td>
+                                <td>
+                                    @if($log->payment_method)
+                                        <span class="text-xs px-2 py-1 bg-slate-100 text-slate-700 rounded-full font-medium">
+                                            <i class="fas {{ in_array($log->payment_method, ['fuel_card', 'tomb_card']) ? 'fa-credit-card' : 'fa-money-bill' }} mr-1"></i>
+                                            {{ ucwords(str_replace('_', ' ', $log->payment_method)) }}
+                                        </span>
+                                    @else
+                                        <span class="text-gray-400">--</span>
+                                    @endif
+                                </td>
                                 <td>{{ number_format($log->distance_traveled ?? 0) }} km</td>
                                 <td>
                                     @if($log->fuel_efficiency)
@@ -352,16 +363,34 @@
                                 <td><span class="status-badge status-{{ $log->status }}">{{ ucfirst($log->status) }}</span></td>
                                 <td>
                                     <div class="flex gap-2">
-                                        <button onclick="editLog({{ $log->id }})" class="text-blue-600 hover:text-blue-800">
+                                        <button onclick="editLog({{ $log->id }})" class="text-blue-600 hover:text-blue-800 transition-colors p-1" aria-label="Edit Fuel Log" title="Edit Fuel Log">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button onclick="deleteLog({{ $log->id }})" class="text-red-600 hover:text-red-800">
+                                        <button onclick="deleteLog({{ $log->id }})" class="text-red-600 hover:text-red-800 transition-colors p-1" aria-label="Delete Fuel Log" title="Delete Fuel Log">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
                                 </td>
                             </tr>
-                            @endforeach
+                            @empty
+                            <tr>
+                                    <td colspan="11" class="px-6 py-12 text-center">
+                                    <div class="flex flex-col items-center justify-center text-gray-400">
+                                        <i class="fas fa-gas-pump text-5xl mb-4 opacity-20"></i>
+                                        <p class="text-lg font-medium text-gray-500">No fuel logs found</p>
+                                        <p class="text-sm mb-6">Track consumption or request extra allocation.</p>
+                                        <div class="flex gap-3">
+                                            <button onclick="openAddModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition shadow-sm">
+                                                <i class="fas fa-plus mr-1"></i>Add Fuel Log
+                                            </button>
+                                            <button onclick="requestExtraAllocation()" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition shadow-sm" aria-label="Request Extra Allocation" title="Request Extra Allocation">
+                                                <i class="fas fa-gas-pump mr-1 text-amber-500"></i>Request Extra Allocation
+                                            </button>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
@@ -566,6 +595,16 @@
                     <input type="text" name="fuel_station" id="fuel_station" class="form-input" placeholder="e.g., TotalEnergies">
                 </div>
                 
+                <div>
+                    <label class="form-label">Payment Method</label>
+                    <select name="payment_method" id="payment_method" class="form-input">
+                        <option value="cash">Cash</option>
+                        <option value="fuel_card">Fuel Card</option>
+                        <option value="tomb_card">Tomb Card</option>
+                        <option value="company_account">Company Account</option>
+                    </select>
+                </div>
+
                 <div>
                     <label class="form-label">Receipt Number</label>
                     <input type="text" name="receipt_number" id="receipt_number" class="form-input">
@@ -885,6 +924,7 @@ function editLog(id) {
                 $('#fuel_price_per_unit').val(response.data.fuel_price_per_unit);
                 $('#fuel_type').val(response.data.fuel_type);
                 $('#fuel_station').val(response.data.fuel_station);
+                $('#payment_method').val(response.data.payment_method || 'cash');
                 $('#receipt_number').val(response.data.receipt_number);
                 $('#driver_id').val(response.data.driver_id);
                 $('#notes').val(response.data.notes);
@@ -964,6 +1004,7 @@ function saveFuelLog() {
         fuel_price_per_unit: $('#fuel_price_per_unit').val(),
         fuel_type: $('#fuel_type').val(),
         fuel_station: $('#fuel_station').val(),
+        payment_method: $('#payment_method').val(),
         receipt_number: $('#receipt_number').val(),
         driver_id: $('#driver_id').val(),
         notes: $('#notes').val(),
@@ -1238,6 +1279,28 @@ $('#export-logs').click(function() {
     
     window.open('{{ route("fuel-management.export") }}?' + params.toString(), '_blank');
 });
+
+function requestExtraAllocation() {
+    const chatToggle = document.getElementById('chat-toggle');
+    const chatInput = document.getElementById('chat-input');
+    const chatForm = document.getElementById('chat-form');
+
+    if (chatToggle && chatInput && chatForm) {
+        // Open chat if closed
+        const chatWindow = document.getElementById('chat-window');
+        if (chatWindow.classList.contains('hidden') || !chatWindow.classList.contains('chat-window-open')) {
+            chatToggle.click();
+        }
+
+        // Fill and submit
+        setTimeout(() => {
+            chatInput.value = "I'm running low on my monthly fuel allocation. Can I request an extra allocation for my vehicle?";
+            chatForm.dispatchEvent(new Event('submit'));
+        }, 600);
+    } else {
+        Swal.fire('AI Support', 'Please use the chat widget to request extra fuel allocation.', 'info');
+    }
+}
 
 // Redundant sidebar functions removed - handled by app layout
 </script>
