@@ -68,5 +68,6 @@
     © 2024 Ghana Water Company Limited. All rights reserved.
   </p>
 </div>
+@include('components.ai-chat-bot')
 </body>
 </html>

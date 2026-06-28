@@ -22,7 +22,11 @@ class AiSupportController extends Controller
         ]);
 
         try {
-            $aiMessage = $this->aiSupportService->processMessage(Auth::id(), $request->message);
+            $aiMessage = $this->aiSupportService->processMessage(
+                Auth::id(),
+                $request->message,
+                $request->session()->getId()
+            );
 
             return response()->json([
                 'status' => 'success',
@@ -43,9 +47,12 @@ class AiSupportController extends Controller
         }
     }
 
-    public function getHistory()
+    public function getHistory(Request $request)
     {
-        $history = $this->aiSupportService->getChatHistory(Auth::id());
+        $history = $this->aiSupportService->getChatHistory(
+            Auth::id(),
+            $request->session()->getId()
+        );
 
         return response()->json([
             'status' => 'success',
