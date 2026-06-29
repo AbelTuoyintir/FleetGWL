@@ -4,12 +4,13 @@ namespace App\Services;
 
 use App\Models\SupportChat;
 use App\Models\SupportMessage;
+use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class AiSupportService
 {
-    protected $systemPrompt = "You are a 24/7 AI support agent for the Ghana Water Limited (GWL) Fleet Management system.
+    protected $baseSystemPrompt = "You are a 24/7 AI support agent for the Ghana Water Limited (GWL) Fleet Management system.
     Assist users with questions about:
     - Vehicle Registry & Live Tracking: View locations, history, and status. Features car-shaped SVG markers that rotate based on heading. Smooth movement via CSS transitions. Polling every 5 seconds.
     - Follow Mode: Locked camera on a specific vehicle.
@@ -22,6 +23,26 @@ class AiSupportService
     - Map Themes: Light, Dark, and Satellite modes.
 
     Be professional, helpful, and concise.";
+
+    public function getSystemPrompt(?User $user): string
+    {
+        $prompt = $this->baseSystemPrompt;
+
+        if ($user) {
+            $role = $user->role ?? 'user';
+            $prompt .= "\n\nYou are currently assisting {$user->name}, who is a {$role} in the system.";
+
+            if ($user->isAdmin()) {
+                $prompt .= "\nAs an admin, they have full access to all fleet data, reports, and system settings.";
+            } elseif ($user->isDriver()) {
+                $prompt .= "\nAs a driver, they primarily interact with their assigned vehicles, mileage logs, and maintenance requests.";
+            }
+        } else {
+            $prompt .= "\n\nYou are currently assisting a guest user who is not logged in.";
+        }
+
+        return $prompt;
+    }
 
     public function getOrCreateChat(?int $userId, string $sessionId = null)
     {
@@ -54,8 +75,9 @@ class AiSupportService
         }
     }
 
-    public function processMessage(?int $userId, string $messageText, string $sessionId = null)
+    public function processMessage(?User $user, string $messageText, string $sessionId = null)
     {
+        $userId = $user ? $user->id : null;
         $chat = $this->getOrCreateChat($userId, $sessionId);
         $history = collect();
 
@@ -76,7 +98,7 @@ class AiSupportService
         }
 
         // Generate AI response
-        $aiResponseText = $this->generateAiResponse($messageText, $history);
+        $aiResponseText = $this->generateAiResponse($messageText, $history, $user);
 
         if ($chat) {
             return SupportMessage::create([
@@ -89,16 +111,16 @@ class AiSupportService
         return (object) ['message' => $aiResponseText];
     }
 
-    public function generateAiResponse(string $userMessage, $history = null): string
+    public function generateAiResponse(string $userMessage, $history = null, ?User $user = null): string
     {
         // 1. Try OpenAI
-        $openaiResponse = $this->callOpenAi($userMessage, $history);
+        $openaiResponse = $this->callOpenAi($userMessage, $history, $user);
         if ($openaiResponse) {
             return $openaiResponse;
         }
 
         // 2. Fallback to Ollama
-        $ollamaResponse = $this->callOllama($userMessage, $history);
+        $ollamaResponse = $this->callOllama($userMessage, $history, $user);
         if ($ollamaResponse) {
             return $ollamaResponse;
         }
@@ -107,13 +129,13 @@ class AiSupportService
         return $this->keywordFallback($userMessage);
     }
 
-    protected function callOpenAi(string $userMessage, $history)
+    protected function callOpenAi(string $userMessage, $history, ?User $user = null)
     {
         $apiKey = config('services.openai.api_key');
         if (!$apiKey) return null;
 
         try {
-            $messages = [['role' => 'system', 'content' => $this->systemPrompt]];
+            $messages = [['role' => 'system', 'content' => $this->getSystemPrompt($user)]];
 
             if ($history && $history->isNotEmpty()) {
                 foreach ($history as $msg) {
@@ -149,13 +171,13 @@ class AiSupportService
         return null;
     }
 
-    protected function callOllama(string $userMessage, $history)
+    protected function callOllama(string $userMessage, $history, ?User $user = null)
     {
         $baseUrl = config('services.ollama.base_url');
         $model = config('services.ollama.model');
 
         try {
-            $messages = [['role' => 'system', 'content' => $this->systemPrompt]];
+            $messages = [['role' => 'system', 'content' => $this->getSystemPrompt($user)]];
             if ($history && $history->isNotEmpty()) {
                 foreach ($history as $msg) {
                     $messages[] = [
@@ -239,8 +261,9 @@ class AiSupportService
         return "I'm your 24/7 AI support agent for the Ghana Water Limited Fleet Management system. How can I assist you with your fleet, fuel, or maintenance needs today?";
     }
 
-    public function getChatHistory(?int $userId, string $sessionId = null)
+    public function getChatHistory(?User $user, string $sessionId = null)
     {
+        $userId = $user ? $user->id : null;
         $chat = $this->getOrCreateChat($userId, $sessionId);
         if (!$chat) {
             return collect();
