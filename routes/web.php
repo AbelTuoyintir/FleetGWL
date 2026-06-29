@@ -19,6 +19,10 @@ require __DIR__ . '/auth.php';
 use App\Http\Controllers\AiSupportController;
 
 Route::prefix('ai-support')->name('ai-support.')->group(function () {
-    Route::post('/chat', [AiSupportController::class, 'sendMessage'])->name('chat');
-    Route::get('/history', [AiSupportController::class, 'getHistory'])->name('history');
+    Route::post('/chat', [AiSupportController::class, 'sendMessage'])
+        ->middleware('throttle:10,1')
+        ->name('chat');
+    Route::get('/history', [AiSupportController::class, 'getHistory'])
+        ->middleware('throttle:20,1')
+        ->name('history');
 });

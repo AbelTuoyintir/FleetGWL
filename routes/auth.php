@@ -27,9 +27,13 @@ Route::middleware('guest')->group(function () {
     
     // Password reset routes
     Route::get('/forgot-password', [AuthenticationController::class, 'showForgotPasswordForm'])->name('password.request');
-    Route::post('/forgot-password', [AuthenticationController::class, 'sendResetLinkEmail'])->name('password.email');
+    Route::post('/forgot-password', [AuthenticationController::class, 'sendResetLinkEmail'])
+        ->middleware('throttle:3,1')
+        ->name('password.email');
     Route::get('/reset-password/{token}', [AuthenticationController::class, 'showResetForm'])->name('password.reset');
-    Route::post('/reset-password', [AuthenticationController::class, 'resetPassword'])->name('password.update');
+    Route::post('/reset-password', [AuthenticationController::class, 'resetPassword'])
+        ->middleware('throttle:5,1')
+        ->name('password.update');
 });
 
 // Authenticated routes (require login)
