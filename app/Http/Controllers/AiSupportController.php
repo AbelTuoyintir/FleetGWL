@@ -23,7 +23,7 @@ class AiSupportController extends Controller
 
         try {
             $aiMessage = $this->aiSupportService->processMessage(
-                Auth::id(),
+                Auth::user(),
                 $request->message,
                 $request->session()->getId()
             );
@@ -50,7 +50,7 @@ class AiSupportController extends Controller
     public function getHistory(Request $request)
     {
         $history = $this->aiSupportService->getChatHistory(
-            Auth::id(),
+            Auth::user(),
             $request->session()->getId()
         );
 

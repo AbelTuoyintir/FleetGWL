@@ -32,6 +32,21 @@
 
         <!-- Input Area -->
         <div class="p-4 bg-white border-t border-gray-100">
+            <!-- Quick Actions -->
+            <div class="flex flex-wrap gap-2 mb-3">
+                <button type="button" class="quick-action-pill bg-blue-50 text-blue-600 border border-blue-100 px-3 py-1 rounded-full text-[11px] font-medium hover:bg-blue-100 transition" data-msg="Log Fuel">
+                    <i class="fas fa-gas-pump mr-1"></i> Log Fuel
+                </button>
+                <button type="button" class="quick-action-pill bg-blue-50 text-blue-600 border border-blue-100 px-3 py-1 rounded-full text-[11px] font-medium hover:bg-blue-100 transition" data-msg="Live Tracking">
+                    <i class="fas fa-map-marker-alt mr-1"></i> Live Tracking
+                </button>
+                <button type="button" class="quick-action-pill bg-blue-50 text-blue-600 border border-blue-100 px-3 py-1 rounded-full text-[11px] font-medium hover:bg-blue-100 transition" data-msg="Reset Password">
+                    <i class="fas fa-key mr-1"></i> Reset Password
+                </button>
+                <button type="button" class="quick-action-pill bg-blue-50 text-blue-600 border border-blue-100 px-3 py-1 rounded-full text-[11px] font-medium hover:bg-blue-100 transition" data-msg="Maintenance">
+                    <i class="fas fa-tools mr-1"></i> Maintenance
+                </button>
+            </div>
             <form id="chat-form" class="flex gap-2">
                 <input type="text" id="chat-input" placeholder="Ask me anything..." aria-label="Type your message" class="flex-1 bg-gray-100 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" autocomplete="off">
                 <button type="submit" aria-label="Send Message" class="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center hover:bg-blue-700 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
@@ -119,6 +134,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     chatToggle.addEventListener('click', () => toggleChat());
     closeChat.addEventListener('click', () => toggleChat(true));
+
+    // Handle Quick Action Pills
+    document.querySelectorAll('.quick-action-pill').forEach(pill => {
+        pill.addEventListener('click', function() {
+            const msg = this.getAttribute('data-msg');
+            chatInput.value = msg;
+            chatForm.dispatchEvent(new Event('submit'));
+        });
+    });
 
     // Load Chat History
     function loadHistory() {
