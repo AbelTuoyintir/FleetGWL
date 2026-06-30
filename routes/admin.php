@@ -73,7 +73,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('vehicles')->name('vehicles.')
    
 });
 
-Route::middleware(['auth'])->prefix('fuel-management')->name('fuel-management.')->group(function () {
+// SECURITY: Restrict administrative fuel management to authorized personnel only to prevent unauthorized data access/modification.
+Route::middleware(['auth', 'role:admin,super_admin'])->prefix('fuel-management')->name('fuel-management.')->group(function () {
     Route::get('/', [FuelManagementController::class, 'index'])->name('index');
     Route::post('/', [FuelManagementController::class, 'store'])->name('store');
     Route::get('/quick-stats', [FuelManagementController::class, 'quickStats'])->name('quick-stats');
@@ -98,7 +99,8 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // Mileage Logs Routes
-Route::middleware(['auth'])->prefix('mileage-logs')->name('mileage-logs.')->group(function () {
+// SECURITY: Restrict administrative mileage logs to authorized personnel only.
+Route::middleware(['auth', 'role:admin,super_admin'])->prefix('mileage-logs')->name('mileage-logs.')->group(function () {
     Route::get('/', [MileageLogController::class, 'index'])->name('index');
     Route::get('/data', [MileageLogController::class, 'getData'])->name('data');
     Route::get('/statistics', [MileageLogController::class, 'getStatistics'])->name('statistics');
@@ -112,7 +114,8 @@ Route::middleware(['auth'])->prefix('mileage-logs')->name('mileage-logs.')->grou
 });
 
 // Driver Management Routes
-Route::middleware(['auth'])->prefix('drivers')->name('drivers.')->group(function () {
+// SECURITY: Restrict driver management and PII access to administrative roles.
+Route::middleware(['auth', 'role:admin,super_admin'])->prefix('drivers')->name('drivers.')->group(function () {
     Route::get('/', [DriverController::class, 'index'])->name('index');
     Route::get('/create', [DriverController::class, 'create'])->name('create');
     Route::post('/store', [DriverController::class, 'store'])->name('store');
@@ -127,7 +130,8 @@ Route::middleware(['auth'])->prefix('drivers')->name('drivers.')->group(function
 });
 
 
-Route::middleware(['auth'])->prefix('locations')->name('locations.')->group(function () {
+// SECURITY: Restrict location and station management to administrative roles.
+Route::middleware(['auth', 'role:admin,super_admin'])->prefix('locations')->name('locations.')->group(function () {
     Route::get('/', [LocationController::class, 'index'])->name('index');
     Route::get('/stats', [LocationController::class, 'getStats'])->name('stats');
     
@@ -186,7 +190,8 @@ Route::middleware(['auth'])->prefix('reports')->name('reports.')->group(function
 
 
 // Maintenance Alert Routes
-Route::middleware(['auth'])->prefix('maintenance')->name('maintenance.')->group(function () {
+// SECURITY: Restrict fleet maintenance management to authorized personnel.
+Route::middleware(['auth', 'role:admin,super_admin'])->prefix('maintenance')->name('maintenance.')->group(function () {
     Route::get('/vehicles-needing', [VehicleController::class, 'vehiclesNeedingPage'])->name('vehicles-needing');
     Route::get('/vehicles-needing/data', [VehicleController::class, 'getVehiclesNeedingMaintenance'])->name('vehicles-needing.data');
     Route::post('/vehicle/{id}/acknowledge', [VehicleController::class, 'acknowledgeAlert'])->name('acknowledge');
