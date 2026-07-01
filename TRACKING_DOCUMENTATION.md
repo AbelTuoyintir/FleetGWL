@@ -80,6 +80,11 @@ classDiagram
 - **Real-Time Map:** Uses Leaflet.js to render vehicle positions.
 - **Dynamic Markers:** Car-shaped SVG icons that rotate in real-time based on the vehicle's `heading`.
 - **Follow Mode:** Automatic camera centering on a selected vehicle during movement.
+- **Speeding Alerts:** Visual indicators (red pulsing markers and labels) trigger when a vehicle exceeds 80 km/h.
+- **Trip Status:** Real-time "On Trip" badges and simulated ETA for active units.
+
+### Live Fleet Ticker
+- A dedicated dashboard widget providing a real-time stream of active vehicles, their current speeds, and driver assignments.
 
 ### History Playback
 - **Route Visualization:** Polylines represent the path taken by a vehicle over the last 24 hours.
@@ -104,6 +109,7 @@ classDiagram
   }
   ```
 - **Auto-Refresh:** The dashboard polls the `/vehicles/tracking/data` endpoint every 5 seconds to fetch latest coordinates without full page reloads.
+- **Advanced Filtering:** Supports filtering by Status (Moving, Idle, Offline, On Trip, Speeding), Region, and District.
 
 ---
 
