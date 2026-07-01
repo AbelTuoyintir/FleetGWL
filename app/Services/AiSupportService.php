@@ -4,32 +4,48 @@ namespace App\Services;
 
 use App\Models\SupportChat;
 use App\Models\SupportMessage;
+use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class AiSupportService
 {
-    protected $systemPrompt = "You are a 24/7 AI support agent for the Ghana Water Limited (GWL) Fleet Management system.
-    Assist users with questions about:
-    - Vehicle Registry & Live Tracking: View locations, history, and status. Features car-shaped SVG markers that rotate based on heading. Smooth movement via CSS transitions. Polling every 5 seconds.
-    - Follow Mode: Locked camera on a specific vehicle.
-    - History Playback: Visualize paths taken in the last 24 hours.
-    - Fuel Management: Log purchases, consumption, and costs.
-    - Maintenance: Service schedules, history, reminders, and alerts.
-    - Driver Hub: Assignments and online status.
-    - Reports: Utilization, cost, and fuel efficiency.
-    - Documents: Insurance and roadworthiness tracking (Insurance & Docs).
-    - Map Themes: Light, Dark, and Satellite modes.
+    public function getSystemPrompt(?User $user): string
+    {
+        $name = $user ? $user->name : 'Guest';
+        $role = $user ? $user->role : 'visitor';
 
-    Be professional, helpful, and concise.";
+        $prompt = "You are a 24/7 AI support agent for the Ghana Water Limited (GWL) Fleet Management system.
+        You are currently assisting $name, who has the role of $role.
 
-    public function getOrCreateChat(?int $userId, string $sessionId = null)
+        Tailor your response based on their role:
+        - If they are a driver: Focus on mileage logging, fuel purchases, maintenance requests, and going online.
+        - If they are an admin/super_admin: Focus on live tracking, fleet analytics, reports, and managing drivers/vehicles.
+        - If they are a guest: Help them with basic information or direct them to log in.
+
+        Assist users with questions about:
+        - Vehicle Registry & Live Tracking: View locations, history, and status. Features car-shaped SVG markers that rotate based on heading. Smooth movement via CSS transitions. Polling every 5 seconds.
+        - Follow Mode: Locked camera on a specific vehicle.
+        - History Playback: Visualize paths taken in the last 24 hours.
+        - Fuel Management: Log purchases, consumption, and costs.
+        - Maintenance: Service schedules, history, reminders, and alerts.
+        - Driver Hub: Assignments and online status.
+        - Reports: Utilization, cost, and fuel efficiency.
+        - Documents: Insurance and roadworthiness tracking (Insurance & Docs).
+        - Map Themes: Light, Dark, and Satellite modes.
+
+        Be professional, helpful, and concise.";
+
+        return $prompt;
+    }
+
+    public function getOrCreateChat(?User $user, string $sessionId = null)
     {
         try {
             $query = SupportChat::where('status', 'active');
 
-            if ($userId) {
-                $query->where('user_id', $userId);
+            if ($user) {
+                $query->where('user_id', $user->id);
             } elseif ($sessionId) {
                 $query->where('session_id', $sessionId);
             } else {
@@ -40,7 +56,7 @@ class AiSupportService
 
             if (!$chat) {
                 $chat = SupportChat::create([
-                    'user_id' => $userId,
+                    'user_id' => $user ? $user->id : null,
                     'session_id' => $sessionId,
                     'subject' => 'AI System Support',
                     'status' => 'active'
@@ -54,9 +70,9 @@ class AiSupportService
         }
     }
 
-    public function processMessage(?int $userId, string $messageText, string $sessionId = null)
+    public function processMessage(?User $user, string $messageText, string $sessionId = null)
     {
-        $chat = $this->getOrCreateChat($userId, $sessionId);
+        $chat = $this->getOrCreateChat($user, $sessionId);
         $history = collect();
 
         if ($chat) {
@@ -76,7 +92,7 @@ class AiSupportService
         }
 
         // Generate AI response
-        $aiResponseText = $this->generateAiResponse($messageText, $history);
+        $aiResponseText = $this->generateAiResponse($messageText, $history, $user);
 
         if ($chat) {
             return SupportMessage::create([
@@ -89,16 +105,16 @@ class AiSupportService
         return (object) ['message' => $aiResponseText];
     }
 
-    public function generateAiResponse(string $userMessage, $history = null): string
+    public function generateAiResponse(string $userMessage, $history = null, ?User $user = null): string
     {
         // 1. Try OpenAI
-        $openaiResponse = $this->callOpenAi($userMessage, $history);
+        $openaiResponse = $this->callOpenAi($userMessage, $history, $user);
         if ($openaiResponse) {
             return $openaiResponse;
         }
 
         // 2. Fallback to Ollama
-        $ollamaResponse = $this->callOllama($userMessage, $history);
+        $ollamaResponse = $this->callOllama($userMessage, $history, $user);
         if ($ollamaResponse) {
             return $ollamaResponse;
         }
@@ -107,13 +123,13 @@ class AiSupportService
         return $this->keywordFallback($userMessage);
     }
 
-    protected function callOpenAi(string $userMessage, $history)
+    protected function callOpenAi(string $userMessage, $history, ?User $user = null)
     {
         $apiKey = config('services.openai.api_key');
         if (!$apiKey) return null;
 
         try {
-            $messages = [['role' => 'system', 'content' => $this->systemPrompt]];
+            $messages = [['role' => 'system', 'content' => $this->getSystemPrompt($user)]];
 
             if ($history && $history->isNotEmpty()) {
                 foreach ($history as $msg) {
@@ -149,13 +165,13 @@ class AiSupportService
         return null;
     }
 
-    protected function callOllama(string $userMessage, $history)
+    protected function callOllama(string $userMessage, $history, ?User $user = null)
     {
         $baseUrl = config('services.ollama.base_url');
         $model = config('services.ollama.model');
 
         try {
-            $messages = [['role' => 'system', 'content' => $this->systemPrompt]];
+            $messages = [['role' => 'system', 'content' => $this->getSystemPrompt($user)]];
             if ($history && $history->isNotEmpty()) {
                 foreach ($history as $msg) {
                     $messages[] = [
@@ -239,9 +255,9 @@ class AiSupportService
         return "I'm your 24/7 AI support agent for the Ghana Water Limited Fleet Management system. How can I assist you with your fleet, fuel, or maintenance needs today?";
     }
 
-    public function getChatHistory(?int $userId, string $sessionId = null)
+    public function getChatHistory(?User $user, string $sessionId = null)
     {
-        $chat = $this->getOrCreateChat($userId, $sessionId);
+        $chat = $this->getOrCreateChat($user, $sessionId);
         if (!$chat) {
             return collect();
         }
