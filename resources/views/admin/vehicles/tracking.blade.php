@@ -70,6 +70,35 @@
         100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
     }
 
+    .pulse-red { background: #ef4444; box-shadow: 0 0 0 rgba(239, 68, 68, 0.4); animation: pulse-red 2s infinite; }
+    @keyframes pulse-red {
+        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    .on-trip-badge {
+        background: #2563eb;
+        color: white;
+        font-size: 9px;
+        font-weight: 800;
+        padding: 1px 6px;
+        border-radius: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .speeding-marker {
+        border: 2px solid #ef4444 !important;
+        animation: speeding-pulse 1s infinite;
+    }
+
+    @keyframes speeding-pulse {
+        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
     .live-dot {
         width: 8px;
         height: 8px;
@@ -378,6 +407,10 @@
                             } else if (oldV.speed > 0 && newV.speed === 0) {
                                 addActivityLog(newV.registration_number, 'Stopped', 'emerald');
                             }
+
+                            if (oldV.speed <= 80 && newV.speed > 80) {
+                                addActivityLog(newV.registration_number, 'Speeding Alert (>80km/h)', 'red');
+                            }
                         }
                     });
 
@@ -469,17 +502,20 @@
         container.innerHTML = vehicles.map(v => {
             const isOffline = (new Date() - new Date(v.last_seen_at)) >= 300000;
             const isMoving = v.speed > 0;
-            const statusColor = isOffline ? 'bg-gray-400' : (isMoving ? 'bg-blue-500' : 'bg-emerald-500');
+            const statusColor = isOffline ? 'bg-gray-400' : (isMoving ? (v.speed > 80 ? 'bg-red-500' : 'bg-blue-500') : 'bg-emerald-500');
             const movingPulseClass = isMoving ? 'sidebar-moving-pulse' : '';
+            const speedingClass = v.speed > 80 ? 'border-l-red-500 bg-red-50' : '';
+            const tripBadge = v.is_on_trip ? '<span class="on-trip-badge ml-2">On Trip</span>' : '<span class="text-[9px] font-bold text-emerald-600 ml-2 uppercase tracking-tighter">Available</span>';
 
             return `
-                <div class="vehicle-list-item p-3 ${selectedVehicleId === v.id ? 'active' : ''} ${movingPulseClass}" onclick="focusVehicle(${v.id})">
+                <div class="vehicle-list-item p-3 ${selectedVehicleId === v.id ? 'active' : ''} ${movingPulseClass} ${speedingClass}" onclick="focusVehicle(${v.id})">
                     <div class="flex justify-between items-start mb-1">
                         <div class="flex flex-col">
                             <div class="flex items-center gap-2">
                                 <span class="w-2 h-2 rounded-full ${statusColor}"></span>
                                 <span class="font-bold text-gray-900 leading-tight">${v.registration_number}</span>
                                 ${isMoving ? '<span class="live-dot"></span>' : ''}
+                                ${tripBadge}
                             </div>
                             <span class="text-[10px] text-gray-500 uppercase font-medium ml-4">${v.make} ${v.model}</span>
                         </div>
@@ -487,7 +523,7 @@
                             <span class="text-[10px] font-black ${v.ignition === 'on' ? 'text-emerald-600' : 'text-gray-400'} uppercase">
                                 ${v.ignition === 'on' ? 'Ignition On' : 'Ignition Off'}
                             </span>
-                            <span class="text-[11px] font-bold ${isMoving ? 'text-blue-600' : 'text-gray-900'}">${v.speed} km/h</span>
+                            <span class="text-[11px] font-bold ${v.speed > 80 ? 'text-red-600 animate-bounce' : (isMoving ? 'text-blue-600' : 'text-gray-900')}">${v.speed} km/h</span>
                         </div>
                     </div>
 
@@ -589,7 +625,7 @@
             const pos = [v.current_latitude, v.current_longitude];
             const isMoving = v.speed > 0;
             const isOffline = (new Date() - new Date(v.last_seen_at)) >= 300000;
-            const markerColor = isOffline ? '#94a3b8' : (isMoving ? '#3b82f6' : '#10b981');
+            const markerColor = isOffline ? '#94a3b8' : (isMoving ? (v.speed > 80 ? '#ef4444' : '#3b82f6') : '#10b981');
 
             if (markers[v.id]) {
                 markers[v.id].setLatLng(pos);
@@ -607,16 +643,22 @@
 
                     const pulseEl = markerEl.querySelector('.pulse-indicator');
                     if (pulseEl) {
-                        pulseEl.className = `pulse-indicator absolute top-0 left-0 ${isMoving ? 'pulse-blue' : (isOffline ? '' : 'pulse')}`;
+                        pulseEl.className = `pulse-indicator absolute top-0 left-0 ${v.speed > 80 ? 'pulse-red' : (isMoving ? 'pulse-blue' : (isOffline ? '' : 'pulse'))}`;
+                    }
+
+                    const carContainer = markerEl.querySelector('.car-marker-container');
+                    if (carContainer) {
+                        if (v.speed > 80) carContainer.classList.add('speeding-marker');
+                        else carContainer.classList.remove('speeding-marker');
                     }
                 }
             } else {
                 const icon = L.divIcon({
                     className: 'custom-div-icon',
                     html: `
-                        <div class="relative car-marker-container">
+                        <div class="relative car-marker-container ${v.speed > 80 ? 'speeding-marker' : ''}">
                             <div id="focus-${v.id}" class="focus-indicator ${selectedVehicleId === v.id ? 'focus-marker' : ''}"></div>
-                            <div class="pulse-indicator absolute top-0 left-0 ${isMoving ? 'pulse-blue' : (isOffline ? '' : 'pulse')}"></div>
+                            <div class="pulse-indicator absolute top-0 left-0 ${v.speed > 80 ? 'pulse-red' : (isMoving ? 'pulse-blue' : (isOffline ? '' : 'pulse'))}"></div>
                             <div class="car-marker" style="transform: rotate(${v.heading}deg)">
                                 ${getVehicleSvg(v.vehicle_type, markerColor)}
                             </div>
@@ -684,8 +726,13 @@
         document.getElementById('cardSpeed').innerText = v.speed;
 
         const ignitionBadge = document.getElementById('cardIgnitionBadge');
-        ignitionBadge.innerText = v.ignition === 'on' ? 'Ignition On' : 'Ignition Off';
-        ignitionBadge.className = `px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${v.ignition === 'on' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-500'}`;
+        if (v.is_on_trip) {
+            ignitionBadge.innerText = `On Trip • ETA ${v.eta}m`;
+            ignitionBadge.className = `px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-600 text-white`;
+        } else {
+            ignitionBadge.innerText = v.ignition === 'on' ? 'Ignition On • Available' : 'Ignition Off • Available';
+            ignitionBadge.className = `px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${v.ignition === 'on' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-500'}`;
+        }
 
         document.getElementById('cardFuelText').innerText = `${v.fuel_level}%`;
         const fuelBar = document.getElementById('cardFuelBar');
@@ -722,7 +769,8 @@
         // Use full class names to ensure Tailwind compiler picks them up
         const colorClasses = {
             blue: 'border-blue-500',
-            emerald: 'border-emerald-500'
+            emerald: 'border-emerald-500',
+            red: 'border-red-500'
         };
         const borderClass = colorClasses[color] || 'border-gray-500';
 
