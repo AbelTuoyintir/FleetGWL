@@ -13,3 +13,7 @@
 ## 2026-06-28 - [Empty State Pattern & Style Consistency]
 **Learning:** Standardizing the use of Laravel's `@forelse` directive in data tables provides a consistent and delightful "Empty State" that guides users when no records exist. Additionally, ensuring that essential form styles (`.form-input`, `.form-label`) are either globalized or explicitly included in child views prevents broken modal/form UI when cleaning up redundant layout code.
 **Action:** Always use `@forelse` for data tables with a relevant icon and CTA, and verify that shared UI classes like forms are correctly scoped or available globally before removing local style blocks.
+
+## 2025-05-15 - [Identifier Copy-to-Clipboard Pattern]
+**Learning:** For administrative dashboards, providing a quick "Copy to Clipboard" button next to key identifiers (like Vehicle Registration Numbers) significantly improves operational efficiency. Implementing this with `navigator.clipboard` and a reliable `textarea`-based fallback ensures the feature works across all browser contexts, including non-secure local environments. Providing immediate visual feedback via a toast/notification confirms the action for the user.
+**Action:** Include copy-to-clipboard functionality for primary identifiers in detail views and always implement a robust fallback for broader compatibility.

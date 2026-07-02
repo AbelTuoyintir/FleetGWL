@@ -137,7 +137,12 @@
                     <a href="{{ route('vehicles.index') }}" class="text-gray-500 hover:text-gray-700" aria-label="Back to vehicles list" title="Back to vehicles list">
                         <i class="fas fa-arrow-left"></i>
                     </a>
-                    <h1 class="text-2xl font-bold text-gray-800">{{ $vehicle->registration_number }}</h1>
+                    <div class="flex items-center gap-1">
+                        <h1 class="text-2xl font-bold text-gray-800">{{ $vehicle->registration_number }}</h1>
+                        <button onclick="copyToClipboard('{{ $vehicle->registration_number }}')" class="text-gray-400 hover:text-blue-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-1" aria-label="Copy registration number" title="Copy registration number">
+                            <i class="far fa-copy"></i>
+                        </button>
+                    </div>
                     <span class="status-badge status-{{ $vehicle->status }}">
                         <i class="fas {{ $vehicle->status == 'active' ? 'fa-check-circle' : ($vehicle->status == 'maintenance' ? 'fa-tools' : 'fa-circle') }}"></i>
                         {{ ucfirst($vehicle->status) }}
@@ -430,9 +435,12 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     @forelse($documents as $document)
                     <?php
-                        $expiryDate = $document->expiry_date ? \Carbon\Carbon::parse($document->expiry_date) : null;
-                        $isExpiring = $expiryDate && $expiryDate->isFuture() && $expiryDate->diffInDays(now()) <= 30;
-                        $isExpired = $expiryDate && $expiryDate->isPast();
+
+use Carbon\Carbon;
+
+                        $expiryDate = $document->expiry_date ? Carbon::parse($document->expiry_date) : null;
+                    $isExpiring = $expiryDate && $expiryDate->isFuture() && $expiryDate->diffInDays(now()) <= 30;
+                    $isExpired = $expiryDate && $expiryDate->isPast();
                     ?>
                     <div class="document-card bg-white border rounded-lg p-4 hover:shadow-md transition 
                         {{ $isExpiring ? 'expiring-soon' : ($isExpired ? 'expired' : '') }}">
@@ -490,7 +498,7 @@
                     <div class="col-span-3 text-center py-12 text-gray-500">
                         <i class="fas fa-folder-open text-5xl mb-3 opacity-50"></i>
                         <p>No documents uploaded yet</p>
-                        <button ionclick="showUploadModal() class="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">
+                        <button onclick="showUploadModal()" class="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">
                             <i class="fas fa-upload mr-1"></i>Upload Document
                         </button>
                     </div>
@@ -2147,6 +2155,45 @@ $(document).ready(function() {
         }
     });
 });
+
+function copyToClipboard(text) {
+    if (!navigator.clipboard) {
+        fallbackCopyTextToClipboard(text);
+        return;
+    }
+    navigator.clipboard.writeText(text).then(function() {
+        showNotification('success', 'Registration number copied to clipboard');
+    }, function(err) {
+        console.error('Could not copy text: ', err);
+    });
+}
+
+function fallbackCopyTextToClipboard(text) {
+    var textArea = document.createElement("textarea");
+    textArea.value = text;
+
+    // Avoid scrolling to bottom
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        var successful = document.execCommand('copy');
+        if (successful) {
+            showNotification('success', 'Registration number copied to clipboard');
+        } else {
+            console.error('Fallback: Copying text command was unsuccessful');
+        }
+    } catch (err) {
+        console.error('Fallback: Oops, unable to copy', err);
+    }
+
+    document.body.removeChild(textArea);
+}
 </script>
 
 
