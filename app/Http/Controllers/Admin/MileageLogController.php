@@ -18,10 +18,8 @@ class MileageLogController extends Controller
      */
     public function index()
     {
-        $vehicles = Vehicle::where('status', 'active')->orderBy('registration_number')->get();
-        $drivers = Driver::where('status', 'active')->orderBy('id', 'desc')->get();
-        
-        return view('admin.mileageLogs.index', compact('vehicles', 'drivers'));
+        // Bolt: Removed redundant Vehicle and Driver queries as they are no longer used by the frontend (AJAX-based search).
+        return view('admin.mileageLogs.index');
     }
 
     /**
@@ -116,23 +114,24 @@ class MileageLogController extends Controller
                 $query->where('date', '<=', $request->date_to);
             }
 
-            $logs = $query->get();
+            // Bolt: Optimize by using database-level aggregation instead of in-memory collection processing.
+            // This significantly reduces memory usage and CPU overhead for large datasets.
+            $stats = $query->selectRaw("
+                SUM(COALESCE(end_mileage, 0) - COALESCE(start_mileage, 0)) as total_distance,
+                COUNT(*) as total_logs,
+                AVG(COALESCE(end_mileage, 0) - COALESCE(start_mileage, 0)) as avg_distance,
+                SUM(CASE WHEN service_alert = 1 THEN 1 ELSE 0 END) as service_alerts
+            ")->first();
             
-            $totalDistance = $logs->sum(function($log) {
-                return $log->end_mileage - $log->start_mileage;
-            });
-            
-            $avgDistance = $logs->count() > 0 ? $totalDistance / $logs->count() : 0;
-            $serviceAlerts = $logs->where('service_alert', true)->count();
             $totalVehicles = Vehicle::where('status', 'active')->count();
 
             return response()->json([
                 'success' => true,
-                'total_distance' => $totalDistance,
-                'total_logs' => $logs->count(),
-                'avg_distance' => $avgDistance,
-                'service_alerts' => $serviceAlerts,
-                'total_vehicles' => $totalVehicles
+                'total_distance' => (float) ($stats->total_distance ?? 0),
+                'total_logs' => (int) ($stats->total_logs ?? 0),
+                'avg_distance' => (float) ($stats->avg_distance ?? 0),
+                'service_alerts' => (int) ($stats->service_alerts ?? 0),
+                'total_vehicles' => (int) $totalVehicles
             ]);
         } catch (\Exception $e) {
             \Log::error('Error fetching statistics: ' . $e->getMessage());
