@@ -3,10 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-
+use App\Models\Driver;
 use App\Models\MileageLog;
 use App\Models\Vehicle;
-use App\Models\Driver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -20,7 +19,7 @@ class MileageLogController extends Controller
     {
         $vehicles = Vehicle::where('status', 'active')->orderBy('registration_number')->get();
         $drivers = Driver::where('status', 'active')->orderBy('id', 'desc')->get();
-        
+
         return view('admin.mileageLogs.index', compact('vehicles', 'drivers'));
     }
 
@@ -37,19 +36,19 @@ class MileageLogController extends Controller
             // Filter by vehicle search
             if ($request->filled('vehicle_search')) {
                 $vehicleSearch = $request->vehicle_search;
-                $query->whereHas('vehicle', function($q) use ($vehicleSearch) {
+                $query->whereHas('vehicle', function ($q) use ($vehicleSearch) {
                     $q->where('registration_number', 'LIKE', "%{$vehicleSearch}%")
-                      ->orWhere('make', 'LIKE', "%{$vehicleSearch}%")
-                      ->orWhere('model', 'LIKE', "%{$vehicleSearch}%");
+                        ->orWhere('make', 'LIKE', "%{$vehicleSearch}%")
+                        ->orWhere('model', 'LIKE', "%{$vehicleSearch}%");
                 });
             }
 
             // Filter by driver search
             if ($request->filled('driver_search')) {
                 $driverSearch = $request->driver_search;
-                $query->whereHas('driver', function($q) use ($driverSearch) {
+                $query->whereHas('driver', function ($q) use ($driverSearch) {
                     $q->where('name', 'LIKE', "%{$driverSearch}%")
-                      ->orWhere('email', 'LIKE', "%{$driverSearch}%");
+                        ->orWhere('email', 'LIKE', "%{$driverSearch}%");
                 });
             }
 
@@ -73,14 +72,15 @@ class MileageLogController extends Controller
                     'per_page' => $logs->perPage(),
                     'total' => $logs->total(),
                     'from' => $logs->firstItem(),
-                    'to' => $logs->lastItem()
-                ]
+                    'to' => $logs->lastItem(),
+                ],
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error fetching mileage logs: ' . $e->getMessage());
+            \Log::error('Error fetching mileage logs: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch mileage logs'
+                'message' => 'Failed to fetch mileage logs',
             ], 500);
         }
     }
@@ -96,14 +96,14 @@ class MileageLogController extends Controller
             // Apply same filters as getData
             if ($request->filled('vehicle_search')) {
                 $vehicleSearch = $request->vehicle_search;
-                $query->whereHas('vehicle', function($q) use ($vehicleSearch) {
+                $query->whereHas('vehicle', function ($q) use ($vehicleSearch) {
                     $q->where('registration_number', 'LIKE', "%{$vehicleSearch}%");
                 });
             }
 
             if ($request->filled('driver_search')) {
                 $driverSearch = $request->driver_search;
-                $query->whereHas('driver', function($q) use ($driverSearch) {
+                $query->whereHas('driver', function ($q) use ($driverSearch) {
                     $q->where('name', 'LIKE', "%{$driverSearch}%");
                 });
             }
@@ -116,29 +116,35 @@ class MileageLogController extends Controller
                 $query->where('date', '<=', $request->date_to);
             }
 
-            $logs = $query->get();
-            
-            $totalDistance = $logs->sum(function($log) {
-                return $log->end_mileage - $log->start_mileage;
-            });
-            
-            $avgDistance = $logs->count() > 0 ? $totalDistance / $logs->count() : 0;
-            $serviceAlerts = $logs->where('service_alert', true)->count();
+            // Bolt: Optimize by using database-level aggregation instead of in-memory collection processing.
+            // This reduces memory consumption and CPU overhead by pushing calculations to the SQL engine.
+            $stats = $query->selectRaw('
+                COUNT(*) as total_logs,
+                SUM(COALESCE(end_mileage, 0) - COALESCE(start_mileage, 0)) as total_distance,
+                SUM(CASE WHEN service_alert = 1 THEN 1 ELSE 0 END) as service_alerts
+            ')->first();
+
+            $totalDistance = (float) ($stats->total_distance ?? 0);
+            $totalLogs = (int) ($stats->total_logs ?? 0);
+            $serviceAlerts = (int) ($stats->service_alerts ?? 0);
+
+            $avgDistance = $totalLogs > 0 ? $totalDistance / $totalLogs : 0;
             $totalVehicles = Vehicle::where('status', 'active')->count();
 
             return response()->json([
                 'success' => true,
                 'total_distance' => $totalDistance,
-                'total_logs' => $logs->count(),
+                'total_logs' => $totalLogs,
                 'avg_distance' => $avgDistance,
                 'service_alerts' => $serviceAlerts,
-                'total_vehicles' => $totalVehicles
+                'total_vehicles' => $totalVehicles,
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error fetching statistics: ' . $e->getMessage());
+            \Log::error('Error fetching statistics: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch statistics'
+                'message' => 'Failed to fetch statistics',
             ], 500);
         }
     }
@@ -155,14 +161,14 @@ class MileageLogController extends Controller
                 'start_mileage' => 'required|numeric|min:0',
                 'end_mileage' => 'nullable|numeric|gt:start_mileage',
                 'date' => 'required|date',
-                'notes' => 'nullable|string|max:500'
+                'notes' => 'nullable|string|max:500',
             ]);
 
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ], 422);
             }
 
@@ -184,14 +190,15 @@ class MileageLogController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Mileage log created successfully',
-                'data' => $mileageLog->load(['vehicle', 'driver'])
+                'data' => $mileageLog->load(['vehicle', 'driver']),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error creating mileage log: ' . $e->getMessage());
+            \Log::error('Error creating mileage log: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create mileage log: ' . $e->getMessage()
+                'message' => 'Failed to create mileage log: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -203,16 +210,17 @@ class MileageLogController extends Controller
     {
         try {
             $log = MileageLog::with(['vehicle', 'driver'])->findOrFail($id);
-            
+
             return response()->json([
                 'success' => true,
-                'data' => $log
+                'data' => $log,
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error fetching edit data: ' . $e->getMessage());
+            \Log::error('Error fetching edit data: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Mileage log not found'
+                'message' => 'Mileage log not found',
             ], 404);
         }
     }
@@ -224,16 +232,17 @@ class MileageLogController extends Controller
     {
         try {
             $log = MileageLog::with(['vehicle', 'driver'])->findOrFail($id);
-            
+
             return response()->json([
                 'success' => true,
-                'data' => $log
+                'data' => $log,
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error showing mileage log: ' . $e->getMessage());
+            \Log::error('Error showing mileage log: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Mileage log not found'
+                'message' => 'Mileage log not found',
             ], 404);
         }
     }
@@ -253,14 +262,14 @@ class MileageLogController extends Controller
                 'end_mileage' => 'nullable|numeric|gt:start_mileage',
                 'date' => 'required|date',
                 'service_alert' => 'boolean',
-                'notes' => 'nullable|string|max:500'
+                'notes' => 'nullable|string|max:500',
             ]);
 
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ], 422);
             }
 
@@ -276,7 +285,7 @@ class MileageLogController extends Controller
                 ->orderBy('date', 'desc')
                 ->orderBy('created_at', 'desc')
                 ->first();
-            
+
             if ($latestLog && $latestLog->id == $log->id) {
                 $vehicle = Vehicle::find($validated['vehicle_id']);
                 if ($vehicle && $validated['end_mileage'] > ($vehicle->mileage ?? 0)) {
@@ -288,14 +297,15 @@ class MileageLogController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Mileage log updated successfully'
+                'message' => 'Mileage log updated successfully',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error updating mileage log: ' . $e->getMessage());
+            \Log::error('Error updating mileage log: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update mileage log: ' . $e->getMessage()
+                'message' => 'Failed to update mileage log: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -307,36 +317,37 @@ class MileageLogController extends Controller
     {
         try {
             $log = MileageLog::findOrFail($id);
-            
+
             DB::beginTransaction();
-            
+
             $vehicleId = $log->vehicle_id;
             $log->delete();
-            
+
             // Update vehicle's current mileage to the latest remaining log
             $latestLog = MileageLog::where('vehicle_id', $vehicleId)
                 ->orderBy('date', 'desc')
                 ->orderBy('created_at', 'desc')
                 ->first();
-            
+
             $vehicle = Vehicle::find($vehicleId);
             if ($vehicle) {
                 $newMileage = $latestLog ? $latestLog->end_mileage : $vehicle->mileage;
                 $vehicle->update(['mileage' => $newMileage]);
             }
-            
+
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Mileage log deleted successfully'
+                'message' => 'Mileage log deleted successfully',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Error deleting mileage log: ' . $e->getMessage());
+            \Log::error('Error deleting mileage log: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete mileage log'
+                'message' => 'Failed to delete mileage log',
             ], 500);
         }
     }
@@ -352,14 +363,14 @@ class MileageLogController extends Controller
             // Apply filters
             if ($request->filled('vehicle_search')) {
                 $vehicleSearch = $request->vehicle_search;
-                $query->whereHas('vehicle', function($q) use ($vehicleSearch) {
+                $query->whereHas('vehicle', function ($q) use ($vehicleSearch) {
                     $q->where('registration_number', 'LIKE', "%{$vehicleSearch}%");
                 });
             }
 
             if ($request->filled('driver_search')) {
                 $driverSearch = $request->driver_search;
-                $query->whereHas('driver', function($q) use ($driverSearch) {
+                $query->whereHas('driver', function ($q) use ($driverSearch) {
                     $q->where('name', 'LIKE', "%{$driverSearch}%");
                 });
             }
@@ -374,17 +385,17 @@ class MileageLogController extends Controller
 
             $logs = $query->orderBy('date', 'desc')->get();
 
-            $filename = 'mileage_logs_' . date('Y-m-d_His') . '.csv';
+            $filename = 'mileage_logs_'.date('Y-m-d_His').'.csv';
             $handle = fopen('php://temp', 'w+');
 
             // Add UTF-8 BOM for Excel
-            fputs($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fwrite($handle, chr(0xEF).chr(0xBB).chr(0xBF));
 
             // Headers
             fputcsv($handle, [
                 'ID', 'Date', 'Vehicle Registration', 'Vehicle Make', 'Vehicle Model',
                 'Driver Name', 'Driver Email', 'Start Mileage (km)', 'End Mileage (km)',
-                'Distance (km)', 'Service Alert', 'Notes', 'Created At', 'Updated At'
+                'Distance (km)', 'Service Alert', 'Notes', 'Created At', 'Updated At',
             ]);
 
             // Data rows
@@ -403,7 +414,7 @@ class MileageLogController extends Controller
                     $log->service_alert ? 'Yes' : 'No',
                     $log->notes ?? '',
                     $log->created_at,
-                    $log->updated_at
+                    $log->updated_at,
                 ]);
             }
 
@@ -413,10 +424,11 @@ class MileageLogController extends Controller
 
             return response($csvContent, 200)
                 ->header('Content-Type', 'text/csv')
-                ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
-                
+                ->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
+
         } catch (\Exception $e) {
-            \Log::error('Error exporting mileage logs: ' . $e->getMessage());
+            \Log::error('Error exporting mileage logs: '.$e->getMessage());
+
             return back()->with('error', 'Failed to export mileage logs');
         }
     }
@@ -444,30 +456,31 @@ class MileageLogController extends Controller
             $logs = $query->get();
 
             // Group by month
-            $monthlyData = $logs->groupBy(function($log) {
+            $monthlyData = $logs->groupBy(function ($log) {
                 return $log->date->format('F Y');
-            })->map(function($group) {
+            })->map(function ($group) {
                 return [
                     'month' => $group->first()->date->format('F Y'),
-                    'total_distance' => $group->sum(function($log) {
+                    'total_distance' => $group->sum(function ($log) {
                         return $log->end_mileage - $log->start_mileage;
                     }),
                     'total_logs' => $group->count(),
-                    'avg_distance' => $group->avg(function($log) {
+                    'avg_distance' => $group->avg(function ($log) {
                         return $log->end_mileage - $log->start_mileage;
-                    })
+                    }),
                 ];
             })->values();
 
             // Top vehicles by distance
-            $topVehicles = $logs->groupBy('vehicle_id')->map(function($group) {
+            $topVehicles = $logs->groupBy('vehicle_id')->map(function ($group) {
                 $vehicle = $group->first()->vehicle;
+
                 return [
                     'vehicle_name' => $vehicle ? $vehicle->registration_number : 'Unknown',
-                    'total_distance' => $group->sum(function($log) {
+                    'total_distance' => $group->sum(function ($log) {
                         return $log->end_mileage - $log->start_mileage;
                     }),
-                    'total_logs' => $group->count()
+                    'total_logs' => $group->count(),
                 ];
             })->sortByDesc('total_distance')->take(5)->values();
 
@@ -477,16 +490,17 @@ class MileageLogController extends Controller
                     'monthly_data' => $monthlyData,
                     'top_vehicles' => $topVehicles,
                     'total_logs' => $logs->count(),
-                    'total_distance' => $logs->sum(function($log) {
+                    'total_distance' => $logs->sum(function ($log) {
                         return $log->end_mileage - $log->start_mileage;
-                    })
-                ]
+                    }),
+                ],
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error fetching analytics: ' . $e->getMessage());
+            \Log::error('Error fetching analytics: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch analytics'
+                'message' => 'Failed to fetch analytics',
             ], 500);
         }
     }
