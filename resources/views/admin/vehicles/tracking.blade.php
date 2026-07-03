@@ -102,6 +102,39 @@
         50% { opacity: 1; }
         100% { opacity: 0.5; }
     }
+
+    .speeding-marker {
+        animation: speeding-pulse 0.8s infinite;
+        border-radius: 50%;
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    }
+
+    @keyframes speeding-pulse {
+        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+        70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    .on-trip-badge {
+        background-color: #dbeafe;
+        color: #1e40af;
+        border: 1px solid #bfdbfe;
+    }
+
+    .available-badge {
+        background-color: #dcfce7;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+    }
+
+    .anim-pulse {
+        animation: pulse-opacity 2s infinite;
+    }
+
+    @keyframes pulse-opacity {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
 </style>
 
 <div class="space-y-6">
@@ -378,6 +411,11 @@
                             } else if (oldV.speed > 0 && newV.speed === 0) {
                                 addActivityLog(newV.registration_number, 'Stopped', 'emerald');
                             }
+
+                            // Speeding Alert
+                            if (newV.speed > 80 && (!oldV || oldV.speed <= 80)) {
+                                addActivityLog(newV.registration_number, 'Speeding Alert (>80km/h)', 'red');
+                            }
                         }
                     });
 
@@ -471,6 +509,8 @@
             const isMoving = v.speed > 0;
             const statusColor = isOffline ? 'bg-gray-400' : (isMoving ? 'bg-blue-500' : 'bg-emerald-500');
             const movingPulseClass = isMoving ? 'sidebar-moving-pulse' : '';
+            const tripBadgeClass = v.is_on_trip ? 'on-trip-badge' : 'available-badge';
+            const tripStatus = v.is_on_trip ? 'On Trip' : 'Available';
 
             return `
                 <div class="vehicle-list-item p-3 ${selectedVehicleId === v.id ? 'active' : ''} ${movingPulseClass}" onclick="focusVehicle(${v.id})">
@@ -482,12 +522,16 @@
                                 ${isMoving ? '<span class="live-dot"></span>' : ''}
                             </div>
                             <span class="text-[10px] text-gray-500 uppercase font-medium ml-4">${v.make} ${v.model}</span>
+                            <div class="mt-1 ml-4">
+                                <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase ${tripBadgeClass}">${tripStatus}</span>
+                                ${v.speed > 80 ? '<span class="ml-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-red-100 text-red-700 border border-red-200 anim-pulse">Speeding</span>' : ''}
+                            </div>
                         </div>
                         <div class="flex flex-col items-end">
                             <span class="text-[10px] font-black ${v.ignition === 'on' ? 'text-emerald-600' : 'text-gray-400'} uppercase">
                                 ${v.ignition === 'on' ? 'Ignition On' : 'Ignition Off'}
                             </span>
-                            <span class="text-[11px] font-bold ${isMoving ? 'text-blue-600' : 'text-gray-900'}">${v.speed} km/h</span>
+                            <span class="text-[11px] font-bold ${isMoving ? (v.speed > 80 ? 'text-red-600' : 'text-blue-600') : 'text-gray-900'}">${v.speed} km/h</span>
                         </div>
                     </div>
 
@@ -588,8 +632,9 @@
 
             const pos = [v.current_latitude, v.current_longitude];
             const isMoving = v.speed > 0;
+            const isSpeeding = v.speed > 80;
             const isOffline = (new Date() - new Date(v.last_seen_at)) >= 300000;
-            const markerColor = isOffline ? '#94a3b8' : (isMoving ? '#3b82f6' : '#10b981');
+            const markerColor = isOffline ? '#94a3b8' : (isSpeeding ? '#ef4444' : (isMoving ? '#3b82f6' : '#10b981'));
 
             if (markers[v.id]) {
                 markers[v.id].setLatLng(pos);
@@ -607,7 +652,7 @@
 
                     const pulseEl = markerEl.querySelector('.pulse-indicator');
                     if (pulseEl) {
-                        pulseEl.className = `pulse-indicator absolute top-0 left-0 ${isMoving ? 'pulse-blue' : (isOffline ? '' : 'pulse')}`;
+                        pulseEl.className = `pulse-indicator absolute top-0 left-0 ${isSpeeding ? 'speeding-marker' : (isMoving ? 'pulse-blue' : (isOffline ? '' : 'pulse'))}`;
                     }
                 }
             } else {
@@ -616,7 +661,7 @@
                     html: `
                         <div class="relative car-marker-container">
                             <div id="focus-${v.id}" class="focus-indicator ${selectedVehicleId === v.id ? 'focus-marker' : ''}"></div>
-                            <div class="pulse-indicator absolute top-0 left-0 ${isMoving ? 'pulse-blue' : (isOffline ? '' : 'pulse')}"></div>
+                            <div class="pulse-indicator absolute top-0 left-0 ${isSpeeding ? 'speeding-marker' : (isMoving ? 'pulse-blue' : (isOffline ? '' : 'pulse'))}"></div>
                             <div class="car-marker" style="transform: rotate(${v.heading}deg)">
                                 ${getVehicleSvg(v.vehicle_type, markerColor)}
                             </div>
@@ -683,9 +728,17 @@
         document.getElementById('cardModel').innerText = `${v.make} ${v.model}`;
         document.getElementById('cardSpeed').innerText = v.speed;
 
+        // Add ETA and Trip Status to detail card if we find where to put them or just use existing badges
         const ignitionBadge = document.getElementById('cardIgnitionBadge');
-        ignitionBadge.innerText = v.ignition === 'on' ? 'Ignition On' : 'Ignition Off';
-        ignitionBadge.className = `px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${v.ignition === 'on' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-500'}`;
+        const isSpeeding = v.speed > 80;
+
+        if (isSpeeding) {
+            ignitionBadge.innerText = 'Speeding Alert';
+            ignitionBadge.className = `px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-700 border border-red-200`;
+        } else {
+            ignitionBadge.innerText = v.is_on_trip ? 'On Trip' : 'Available';
+            ignitionBadge.className = `px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${v.is_on_trip ? 'on-trip-badge' : 'available-badge'}`;
+        }
 
         document.getElementById('cardFuelText').innerText = `${v.fuel_level}%`;
         const fuelBar = document.getElementById('cardFuelBar');
@@ -695,7 +748,7 @@
         document.getElementById('cardBattery').innerText = `${Number(v.battery).toFixed(1)}V`;
 
         document.getElementById('cardDriver').innerText = v.assigned_driver ? v.assigned_driver.name : 'Unassigned';
-        document.getElementById('cardLastSeen').innerText = getTimeAgo(v.last_seen_at);
+        document.getElementById('cardLastSeen').innerText = `${getTimeAgo(v.last_seen_at)} • ETA: ${v.eta}m`;
         document.getElementById('detailsLink').href = `/vehicles/${v.id}`;
 
         document.getElementById('historyBtn').onclick = () => loadHistory(v.id);
@@ -722,7 +775,8 @@
         // Use full class names to ensure Tailwind compiler picks them up
         const colorClasses = {
             blue: 'border-blue-500',
-            emerald: 'border-emerald-500'
+            emerald: 'border-emerald-500',
+            red: 'border-red-500'
         };
         const borderClass = colorClasses[color] || 'border-gray-500';
 
