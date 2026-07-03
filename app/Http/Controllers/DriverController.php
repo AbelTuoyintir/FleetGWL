@@ -6,6 +6,7 @@ use App\Models\Driver;
 use App\Models\User;
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -99,7 +100,7 @@ class DriverController extends Controller
                 'notes' => 'nullable|string',
             ]);
 
-            \Log::info('Validation passed', $validated);
+            \Log::info('Validation passed', Arr::except($validated, ['password', 'password_confirmation']));
 
             DB::beginTransaction();
 
