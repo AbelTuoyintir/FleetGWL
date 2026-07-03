@@ -137,7 +137,12 @@
                     <a href="{{ route('vehicles.index') }}" class="text-gray-500 hover:text-gray-700" aria-label="Back to vehicles list" title="Back to vehicles list">
                         <i class="fas fa-arrow-left"></i>
                     </a>
-                    <h1 class="text-2xl font-bold text-gray-800">{{ $vehicle->registration_number }}</h1>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-2xl font-bold text-gray-800">{{ $vehicle->registration_number }}</h1>
+                        <button onclick="copyToClipboard('{{ $vehicle->registration_number }}')" class="text-gray-400 hover:text-blue-600 transition p-1" aria-label="Copy registration number" title="Copy Registration Number">
+                            <i class="far fa-copy"></i>
+                        </button>
+                    </div>
                     <span class="status-badge status-{{ $vehicle->status }}">
                         <i class="fas {{ $vehicle->status == 'active' ? 'fa-check-circle' : ($vehicle->status == 'maintenance' ? 'fa-tools' : 'fa-circle') }}"></i>
                         {{ ucfirst($vehicle->status) }}
@@ -490,7 +495,7 @@
                     <div class="col-span-3 text-center py-12 text-gray-500">
                         <i class="fas fa-folder-open text-5xl mb-3 opacity-50"></i>
                         <p>No documents uploaded yet</p>
-                        <button ionclick="showUploadModal() class="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">
+                        <button onclick="showUploadModal()" class="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">
                             <i class="fas fa-upload mr-1"></i>Upload Document
                         </button>
                     </div>
@@ -2147,6 +2152,51 @@ $(document).ready(function() {
         }
     });
 });
+
+/**
+ * Copy text to clipboard with fallback and notification
+ */
+function copyToClipboard(text) {
+    if (!navigator.clipboard) {
+        fallbackCopyToClipboard(text);
+        return;
+    }
+    navigator.clipboard.writeText(text).then(function() {
+        showNotification('success', 'Registration number copied to clipboard!');
+    }, function(err) {
+        console.error('Could not copy text: ', err);
+        fallbackCopyToClipboard(text);
+    });
+}
+
+function fallbackCopyToClipboard(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+
+    // Ensure textarea is not visible but part of the DOM
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showNotification('success', 'Registration number copied to clipboard!');
+        } else {
+            showNotification('error', 'Failed to copy text.');
+        }
+    } catch (err) {
+        console.error('Fallback: Oops, unable to copy', err);
+        showNotification('error', 'Failed to copy text.');
+    }
+
+    document.body.removeChild(textArea);
+}
 </script>
 
 
