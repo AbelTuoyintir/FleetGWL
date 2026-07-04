@@ -73,6 +73,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('vehicles')->name(
    
 });
 
+// SECURITY: Restrict administrative fuel management to authorized personnel only to prevent unauthorized data access/modification.
 Route::middleware(['auth', 'role:admin,super_admin'])->prefix('fuel-management')->name('fuel-management.')->group(function () {
     Route::get('/', [FuelManagementController::class, 'index'])->name('index');
     Route::post('/', [FuelManagementController::class, 'store'])->name('store');
@@ -98,6 +99,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
 });
 
 // Mileage Logs Routes
+// SECURITY: Restrict administrative mileage logs to authorized personnel only.
 Route::middleware(['auth', 'role:admin,super_admin'])->prefix('mileage-logs')->name('mileage-logs.')->group(function () {
     Route::get('/', [MileageLogController::class, 'index'])->name('index');
     Route::get('/data', [MileageLogController::class, 'getData'])->name('data');
@@ -112,6 +114,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('mileage-logs')->n
 });
 
 // Driver Management Routes
+// SECURITY: Restrict driver management and PII access to administrative roles.
 Route::middleware(['auth', 'role:admin,super_admin'])->prefix('drivers')->name('drivers.')->group(function () {
     Route::get('/', [DriverController::class, 'index'])->name('index');
     Route::get('/create', [DriverController::class, 'create'])->name('create');
@@ -127,6 +130,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('drivers')->name('
 });
 
 
+// SECURITY: Restrict location and station management to administrative roles.
 Route::middleware(['auth', 'role:admin,super_admin'])->prefix('locations')->name('locations.')->group(function () {
     Route::get('/', [LocationController::class, 'index'])->name('index');
     Route::get('/stats', [LocationController::class, 'getStats'])->name('stats');
@@ -155,24 +159,30 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('locations')->name
     Route::delete('/stations/{id}', [LocationController::class, 'deleteStation'])->name('stations.delete');
 });
 
-Route::middleware(['auth', 'role:admin,super_admin'])->prefix('documents')->name('documents.')->group(function () {
-    Route::get('/trashed', [DocumentController::class, 'trashed'])->name('trashed');
-    Route::get('/expiring', [DocumentController::class, 'expiringSoon'])->name('expiring');
-    Route::get('/statistics', [DocumentController::class, 'statistics'])->name('statistics');
-    Route::post('/bulk-action', [DocumentController::class, 'bulkAction'])->name('bulk-action');
+Route::middleware(['auth'])->prefix('documents')->name('documents.')->group(function () {
+    Route::get('/', [DocumentController::class, 'index'])->name('index');
 
-    Route::post('/{id}/restore', [DocumentController::class, 'restore'])->name('restore');
-    Route::delete('/{id}/force', [DocumentController::class, 'forceDestroy'])->name('force-destroy');
-});
+    Route::middleware(['role:admin,super_admin'])->group(function () {
+        Route::get('/create', [DocumentController::class, 'create'])->name('create');
+        Route::post('/', [DocumentController::class, 'store'])->name('store');
+        Route::get('/trashed', [DocumentController::class, 'trashed'])->name('trashed');
+        Route::get('/expiring', [DocumentController::class, 'expiringSoon'])->name('expiring');
+        Route::get('/statistics', [DocumentController::class, 'statistics'])->name('statistics');
+        Route::post('/bulk-action', [DocumentController::class, 'bulkAction'])->name('bulk-action');
+        Route::post('/{id}/restore', [DocumentController::class, 'restore'])->name('restore');
+        Route::delete('/{id}/force', [DocumentController::class, 'forceDestroy'])->name('force-destroy');
+    });
 
-// Regular document routes with internal role-based filtering
-Route::middleware(['auth'])->group(function () {
-    Route::get('/documents/{document}/download', [DocumentController::class, 'download'])->name('documents.download');
-    Route::get('/documents/{document}/preview', [DocumentController::class, 'preview'])->name('documents.preview');
-    Route::post('/documents/{document}/acknowledge', [DocumentController::class, 'acknowledge'])->name('documents.acknowledge');
+    Route::get('/{document}', [DocumentController::class, 'show'])->name('show');
+    Route::get('/{document}/download', [DocumentController::class, 'download'])->name('download');
+    Route::get('/{document}/preview', [DocumentController::class, 'preview'])->name('preview');
+    Route::post('/{document}/acknowledge', [DocumentController::class, 'acknowledge'])->name('acknowledge');
 
-    Route::resource('documents', DocumentController::class)->except(['destroy']);
-    Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
+    Route::middleware(['role:admin,super_admin'])->group(function () {
+        Route::get('/{document}/edit', [DocumentController::class, 'edit'])->name('edit');
+        Route::put('/{document}', [DocumentController::class, 'update'])->name('update');
+        Route::delete('/{document}', [DocumentController::class, 'destroy'])->name('destroy');
+    });
 });
 
 Route::middleware(['auth', 'role:admin,super_admin'])->prefix('reports')->name('reports.')->group(function () {
@@ -191,6 +201,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('reports')->name('
 
 
 // Maintenance Alert Routes
+// SECURITY: Restrict fleet maintenance management to authorized personnel.
 Route::middleware(['auth', 'role:admin,super_admin'])->prefix('maintenance')->name('maintenance.')->group(function () {
     Route::get('/vehicles-needing', [VehicleController::class, 'vehiclesNeedingPage'])->name('vehicles-needing');
     Route::get('/vehicles-needing/data', [VehicleController::class, 'getVehiclesNeedingMaintenance'])->name('vehicles-needing.data');
