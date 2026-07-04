@@ -116,28 +116,24 @@ class MileageLogController extends Controller
                 $query->where('date', '<=', $request->date_to);
             }
 
-            // Bolt: Optimize by using database-level aggregation instead of in-memory collection processing.
-            // This reduces memory consumption and CPU overhead by pushing calculations to the SQL engine.
+            // Bolt: Optimize by using database aggregation instead of in-memory collection processing.
+            // This avoids fetching all records and hydrating models, significantly reducing memory and CPU usage.
             $stats = $query->selectRaw('
-                COUNT(*) as total_logs,
                 SUM(COALESCE(end_mileage, 0) - COALESCE(start_mileage, 0)) as total_distance,
+                COUNT(*) as total_logs,
+                AVG(COALESCE(end_mileage, 0) - COALESCE(start_mileage, 0)) as avg_distance,
                 SUM(CASE WHEN service_alert = 1 THEN 1 ELSE 0 END) as service_alerts
             ')->first();
-
-            $totalDistance = (float) ($stats->total_distance ?? 0);
-            $totalLogs = (int) ($stats->total_logs ?? 0);
-            $serviceAlerts = (int) ($stats->service_alerts ?? 0);
-
-            $avgDistance = $totalLogs > 0 ? $totalDistance / $totalLogs : 0;
+            
             $totalVehicles = Vehicle::where('status', 'active')->count();
 
             return response()->json([
                 'success' => true,
-                'total_distance' => $totalDistance,
-                'total_logs' => $totalLogs,
-                'avg_distance' => $avgDistance,
-                'service_alerts' => $serviceAlerts,
-                'total_vehicles' => $totalVehicles,
+                'total_distance' => (float) ($stats->total_distance ?? 0),
+                'total_logs' => (int) ($stats->total_logs ?? 0),
+                'avg_distance' => (float) ($stats->avg_distance ?? 0),
+                'service_alerts' => (int) ($stats->service_alerts ?? 0),
+                'total_vehicles' => $totalVehicles
             ]);
         } catch (\Exception $e) {
             \Log::error('Error fetching statistics: '.$e->getMessage());
