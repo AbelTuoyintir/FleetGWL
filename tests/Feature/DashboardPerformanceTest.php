@@ -79,9 +79,6 @@ class DashboardPerformanceTest extends TestCase
         $queries = DB::getQueryLog();
         $queryCount = count($queries);
 
-        // Filter out session/auth related queries if possible, but let's just see total first
-        fwrite(STDOUT, "\nDashboard total query count: " . $queryCount . "\n");
-
         $response->assertStatus(200);
     }
 }
