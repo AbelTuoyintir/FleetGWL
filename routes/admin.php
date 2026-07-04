@@ -10,7 +10,7 @@ Use App\Http\Controllers\LocationController;
 use App\Http\Controllers\MaintenanceController as AdminMaintenanceController;
 use App\Http\Controllers\Admin\VehicleTrackingController;
 
-Route::middleware(['auth', 'role:admin'])->prefix('vehicles')->name('vehicles.')->group(function () {
+Route::middleware(['auth', 'role:admin,super_admin'])->prefix('vehicles')->name('vehicles.')->group(function () {
     // Vehicle Tracking (Moved up to avoid collision with /{id})
     Route::get('/tracking', [VehicleTrackingController::class, 'index'])->name('tracking');
     Route::get('/tracking/data', [VehicleTrackingController::class, 'getVehiclesLocations'])->name('tracking.data');
@@ -73,7 +73,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('vehicles')->name('vehicles.')
    
 });
 
-Route::middleware(['auth'])->prefix('fuel-management')->name('fuel-management.')->group(function () {
+Route::middleware(['auth', 'role:admin,super_admin'])->prefix('fuel-management')->name('fuel-management.')->group(function () {
     Route::get('/', [FuelManagementController::class, 'index'])->name('index');
     Route::post('/', [FuelManagementController::class, 'store'])->name('store');
     Route::get('/quick-stats', [FuelManagementController::class, 'quickStats'])->name('quick-stats');
@@ -91,14 +91,14 @@ Route::middleware(['auth'])->prefix('fuel-management')->name('fuel-management.')
 });
 
 // Search API routes
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
     Route::get('/api/vehicles/search', [VehicleController::class, 'searchByRegistrationNumber'])->name('vehicles.search');
     Route::get('/api/vehicles/details/{id?}', [VehicleController::class, 'getVehicleDetails'])->name('vehicles.details');
     Route::get('/api/drivers/search', [DriverController::class, 'searchDrivers'])->name('drivers.search');
 });
 
 // Mileage Logs Routes
-Route::middleware(['auth'])->prefix('mileage-logs')->name('mileage-logs.')->group(function () {
+Route::middleware(['auth', 'role:admin,super_admin'])->prefix('mileage-logs')->name('mileage-logs.')->group(function () {
     Route::get('/', [MileageLogController::class, 'index'])->name('index');
     Route::get('/data', [MileageLogController::class, 'getData'])->name('data');
     Route::get('/statistics', [MileageLogController::class, 'getStatistics'])->name('statistics');
@@ -112,7 +112,7 @@ Route::middleware(['auth'])->prefix('mileage-logs')->name('mileage-logs.')->grou
 });
 
 // Driver Management Routes
-Route::middleware(['auth'])->prefix('drivers')->name('drivers.')->group(function () {
+Route::middleware(['auth', 'role:admin,super_admin'])->prefix('drivers')->name('drivers.')->group(function () {
     Route::get('/', [DriverController::class, 'index'])->name('index');
     Route::get('/create', [DriverController::class, 'create'])->name('create');
     Route::post('/store', [DriverController::class, 'store'])->name('store');
@@ -127,7 +127,7 @@ Route::middleware(['auth'])->prefix('drivers')->name('drivers.')->group(function
 });
 
 
-Route::middleware(['auth'])->prefix('locations')->name('locations.')->group(function () {
+Route::middleware(['auth', 'role:admin,super_admin'])->prefix('locations')->name('locations.')->group(function () {
     Route::get('/', [LocationController::class, 'index'])->name('index');
     Route::get('/stats', [LocationController::class, 'getStats'])->name('stats');
     
@@ -155,22 +155,27 @@ Route::middleware(['auth'])->prefix('locations')->name('locations.')->group(func
     Route::delete('/stations/{id}', [LocationController::class, 'deleteStation'])->name('stations.delete');
 });
 
-Route::middleware(['auth'])->prefix('documents')->name('documents.')->group(function () {
+Route::middleware(['auth', 'role:admin,super_admin'])->prefix('documents')->name('documents.')->group(function () {
     Route::get('/trashed', [DocumentController::class, 'trashed'])->name('trashed');
     Route::get('/expiring', [DocumentController::class, 'expiringSoon'])->name('expiring');
     Route::get('/statistics', [DocumentController::class, 'statistics'])->name('statistics');
     Route::post('/bulk-action', [DocumentController::class, 'bulkAction'])->name('bulk-action');
 
-    Route::get('/{document}/download', [DocumentController::class, 'download'])->name('download');
-    Route::get('/{document}/preview', [DocumentController::class, 'preview'])->name('preview');
-    Route::post('/{document}/acknowledge', [DocumentController::class, 'acknowledge'])->name('acknowledge');
     Route::post('/{id}/restore', [DocumentController::class, 'restore'])->name('restore');
     Route::delete('/{id}/force', [DocumentController::class, 'forceDestroy'])->name('force-destroy');
 });
-Route::middleware(['auth'])->resource('documents', DocumentController::class)->except(['destroy']);
-Route::middleware(['auth'])->delete('/documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
 
-Route::middleware(['auth'])->prefix('reports')->name('reports.')->group(function () {
+// Regular document routes with internal role-based filtering
+Route::middleware(['auth'])->group(function () {
+    Route::get('/documents/{document}/download', [DocumentController::class, 'download'])->name('documents.download');
+    Route::get('/documents/{document}/preview', [DocumentController::class, 'preview'])->name('documents.preview');
+    Route::post('/documents/{document}/acknowledge', [DocumentController::class, 'acknowledge'])->name('documents.acknowledge');
+
+    Route::resource('documents', DocumentController::class)->except(['destroy']);
+    Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
+});
+
+Route::middleware(['auth', 'role:admin,super_admin'])->prefix('reports')->name('reports.')->group(function () {
     Route::get('/utilization', function () {
         return redirect('/vehicles?tab=status-overview');
     })->name('utilization');
@@ -186,7 +191,7 @@ Route::middleware(['auth'])->prefix('reports')->name('reports.')->group(function
 
 
 // Maintenance Alert Routes
-Route::middleware(['auth'])->prefix('maintenance')->name('maintenance.')->group(function () {
+Route::middleware(['auth', 'role:admin,super_admin'])->prefix('maintenance')->name('maintenance.')->group(function () {
     Route::get('/vehicles-needing', [VehicleController::class, 'vehiclesNeedingPage'])->name('vehicles-needing');
     Route::get('/vehicles-needing/data', [VehicleController::class, 'getVehiclesNeedingMaintenance'])->name('vehicles-needing.data');
     Route::post('/vehicle/{id}/acknowledge', [VehicleController::class, 'acknowledgeAlert'])->name('acknowledge');
