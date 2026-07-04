@@ -1,9 +1,4 @@
-## 2025-05-15 - [Sensitive Data Leak in Logs]
-**Vulnerability:** Plaintext passwords were being recorded in system logs in `DriverController@store` when creating new driver accounts.
-**Learning:** Logging the entire `$validated` array after validation is a common but dangerous pattern if that array contains sensitive user-provided data like passwords.
-**Prevention:** Always sanitize data before logging. Use `Arr::except()` to strip sensitive keys from arrays before passing them to the logger.
-
-## 2025-05-15 - [Unrestricted File Upload / Stored XSS]
-**Vulnerability:** `DocumentController` allowed uploading any file type for fleet documents, which could lead to Stored XSS if a malicious HTML file was uploaded and then previewed.
-**Learning:** Generic file validation (`file`) without extension or MIME type restrictions (`mimes`) is insufficient for public-facing or previewable uploads.
-**Prevention:** Implement strict `mimes` validation rules on all file upload endpoints to restrict allowed formats to a known safe list.
+## 2024-05-15 - Broken Object Level Authorization (BOLA) in Admin Routes
+**Vulnerability:** Several administrative route groups (Fuel Management, Mileage Logs, Driver Management, Locations, and Maintenance) were only protected by the `auth` middleware, allowing any authenticated user (e.g., drivers) to access sensitive management interfaces and data.
+**Learning:** Route-level middleware must explicitly check for appropriate roles/permissions, even if they are prefixed with 'admin' or placed in an 'admin.php' file, as 'auth' only verifies identity, not authorization.
+**Prevention:** Always apply specific role-based middleware (e.g., `role:admin`) to administrative route groups and verify access controls with automated tests that include non-privileged roles.
