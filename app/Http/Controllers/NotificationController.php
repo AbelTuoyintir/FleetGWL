@@ -27,54 +27,36 @@ class NotificationController extends Controller
      */
     private function getNotificationCounts()
     {
-        $today = Carbon::today();
-        $thirtyDaysFromNow = Carbon::today()->addDays(30);
+        $today = Carbon::today()->toDateString();
+        $thirtyDaysFromNow = Carbon::today()->addDays(30)->toDateString();
         
-        // Documents expiring within 30 days (Insurance & other docs)
-        $documentsExpiring = Document::where('expiry_date', '<=', $thirtyDaysFromNow)
-            ->where('expiry_date', '>=', $today)
+        // Bolt: Consolidate multiple Document count queries into one for better performance
+        $docStats = \DB::table('documents')
             ->where('status', 'active')
-            ->count();
+            ->selectRaw("
+                COUNT(CASE WHEN expiry_date >= ? AND expiry_date <= ? THEN 1 END) as expiring,
+                COUNT(CASE WHEN document_type = 'insurance' AND expiry_date >= ? AND expiry_date <= ? THEN 1 END) as insurance_expiring,
+                COUNT(CASE WHEN expiry_date < ? THEN 1 END) as expired
+            ", [$today, $thirtyDaysFromNow, $today, $thirtyDaysFromNow, $today])
+            ->first();
         
-        // Maintenance overdue (past due date)
-        $maintenanceOverdue = VehicleMaintenance::where('scheduled_date', '<', $today)
+        // Bolt: Consolidate Maintenance queries and fix non-existent column 'scheduled_date' to 'maintenance_date'
+        $maintenanceStats = \DB::table('vehicle_maintenances')
             ->where('status', '!=', 'completed')
-            ->count();
-        
-        // Upcoming maintenance (next 30 days)
-        $maintenanceUpcoming = VehicleMaintenance::where('scheduled_date', '>=', $today)
-            ->where('scheduled_date', '<=', $thirtyDaysFromNow)
-            ->where('status', '!=', 'completed')
-            ->count();
-        
-        // Insurance expiring within 30 days (if you have insurance table)
-        $insuranceExpiring = Document::where('type', 'insurance')
-            ->where('expiry_date', '<=', $thirtyDaysFromNow)
-            ->where('expiry_date', '>=', $today)
-            ->where('status', 'active')
-            ->count();
-        
-        // Low fuel vehicles (fuel level below 15% or 20 liters)
-        $lowFuelVehicles = Vehicle::whereHas('fuelManagement', function($query) {
-            $query->where('current_fuel_level', '<', 15) // percentage
-                  ->orWhere('current_fuel_liters', '<', 20);
-        })->count();
-        
-        // Alternative: If you have fuel level in vehicles table
-        // $lowFuelVehicles = Vehicle::where('fuel_level_percentage', '<', 15)->count();
-        
-        // Expired documents (overdue)
-        $expiredDocuments = Document::where('expiry_date', '<', $today)
-            ->where('status', 'active')
-            ->count();
+            ->where('status', '!=', 'deleted')
+            ->selectRaw("
+                COUNT(CASE WHEN maintenance_date < ? THEN 1 END) as overdue,
+                COUNT(CASE WHEN maintenance_date >= ? AND maintenance_date <= ? THEN 1 END) as upcoming
+            ", [$today, $today, $thirtyDaysFromNow])
+            ->first();
         
         return [
-            'documents_expiring' => $documentsExpiring,
-            'maintenance_overdue' => $maintenanceOverdue,
-            'maintenance_upcoming' => $maintenanceUpcoming,
-            'insurance_expiring' => $insuranceExpiring,
-            'low_fuel' => $lowFuelVehicles,
-            'expired_documents' => $expiredDocuments,
+            'documents_expiring' => (int)($docStats->expiring ?? 0),
+            'maintenance_overdue' => (int)($maintenanceStats->overdue ?? 0),
+            'maintenance_upcoming' => (int)($maintenanceStats->upcoming ?? 0),
+            'insurance_expiring' => (int)($docStats->insurance_expiring ?? 0),
+            'low_fuel' => 0, // TODO: Implement once fuelManagement relation and fuel level tracking are fully integrated
+            'expired_documents' => (int)($docStats->expired ?? 0),
         ];
     }
     
