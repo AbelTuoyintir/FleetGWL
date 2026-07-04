@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BelongsToTenant;
 use Illuminate\Support\Str;
 
 class Document extends Model

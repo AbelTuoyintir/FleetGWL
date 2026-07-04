@@ -8,10 +8,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 use App\Traits\Auditable;
+use App\Traits\BelongsToTenant;
 
 class Vehicle extends Model
 {
-    use Auditable, SoftDeletes;
+    use Auditable, SoftDeletes, BelongsToTenant;
 
     protected $fillable = [
         'registration_number',
@@ -33,6 +34,7 @@ class Vehicle extends Model
         'district_id',
         'region_id',
         'station_id',
+        'company_id',
         'assigned_driver_id',
         'current_latitude',
         'current_longitude',
