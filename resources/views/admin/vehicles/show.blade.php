@@ -2175,6 +2175,51 @@ $(document).ready(function() {
         }
     });
 });
+
+/**
+ * Copy text to clipboard with fallback and notification
+ */
+function copyToClipboard(text) {
+    if (!navigator.clipboard) {
+        fallbackCopyToClipboard(text);
+        return;
+    }
+    navigator.clipboard.writeText(text).then(function() {
+        showNotification('success', 'Registration number copied to clipboard!');
+    }, function(err) {
+        console.error('Could not copy text: ', err);
+        fallbackCopyToClipboard(text);
+    });
+}
+
+function fallbackCopyToClipboard(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+
+    // Ensure textarea is not visible but part of the DOM
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showNotification('success', 'Registration number copied to clipboard!');
+        } else {
+            showNotification('error', 'Failed to copy text.');
+        }
+    } catch (err) {
+        console.error('Fallback: Oops, unable to copy', err);
+        showNotification('error', 'Failed to copy text.');
+    }
+
+    document.body.removeChild(textArea);
+}
 </script>
 
 
