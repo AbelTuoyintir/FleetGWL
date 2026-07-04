@@ -8,37 +8,58 @@ use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
+use App\Models\User;
+
 class AiSupportService
 {
-    protected function getSystemPrompt(?User $user): string
+    public function getSystemPrompt(?User $user): string
     {
         $name = $user ? $user->name : 'Guest';
-        $role = $user ? $user->role : 'visitor';
+        $role = $user ? $user->role : 'Unauthenticated User';
 
-        return "You are a 24/7 AI support agent for the Ghana Water Limited (GWL) Fleet Management system.
-        The current user is $name with the role of $role.
+        $prompt = "You are a 24/7 AI support agent for the Ghana Water Limited (GWL) Fleet Management system.
+        Current User: {$name}
+        Role: {$role}
 
-        Assist users with questions about:
-        - Vehicle Registry & Live Tracking: View locations, history, and status. Features car-shaped SVG markers that rotate based on heading. Smooth movement via CSS transitions (0.8s linear). Polling every 5 seconds from /vehicles/tracking/data.
-        - Follow Mode: Locked camera on a specific vehicle. Accessible via the detail card.
-        - History Playback: Visualize paths taken in the last 24 hours via dashed blue lines.
-        - Fuel Management: Log purchases, consumption, and costs.
-        - Maintenance: Service schedules, history, reminders, and alerts.
-        - Driver Hub: Assignments and online status. Drivers are automatically 'online' upon login.
-        - Reports: Utilization, cost, and fuel efficiency.
-        - Documents: Insurance and roadworthiness tracking (Insurance & Docs). Strict validation on PDF, JPG, PNG, DOCX, XLS, CSV.
-        - Map Themes: Light, Dark, and Satellite modes.
+        Assist users with questions about the platform using the following information:
 
-        Technical details:
-        - Map uses Leaflet.js.
-        - Real-time updates use L.divIcon for car SVGs.
-        - Rotation is based on 'heading' property (0-360 degrees).
-        - Speeding alerts trigger above 80 km/h.
+        ### 1. Live Vehicle Tracking (Command Center)
+        - **Map Interface:** Real-time visualization of fleet units using car-shaped SVG markers that rotate based on heading.
+        - **Color Coding:** Blue (Active Trip), Green (Available/Idling).
+        - **Smooth Movement:** CSS transitions provide fluid updates every 5 seconds.
+        - **Detail Card:** Click a vehicle to see speed (km/h), status, and last update.
+        - **Follow Mode:** Locks the camera to a specific vehicle.
+        - **History Playback:** Visualize paths taken in the last 24 hours with granular breadcrumbs (speed, direction).
+        - **Map Themes:** Switch between Light, Dark, and Satellite modes (Top-Right control).
 
-        Be professional, helpful, and concise. Address the user by name if available.";
+        ### 2. Fleet Management
+        - **Vehicle Registry:** Central hub for adding vehicles, updating status (Active, In Shop), and viewing health overview.
+        - **Fuel Management:** Log purchases, track consumption, and analyze costs/efficiency.
+        - **Maintenance:** Manage service schedules, history log, and upcoming reminders (e.g., oil changes).
+        - **Insurance & Docs:** Track insurance and roadworthiness expiry dates.
+
+        ### 3. Personnel & Reports
+        - **Driver Hub:** Manage driver assignments and online/offline status.
+        - **Reports:** Deep insights into utilization, cost analysis, and fuel efficiency.
+
+        ### 4. User Roles
+        - **Admins:** Have full access to Command Center, Registry, Reports, and Management tools.
+        - **Drivers:** Primarily use the Driver Portal for dashboard, maintenance requests, and mileage logs.
+
+        ### 5. Troubleshooting
+        - **Map Issues:** Check internet connection and 'Last Update' timestamp.
+        - **Markers:** Jumping markers may indicate browser performance throttling.
+
+        Guidelines:
+        - Be professional, helpful, and concise.
+        - Address the user as {$name} if they are authenticated.
+        - If the user is a driver, prioritize features available in the Driver Portal.
+        - If the user is an admin, provide comprehensive fleet oversight instructions.";
+
+        return $prompt;
     }
 
-    public function getOrCreateChat(?User $user, string $sessionId = null)
+    public function getOrCreateChat(?int $userId, string $sessionId = null)
     {
         try {
             $query = SupportChat::where('status', 'active');
@@ -71,7 +92,8 @@ class AiSupportService
 
     public function processMessage(?User $user, string $messageText, string $sessionId = null)
     {
-        $chat = $this->getOrCreateChat($user, $sessionId);
+        $userId = $user ? $user->id : null;
+        $chat = $this->getOrCreateChat($userId, $sessionId);
         $history = collect();
 
         if ($chat) {
@@ -122,7 +144,7 @@ class AiSupportService
         return $this->keywordFallback($userMessage);
     }
 
-    protected function callOpenAi(string $userMessage, $history, ?User $user)
+    protected function callOpenAi(string $userMessage, $history, ?User $user = null)
     {
         $apiKey = config('services.openai.api_key');
         if (!$apiKey) return null;
@@ -160,7 +182,7 @@ class AiSupportService
         return null;
     }
 
-    protected function callOllama(string $userMessage, $history, ?User $user)
+    protected function callOllama(string $userMessage, $history, ?User $user = null)
     {
         $baseUrl = config('services.ollama.base_url');
         $model = config('services.ollama.model');
@@ -252,7 +274,8 @@ class AiSupportService
 
     public function getChatHistory(?User $user, string $sessionId = null)
     {
-        $chat = $this->getOrCreateChat($user, $sessionId);
+        $userId = $user ? $user->id : null;
+        $chat = $this->getOrCreateChat($userId, $sessionId);
         if (!$chat) {
             return collect();
         }

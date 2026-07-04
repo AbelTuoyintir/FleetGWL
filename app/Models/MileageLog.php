@@ -70,7 +70,7 @@ class MileageLog extends Model
         parent::boot();
 
         static::saving(function ($model) {
-            if ($model->start_mileage && $model->end_mileage) {
+            if (!is_null($model->start_mileage) && !is_null($model->end_mileage)) {
                 $distance = $model->end_mileage - $model->start_mileage;
                 // Set service alert if distance covered exceeds threshold (5000 km)
                 $model->service_alert = $distance > 5000;
