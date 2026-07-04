@@ -19,6 +19,7 @@ class District extends Model
      * @var array<string>
      */
     protected $fillable = [
+        "company_id",
         'name',
         'code',
         'region_id',

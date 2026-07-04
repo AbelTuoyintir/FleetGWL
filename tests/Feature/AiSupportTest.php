@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\Company;
 use App\Models\SupportChat;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -30,7 +31,12 @@ class AiSupportTest extends TestCase
 
     public function test_user_can_send_message_and_get_openai_response()
     {
-        $user = User::factory()->create();
+        $company = Company::create(['name' => 'Test', 'slug' => 'test']);
+        $user = User::factory()->create(['company_id' => $company->id]);
+
+        // Ensure tenant is bound for test
+        app()->instance('tenant_id', $company->id);
+
         config(['services.openai.api_key' => 'test-key']);
 
         Http::fake([
@@ -58,7 +64,8 @@ class AiSupportTest extends TestCase
 
     public function test_ai_support_uses_personalized_system_prompt()
     {
-        $user = User::factory()->create(['name' => 'John Doe', 'role' => 'admin']);
+        $company = Company::create(['name' => 'Test', 'slug' => 'test']);
+        $user = User::factory()->create(['name' => 'John Doe', 'role' => 'admin', 'company_id' => $company->id]);
         config(['services.openai.api_key' => 'test-key']);
 
         Http::fake([
@@ -84,7 +91,8 @@ class AiSupportTest extends TestCase
 
     public function test_user_falls_back_to_ollama_if_openai_fails()
     {
-        $user = User::factory()->create();
+        $company = Company::create(['name' => 'Test', 'slug' => 'test']);
+        $user = User::factory()->create(['company_id' => $company->id]);
         config(['services.openai.api_key' => 'test-key']);
         config(['services.ollama.base_url' => 'http://localhost:11434']);
 
@@ -107,7 +115,8 @@ class AiSupportTest extends TestCase
 
     public function test_user_falls_back_to_keywords_if_all_apis_fail()
     {
-        $user = User::factory()->create();
+        $company = Company::create(['name' => 'Test', 'slug' => 'test']);
+        $user = User::factory()->create(['company_id' => $company->id]);
         config(['services.openai.api_key' => 'test-key']);
 
         Http::fake([
@@ -127,7 +136,8 @@ class AiSupportTest extends TestCase
 
     public function test_user_can_ask_about_follow_mode_in_fallback()
     {
-        $user = User::factory()->create();
+        $company = Company::create(['name' => 'Test', 'slug' => 'test']);
+        $user = User::factory()->create(['company_id' => $company->id]);
         Http::fake(['*' => Http::response([], 500)]);
 
         $response = $this->actingAs($user)
@@ -139,7 +149,11 @@ class AiSupportTest extends TestCase
 
     public function test_user_can_get_chat_history()
     {
-        $user = User::factory()->create();
+        $company = Company::create(['name' => 'Test', 'slug' => 'test']);
+        $user = User::factory()->create(['company_id' => $company->id]);
+
+        // Ensure tenant is bound for test
+        app()->instance('tenant_id', $company->id);
 
         // Mock response
         Http::fake([

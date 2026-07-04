@@ -12,6 +12,7 @@ class FuelLog extends Model
     use Auditable, SoftDeletes, BelongsToTenant;
 
     protected $fillable = [
+        "company_id",
         'vehicle_id',
         'date',
         'odometer',

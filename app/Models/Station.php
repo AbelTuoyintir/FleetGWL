@@ -19,6 +19,7 @@ class Station extends Model
      * @var array<string>
      */
     protected $fillable = [
+        "company_id",
         'name',
         'code',
         'type',

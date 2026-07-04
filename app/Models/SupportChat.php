@@ -11,7 +11,7 @@ class SupportChat extends Model
 {
     use HasFactory, SoftDeletes, BelongsToTenant;
 
-    protected $fillable = ['user_id', 'session_id', 'subject', 'status'];
+    protected $fillable = ['user_id', 'session_id', 'subject', 'status', 'company_id'];
 
     public function user()
     {

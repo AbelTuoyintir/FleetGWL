@@ -14,6 +14,7 @@ class MileageLog extends Model
     use HasFactory, Auditable, BelongsToTenant;
 
     protected $fillable = [
+        "company_id",
         'vehicle_id',
         'driver_id',
         'start_mileage',

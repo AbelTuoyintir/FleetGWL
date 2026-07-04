@@ -6,12 +6,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 use App\Traits\Auditable;
+use App\Traits\BelongsToTenant;
 
 class Maintenance extends Model
 {
-    use HasFactory, Auditable;
+    use HasFactory, Auditable, SoftDeletes, BelongsToTenant;
 
     protected $table = 'vehicle_maintenances';
     protected static ?string $resolvedTable = null;
@@ -60,6 +62,7 @@ class Maintenance extends Model
         'next_expected_mileage',
         'status',
         'attachments',
+        'company_id',
         'created_by',
         'modified_by',
         'deleted_by',
