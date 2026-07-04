@@ -1747,67 +1747,6 @@ url: '{{ route("vehicles.fuel.store") }}',
     });
 });
 
-// Simple notification function (you can customize this)
-function copyToClipboard(text) {
-    if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(text).then(() => {
-            showNotification('success', 'Registration number copied to clipboard');
-        }).catch(err => {
-            console.error('Could not copy text: ', err);
-        });
-    } else {
-        // Fallback for non-secure contexts
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
-        try {
-            document.execCommand('copy');
-            showNotification('success', 'Registration number copied to clipboard');
-        } catch (err) {
-            console.error('Fallback copy failed: ', err);
-        }
-        document.body.removeChild(textArea);
-    }
-}
-
-function showNotification(type, message) {
-    // Create notification element
-    let notification = $(`
-        <div class="fixed top-4 right-4 z-50 animate-slide-in">
-            <div class="px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 ${
-                type === 'success' ? 'bg-green-500' : 'bg-red-500'
-            } text-white">
-                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
-                <span class="text-sm">${message}</span>
-                <button onclick="$(this).closest('.fixed').remove()" class="ml-4 text-white hover:text-gray-200" aria-label="Dismiss notification" title="Dismiss">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        </div>
-    `);
-    
-    $('body').append(notification);
-    
-    // Auto remove after 3 seconds
-    setTimeout(() => {
-        notification.fadeOut(300, function() { $(this).remove(); });
-    }, 3000);
-}
-
-// Add CSS for slide-in animation
-$('<style>')
-    .prop('type', 'text/css')
-    .html(`
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        .animate-slide-in {
-            animation: slideIn 0.3s ease-out;
-        }
-    `)
-    .appendTo('head');
 
 // Update tab switching to load data when tabs are clicked
 
@@ -2176,50 +2115,6 @@ $(document).ready(function() {
     });
 });
 
-/**
- * Copy text to clipboard with fallback and notification
- */
-function copyToClipboard(text) {
-    if (!navigator.clipboard) {
-        fallbackCopyToClipboard(text);
-        return;
-    }
-    navigator.clipboard.writeText(text).then(function() {
-        showNotification('success', 'Registration number copied to clipboard!');
-    }, function(err) {
-        console.error('Could not copy text: ', err);
-        fallbackCopyToClipboard(text);
-    });
-}
-
-function fallbackCopyToClipboard(text) {
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-
-    // Ensure textarea is not visible but part of the DOM
-    textArea.style.top = "0";
-    textArea.style.left = "0";
-    textArea.style.position = "fixed";
-    textArea.style.opacity = "0";
-
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-
-    try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-            showNotification('success', 'Registration number copied to clipboard!');
-        } else {
-            showNotification('error', 'Failed to copy text.');
-        }
-    } catch (err) {
-        console.error('Fallback: Oops, unable to copy', err);
-        showNotification('error', 'Failed to copy text.');
-    }
-
-    document.body.removeChild(textArea);
-}
 </script>
 
 

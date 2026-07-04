@@ -152,7 +152,12 @@
                                         $driverName = is_string($driverValue) ? $driverValue : data_get($v, 'assignedDriver.name');
                                     @endphp
                                     <tr class="hover-row">
-                                        <td class="font-medium">{{ data_get($v, 'plate_number', 'N/A') }}</td>
+                                        <td class="font-medium">
+                                            {{ data_get($v, 'plate_number', 'N/A') }}
+                                            <button onclick="copyToClipboard('{{ data_get($v, 'plate_number', 'N/A') }}')" class="ml-1 text-gray-400 hover:text-blue-600 transition" title="Copy Plate Number" aria-label="Copy Plate Number">
+                                                <i class="far fa-copy text-[10px]"></i>
+                                            </button>
+                                        </td>
                                         <td>{{ $regionName ?: '-' }}</td>
                                         <td>
                                             @if($driverName)
@@ -377,7 +382,12 @@
             }
             root.innerHTML = items.map((v) => `
                 <tr class="hover-row">
-                    <td class="font-medium">${v.plate_number || 'N/A'}</td>
+                    <td class="font-medium">
+                        ${v.plate_number || 'N/A'}
+                        <button onclick="copyToClipboard('${v.plate_number || 'N/A'}')" class="ml-1 text-gray-400 hover:text-blue-600 transition" title="Copy Plate Number" aria-label="Copy Plate Number">
+                            <i class="far fa-copy text-[10px]"></i>
+                        </button>
+                    </td>
                     <td>${v.region?.name || '-'}</td>
                     <td>${v.assignedDriver?.name || '<span class="text-gray-400">Unassigned</span>'}</td>
                     <td>${v.created_at || '-'}</td>
