@@ -137,12 +137,12 @@
                     <a href="{{ route('vehicles.index') }}" class="text-gray-500 hover:text-gray-700" aria-label="Back to vehicles list" title="Back to vehicles list">
                         <i class="fas fa-arrow-left"></i>
                     </a>
-                    <div class="flex items-center gap-1">
-                        <h1 class="text-2xl font-bold text-gray-800">{{ $vehicle->registration_number }}</h1>
-                        <button onclick="copyToClipboard('{{ $vehicle->registration_number }}')" class="text-gray-400 hover:text-blue-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-1" aria-label="Copy registration number" title="Copy registration number">
-                            <i class="far fa-copy"></i>
+                    <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                        <span id="plateNumber">{{ $vehicle->registration_number }}</span>
+                        <button onclick="copyToClipboard('{{ $vehicle->registration_number }}')" class="text-gray-400 hover:text-blue-600 transition-colors" title="Copy Registration Number" aria-label="Copy Registration Number">
+                            <i class="far fa-copy text-sm"></i>
                         </button>
-                    </div>
+                    </h1>
                     <span class="status-badge status-{{ $vehicle->status }}">
                         <i class="fas {{ $vehicle->status == 'active' ? 'fa-check-circle' : ($vehicle->status == 'maintenance' ? 'fa-tools' : 'fa-circle') }}"></i>
                         {{ ucfirst($vehicle->status) }}
@@ -1751,6 +1751,29 @@ url: '{{ route("vehicles.fuel.store") }}',
 });
 
 // Simple notification function (you can customize this)
+function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => {
+            showNotification('success', 'Registration number copied to clipboard');
+        }).catch(err => {
+            console.error('Could not copy text: ', err);
+        });
+    } else {
+        // Fallback for non-secure contexts
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showNotification('success', 'Registration number copied to clipboard');
+        } catch (err) {
+            console.error('Fallback copy failed: ', err);
+        }
+        document.body.removeChild(textArea);
+    }
+}
+
 function showNotification(type, message) {
     // Create notification element
     let notification = $(`
@@ -2156,40 +2179,46 @@ $(document).ready(function() {
     });
 });
 
+/**
+ * Copy text to clipboard with fallback and notification
+ */
 function copyToClipboard(text) {
     if (!navigator.clipboard) {
-        fallbackCopyTextToClipboard(text);
+        fallbackCopyToClipboard(text);
         return;
     }
     navigator.clipboard.writeText(text).then(function() {
-        showNotification('success', 'Registration number copied to clipboard');
+        showNotification('success', 'Registration number copied to clipboard!');
     }, function(err) {
         console.error('Could not copy text: ', err);
+        fallbackCopyToClipboard(text);
     });
 }
 
-function fallbackCopyTextToClipboard(text) {
-    var textArea = document.createElement("textarea");
+function fallbackCopyToClipboard(text) {
+    const textArea = document.createElement("textarea");
     textArea.value = text;
 
-    // Avoid scrolling to bottom
+    // Ensure textarea is not visible but part of the DOM
     textArea.style.top = "0";
     textArea.style.left = "0";
     textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
 
     document.body.appendChild(textArea);
     textArea.focus();
     textArea.select();
 
     try {
-        var successful = document.execCommand('copy');
+        const successful = document.execCommand('copy');
         if (successful) {
-            showNotification('success', 'Registration number copied to clipboard');
+            showNotification('success', 'Registration number copied to clipboard!');
         } else {
-            console.error('Fallback: Copying text command was unsuccessful');
+            showNotification('error', 'Failed to copy text.');
         }
     } catch (err) {
         console.error('Fallback: Oops, unable to copy', err);
+        showNotification('error', 'Failed to copy text.');
     }
 
     document.body.removeChild(textArea);

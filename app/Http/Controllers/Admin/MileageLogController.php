@@ -116,22 +116,23 @@ class MileageLogController extends Controller
                 $query->where('date', '<=', $request->date_to);
             }
 
-            $logs = $query->get();
+            // Bolt: Optimize by using database aggregation instead of in-memory collection processing.
+            // This avoids fetching all records and hydrating models, significantly reducing memory and CPU usage.
+            $stats = $query->selectRaw('
+                SUM(COALESCE(end_mileage, 0) - COALESCE(start_mileage, 0)) as total_distance,
+                COUNT(*) as total_logs,
+                AVG(COALESCE(end_mileage, 0) - COALESCE(start_mileage, 0)) as avg_distance,
+                SUM(CASE WHEN service_alert = 1 THEN 1 ELSE 0 END) as service_alerts
+            ')->first();
             
-            $totalDistance = $logs->sum(function($log) {
-                return $log->end_mileage - $log->start_mileage;
-            });
-            
-            $avgDistance = $logs->count() > 0 ? $totalDistance / $logs->count() : 0;
-            $serviceAlerts = $logs->where('service_alert', true)->count();
             $totalVehicles = Vehicle::where('status', 'active')->count();
 
             return response()->json([
                 'success' => true,
-                'total_distance' => $totalDistance,
-                'total_logs' => $logs->count(),
-                'avg_distance' => $avgDistance,
-                'service_alerts' => $serviceAlerts,
+                'total_distance' => (float) ($stats->total_distance ?? 0),
+                'total_logs' => (int) ($stats->total_logs ?? 0),
+                'avg_distance' => (float) ($stats->avg_distance ?? 0),
+                'service_alerts' => (int) ($stats->service_alerts ?? 0),
                 'total_vehicles' => $totalVehicles
             ]);
         } catch (\Exception $e) {
