@@ -5,3 +5,7 @@
 ## 2025-07-01 - [Handling Zero in Conditional Logic]
 **Learning:** In PHP, the expression `if ($model->start_mileage)` will evaluate to `false` if the mileage is `0`. This can lead to silent failures in observers or business logic when `0` is a valid and significant value.
 **Action:** Use `!is_null($value)` or strict comparison when checking for the presence of numeric fields that could be zero.
+
+## 2025-07-01 - [Consolidating Multiple Counts]
+**Learning:** Multiple separate `count()` queries on the same table with different conditions can be consolidated into a single query using `selectRaw` with conditional aggregation (e.g., `COUNT(CASE WHEN ... THEN 1 END)`). This significantly reduces database round-trips.
+**Action:** Use conditional aggregation to fetch multiple counts from the same table in a single query.
