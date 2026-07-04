@@ -720,6 +720,7 @@
 
             const pos = [v.current_latitude, v.current_longitude];
             const isMoving = v.speed > 0;
+            const isSpeeding = v.speed > 80;
             const isOffline = (new Date() - new Date(v.last_seen_at)) >= 300000;
             const isSpeeding = v.speed > 80;
             const markerColor = isOffline ? '#94a3b8' : (isSpeeding ? '#ef4444' : (isMoving ? '#3b82f6' : '#10b981'));
@@ -853,7 +854,7 @@
         document.getElementById('cardBattery').innerText = `${Number(v.battery).toFixed(1)}V`;
 
         document.getElementById('cardDriver').innerText = v.assigned_driver ? v.assigned_driver.name : 'Unassigned';
-        document.getElementById('cardLastSeen').innerText = getTimeAgo(v.last_seen_at);
+        document.getElementById('cardLastSeen').innerText = `${getTimeAgo(v.last_seen_at)} • ETA: ${v.eta}m`;
         document.getElementById('detailsLink').href = `/vehicles/${v.id}`;
 
         document.getElementById('historyBtn').onclick = () => loadHistory(v.id);
