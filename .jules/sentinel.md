@@ -1,4 +1,4 @@
-## 2026-07-02 - [Critical Authorization Bypass in Admin Routes]
-**Vulnerability:** Several administrative route groups in `routes/admin.php` were only protected by `auth` middleware, allowing any authenticated user (including drivers) to access sensitive administrative features like Fuel Management, Driver Management, and system reports.
-**Learning:** Route prefixes and grouping can lead to security gaps if middleware is not consistently applied to all groups. Over-reliance on the assumption that `/admin` or similar prefixes are automatically protected can be dangerous.
-**Prevention:** Always use a standard security template for routes. Apply role-based middleware to all administrative route groups explicitly, even if they are within a protected prefix, to ensure defense-in-depth.
+## 2024-05-15 - Broken Object Level Authorization (BOLA) in Admin Routes
+**Vulnerability:** Several administrative route groups (Fuel Management, Mileage Logs, Driver Management, Locations, and Maintenance) were only protected by the `auth` middleware, allowing any authenticated user (e.g., drivers) to access sensitive management interfaces and data.
+**Learning:** Route-level middleware must explicitly check for appropriate roles/permissions, even if they are prefixed with 'admin' or placed in an 'admin.php' file, as 'auth' only verifies identity, not authorization.
+**Prevention:** Always apply specific role-based middleware (e.g., `role:admin`) to administrative route groups and verify access controls with automated tests that include non-privileged roles.
