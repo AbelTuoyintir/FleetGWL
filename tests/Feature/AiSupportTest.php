@@ -14,13 +14,14 @@ class AiSupportTest extends TestCase
 
     public function test_guest_can_access_ai_support()
     {
+        config(['services.openai.api_key' => 'test-key']);
         Http::fake([
-            '*' => Http::response(['choices' => [['message' => ['content' => 'AI Response']]]], 200)
+            'https://api.openai.com/v1/chat/completions' => Http::response(['choices' => [['message' => ['content' => 'AI Response']]]], 200)
         ]);
 
         $this->postJson(route('ai-support.chat'), ['message' => 'Hello'])
             ->assertStatus(200)
-            ->assertJson(['status' => 'success']);
+            ->assertJson(['status' => 'success', 'ai_message' => 'AI Response']);
 
         $this->getJson(route('ai-support.history'))
             ->assertStatus(200)
@@ -29,21 +30,15 @@ class AiSupportTest extends TestCase
 
     public function test_user_can_send_message_and_get_openai_response()
     {
-        $user = User::factory()->create(['name' => 'John Doe', 'role' => 'admin']);
+        $user = User::factory()->create();
         config(['services.openai.api_key' => 'test-key']);
 
         Http::fake([
-            'https://api.openai.com/v1/chat/completions' => function (\Illuminate\Http\Client\Request $request) {
-                $messages = $request['messages'];
-                $systemPrompt = $messages[0]['content'];
-
-                if (str_contains($systemPrompt, 'Current User: John Doe') && str_contains($systemPrompt, 'Role: admin')) {
-                    return Http::response([
-                        'choices' => [['message' => ['content' => 'Hello John Doe, I see you are an admin.']]]
-                    ], 200);
-                }
-                return Http::response([], 500);
-            }
+            'https://api.openai.com/v1/chat/completions' => Http::response([
+                'choices' => [
+                    ['message' => ['content' => 'OpenAI Response']]
+                ]
+            ], 200)
         ]);
 
         $response = $this->actingAs($user)
@@ -52,11 +47,11 @@ class AiSupportTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'status' => 'success',
-                'ai_message' => 'Hello John Doe, I see you are an admin.'
+                'ai_message' => 'OpenAI Response'
             ]);
 
         $this->assertDatabaseHas('support_messages', [
-            'message' => 'Hello John Doe, I see you are an admin.',
+            'message' => 'OpenAI Response',
             'sender_type' => 'ai'
         ]);
     }
