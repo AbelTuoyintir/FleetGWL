@@ -197,6 +197,31 @@
             </div>
 
             <div class="space-y-5">
+                <!-- Live Fleet Ticker -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-900 p-4 text-white flex justify-between items-center">
+                        <h3 class="font-bold text-sm uppercase tracking-widest"><i class="fas fa-satellite-dish mr-2 text-blue-400"></i>Live Fleet Ticker</h3>
+                        <div class="flex items-center gap-1.5">
+                            <span class="relative flex h-2 w-2">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                            </span>
+                            <span class="text-[10px] font-bold opacity-70 uppercase">Live</span>
+                        </div>
+                    </div>
+                    <div id="liveTickerList" class="divide-y divide-slate-100 max-h-[300px] overflow-y-auto">
+                        <div class="p-8 text-center text-gray-400">
+                            <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                            <p class="text-xs">Connecting to telemetry...</p>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-slate-50 border-t border-slate-100">
+                        <a href="{{ route('vehicles.tracking') }}" class="block text-center text-[10px] font-black text-blue-600 uppercase tracking-widest hover:text-blue-800 transition">
+                            Open Full Command Center <i class="fas fa-external-link-alt ml-1"></i>
+                        </a>
+                    </div>
+                </div>
+
                 <!-- Maintenance Alert Widget -->
                 <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
                     <div class="flex justify-between items-center mb-4">
@@ -604,9 +629,51 @@
             });
         }
 
+        function loadLiveTicker() {
+            fetch('{{ route("vehicles.tracking.data") }}')
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success) {
+                        const container = document.getElementById('liveTickerList');
+                        const vehicles = result.data.filter(v => v.speed > 0 || v.is_on_trip).slice(0, 8);
+
+                        if (vehicles.length === 0) {
+                            container.innerHTML = '<div class="p-8 text-center text-gray-400"><p class="text-xs">All vehicles are currently idle.</p></div>';
+                            return;
+                        }
+
+                        container.innerHTML = vehicles.map(v => {
+                            const isSpeeding = v.speed > 80;
+                            const statusColor = isSpeeding ? 'text-red-600' : 'text-blue-600';
+
+                            return `
+                                <div class="p-3 hover:bg-slate-50 transition cursor-pointer flex items-center justify-between" onclick="window.location.href='/vehicles/tracking?id=${v.id}'">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center ${statusColor}">
+                                            <i class="fas ${isSpeeding ? 'fa-bolt' : 'fa-truck-moving'}"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-gray-800 text-xs">${v.registration_number}</p>
+                                            <p class="text-[9px] text-gray-500 uppercase">${v.assigned_driver?.name || 'Unassigned'}</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-black ${statusColor} text-xs">${v.speed} <span class="text-[9px] opacity-70">km/h</span></p>
+                                        ${v.is_on_trip ? `<p class="text-[9px] text-purple-600 font-bold">ETA ${v.eta}m</p>` : '<p class="text-[9px] text-green-600 font-bold">In Transit</p>'}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    }
+                })
+                .catch(err => console.error('Ticker update failed', err));
+        }
+
         // Load on page load
         $(document).ready(function() {
             loadVehiclesNeedingMaintenance();
+            loadLiveTicker();
+            setInterval(loadLiveTicker, 5000);
         });
     </script>
 @endsection
