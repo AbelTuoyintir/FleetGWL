@@ -13,3 +13,11 @@
 ## 2026-06-28 - [Empty State Pattern & Style Consistency]
 **Learning:** Standardizing the use of Laravel's `@forelse` directive in data tables provides a consistent and delightful "Empty State" that guides users when no records exist. Additionally, ensuring that essential form styles (`.form-input`, `.form-label`) are either globalized or explicitly included in child views prevents broken modal/form UI when cleaning up redundant layout code.
 **Action:** Always use `@forelse` for data tables with a relevant icon and CTA, and verify that shared UI classes like forms are correctly scoped or available globally before removing local style blocks.
+
+## 2026-06-29 - [Contextual Utility & Robust Clipboard Interactions]
+**Learning:** Adding "Copy to Clipboard" functionality for primary identifiers (like registration numbers) provides immediate value in data-heavy administrative interfaces. Ensuring a fallback mechanism () is critical for maintaining this utility across all browser contexts, including potential insecure origins or older clients. Furthermore, proactive debugging of adjacent UI elements (like fixing malformed event handlers found during inspection) reinforces the "invisible" quality of good UX.
+**Action:** Always include a robust fallback for clipboard operations and perform a "sanity check" on nearby interactive elements when modifying a view to catch legacy bugs.
+
+## 2026-06-29 - [Contextual Utility & Robust Clipboard Interactions]
+**Learning:** Adding "Copy to Clipboard" functionality for primary identifiers (like registration numbers) provides immediate value in data-heavy administrative interfaces. Ensuring a fallback mechanism (`document.execCommand`) is critical for maintaining this utility across all browser contexts, including potential insecure origins or older clients. Furthermore, proactive debugging of adjacent UI elements (like fixing malformed event handlers found during inspection) reinforces the "invisible" quality of good UX.
+**Action:** Always include a robust fallback for clipboard operations and perform a "sanity check" on nearby interactive elements when modifying a view to catch legacy bugs.
