@@ -287,7 +287,8 @@ class SecurityController extends Controller
     {
         $codes = [];
         for ($i = 0; $i < 8; $i++) {
-            $codes[] = strtoupper(substr(md5(uniqid()), 0, 8));
+            // SECURITY: Use cryptographically secure random string for recovery codes
+            $codes[] = strtoupper(\Illuminate\Support\Str::random(8));
         }
         return $codes;
     }
