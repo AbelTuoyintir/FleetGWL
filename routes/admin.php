@@ -219,3 +219,10 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('maintenance')->na
 
 
 
+
+// Notification Routes
+Route::middleware(['auth', 'role:admin,super_admin'])->prefix('notifications')->name('notifications.')->group(function () {
+    Route::get('/', [App\Http\Controllers\NotificationController::class, 'index'])->name('index');
+    Route::get('/ajax', [App\Http\Controllers\NotificationController::class, 'getNotificationsAjax'])->name('ajax');
+    Route::post('/mark-as-read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('mark-as-read');
+});
