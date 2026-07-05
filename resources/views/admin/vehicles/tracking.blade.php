@@ -46,32 +46,45 @@
         z-index: -1;
     }
 
-    .pulse {
+    .pulse, .pulse-blue, .pulse-red {
         display: block;
         width: 10px;
         height: 10px;
         border-radius: 50%;
-        background: #10b981;
         cursor: pointer;
-        box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
-        animation: pulse 2s infinite;
     }
 
-    @keyframes pulse {
+    .pulse {
+        background: #10b981;
+        box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+        animation: pulse-green 2s infinite;
+    }
+
+    @keyframes pulse-green {
         0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
         70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
         100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
     }
 
-    .pulse-blue { background: #3b82f6; box-shadow: 0 0 0 rgba(59, 130, 246, 0.4); animation: pulse-blue 2s infinite; }
-    @keyframes pulse-blue {
+    .pulse-blue {
+        background: #3b82f6;
+        box-shadow: 0 0 0 rgba(59, 130, 246, 0.4);
+        animation: pulse-blue-anim 2s infinite;
+    }
+
+    @keyframes pulse-blue-anim {
         0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
         70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
         100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
     }
 
-    .pulse-red { background: #ef4444; box-shadow: 0 0 0 rgba(239, 68, 68, 0.4); animation: pulse-red 2s infinite; }
-    @keyframes pulse-red {
+    .pulse-red {
+        background: #ef4444;
+        box-shadow: 0 0 0 rgba(239, 68, 68, 0.4);
+        animation: pulse-red-anim 2s infinite;
+    }
+
+    @keyframes pulse-red-anim {
         0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
         70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
         100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
@@ -594,7 +607,18 @@
             const isOffline = (new Date() - new Date(v.last_seen_at)) >= 300000;
             const isMoving = v.speed > 0;
             const isSpeeding = v.speed > 80;
-            const statusColor = isOffline ? 'bg-gray-400' : (isMoving ? 'bg-blue-500' : 'bg-emerald-500');
+
+            let statusIndicator;
+            if (isOffline) {
+                statusIndicator = '<span class="w-[10px] h-[10px] rounded-full bg-gray-400 block"></span>';
+            } else if (isSpeeding) {
+                statusIndicator = '<span class="pulse-red"></span>';
+            } else if (isMoving) {
+                statusIndicator = '<span class="pulse-blue"></span>';
+            } else {
+                statusIndicator = '<span class="pulse"></span>';
+            }
+
             const movingPulseClass = isMoving ? 'sidebar-moving-pulse' : '';
             const speedingClass = v.speed > 80 ? 'border-l-red-500 bg-red-50' : '';
             const tripBadge = v.is_on_trip ? '<span class="on-trip-badge ml-2">On Trip</span>' : '<span class="text-[9px] font-bold text-emerald-600 ml-2 uppercase tracking-tighter">Available</span>';
@@ -604,7 +628,7 @@
                     <div class="flex justify-between items-start mb-1">
                         <div class="flex flex-col">
                             <div class="flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full ${statusColor} ${isSpeeding ? 'animate-ping' : ''}"></span>
+                                ${statusIndicator}
                                 <span class="font-bold text-gray-900 leading-tight">${v.registration_number}</span>
                                 ${isMoving ? '<span class="live-dot"></span>' : ''}
                                 ${tripBadge}
@@ -722,7 +746,6 @@
             const isMoving = v.speed > 0;
             const isSpeeding = v.speed > 80;
             const isOffline = (new Date() - new Date(v.last_seen_at)) >= 300000;
-            const isSpeeding = v.speed > 80;
             const markerColor = isOffline ? '#94a3b8' : (isSpeeding ? '#ef4444' : (isMoving ? '#3b82f6' : '#10b981'));
             const driverName = v.assigned_driver ? v.assigned_driver.name : 'No Driver';
 
@@ -743,7 +766,7 @@
 
                     const pulseEl = markerEl.querySelector('.pulse-indicator');
                     if (pulseEl) {
-                        pulseEl.className = `pulse-indicator absolute top-0 left-0 ${isMoving && !isSpeeding ? 'pulse-blue' : (isOffline ? '' : (isSpeeding ? '' : 'pulse'))}`;
+                        pulseEl.className = `pulse-indicator absolute top-0 left-0 ${isMoving && !isSpeeding ? 'pulse-blue' : (isOffline ? '' : (isSpeeding ? 'pulse-red' : 'pulse'))}`;
                     }
 
                     const labelEl = markerEl.querySelector('.marker-label');
@@ -758,7 +781,7 @@
                     html: `
                         <div class="relative car-marker-container ${v.speed > 80 ? 'speeding-marker' : ''}">
                             <div id="focus-${v.id}" class="focus-indicator ${selectedVehicleId === v.id ? 'focus-marker' : ''}"></div>
-                            <div class="pulse-indicator absolute top-0 left-0 ${isMoving && !isSpeeding ? 'pulse-blue' : (isOffline ? '' : (isSpeeding ? '' : 'pulse'))}"></div>
+                            <div class="pulse-indicator absolute top-0 left-0 ${isMoving && !isSpeeding ? 'pulse-blue' : (isOffline ? '' : (isSpeeding ? 'pulse-red' : 'pulse'))}"></div>
                             <div class="car-marker ${isSpeeding ? 'speeding-marker' : ''}" style="transform: rotate(${v.heading}deg)">
                                 ${getVehicleSvg(v.vehicle_type, markerColor)}
                             </div>
