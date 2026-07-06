@@ -44,8 +44,15 @@ class AiSupportService
         ### 4. User Roles
         - **Admins:** Have full access to Command Center, Registry, Reports, and Management tools.
         - **Drivers:** Primarily use the Driver Portal for dashboard, maintenance requests, and mileage logs.
+        - **Technicians:** Access to maintenance dashboards and schedules.
 
-        ### 5. Troubleshooting
+        ### 5. System Features
+        - **Bulk Operations:** Admins can import/export vehicles via CSV/Excel.
+        - **Location Hierarchy:** Managed through Regions -> Districts -> Stations.
+        - **Efficiency Tracking:** Automatic calculation of fuel efficiency (km/L) and cost per km.
+        - **Security:** Support for 2FA, session management, and activity logging.
+
+        ### 6. Troubleshooting
         - **Map Issues:** Check internet connection and 'Last Update' timestamp.
         - **Markers:** Jumping markers may indicate browser performance throttling.
 
@@ -257,7 +264,19 @@ class AiSupportService
         }
 
         if (str_contains($lowerMsg, 'mileage')) {
-            return "Mileage logs and analytics are available in the 'Mileage Management' menu to track distance covered and analyze usage trends.";
+            return "Mileage logs and analytics are available in the 'Mileage Management' menu to track distance covered and analyze usage trends. The system automatically calculates distance traveled between odometer readings.";
+        }
+
+        if (str_contains($lowerMsg, 'import') || str_contains($lowerMsg, 'export') || str_contains($lowerMsg, 'csv') || str_contains($lowerMsg, 'excel')) {
+            return "Admins can bulk import or export vehicle data using CSV or Excel files in the 'Vehicle Registry' section. The system validates headers and handles duplicates automatically.";
+        }
+
+        if (str_contains($lowerMsg, 'region') || str_contains($lowerMsg, 'district') || str_contains($lowerMsg, 'station') || str_contains($lowerMsg, 'location')) {
+            return "Locations are organized hierarchically: Regions contain Districts, which contain Stations. You can manage this structure in the 'Location Management' section.";
+        }
+
+        if (str_contains($lowerMsg, 'security') || str_contains($lowerMsg, '2fa') || str_contains($lowerMsg, 'password')) {
+            return "The system includes robust security features including Two-Factor Authentication (2FA), activity logging, and device management. You can configure these in your account security settings.";
         }
 
         if (str_contains($lowerMsg, 'document') || str_contains($lowerMsg, 'insurance') || str_contains($lowerMsg, 'roadworthy')) {
