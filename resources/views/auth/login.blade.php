@@ -63,7 +63,7 @@
       <div class="relative">
         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white/60"><i class="fas fa-lock"></i></span>
         <input type="password" id="password" name="password" required class="w-full pl-10 pr-10 py-2 bg-white/10 border border-white/20 rounded-lg placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-white"/>
-        <button type="button" onclick="togglePassword()" id="togglePasswordBtn" aria-label="Show password" class="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-300 rounded">
+        <button type="button" onclick="togglePassword()" id="togglePasswordBtn" aria-label="Show password" title="Show password" class="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-300 rounded">
           <i id="eyeIcon" class="fas fa-eye"></i>
         </button>
       </div>
@@ -107,11 +107,13 @@
       eye.classList.remove('fa-eye');
       eye.classList.add('fa-eye-slash');
       btn.setAttribute('aria-label', 'Hide password');
+      btn.setAttribute('title', 'Hide password');
     } else {
       pwd.type = 'password';
       eye.classList.remove('fa-eye-slash');
       eye.classList.add('fa-eye');
       btn.setAttribute('aria-label', 'Show password');
+      btn.setAttribute('title', 'Show password');
     }
   }
 

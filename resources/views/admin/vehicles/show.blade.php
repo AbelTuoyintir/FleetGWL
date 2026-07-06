@@ -138,8 +138,8 @@
                         <i class="fas fa-arrow-left"></i>
                     </a>
                     <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                        <span id="plateNumber">{{ $vehicle->registration_number }}</span>
-                        <button onclick="copyToClipboard('{{ $vehicle->registration_number }}')" class="text-gray-400 hover:text-blue-600 transition-colors" title="Copy Registration Number" aria-label="Copy Registration Number">
+                        <span id="plateNumber" class="font-mono">{{ $vehicle->registration_number }}</span>
+                        <button onclick="copyToClipboard('{{ $vehicle->registration_number }}', 'Registration number')" class="text-gray-400 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5 transition" title="Copy Registration Number" aria-label="Copy Registration Number">
                             <i class="far fa-copy text-sm"></i>
                         </button>
                     </h1>
@@ -261,13 +261,31 @@
                             <i class="fas fa-truck text-blue-600 mr-2"></i>Vehicle Information
                         </h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="info-row"><span class="info-label">Registration Number</span><span class="info-value">{{ $vehicle->registration_number }}</span></div>
+                            <div class="info-row"><span class="info-label">Registration Number</span><span class="info-value font-mono">{{ $vehicle->registration_number }}</span></div>
                             <div class="info-row"><span class="info-label">Make</span><span class="info-value">{{ $vehicle->make }}</span></div>
                             <div class="info-row"><span class="info-label">Model</span><span class="info-value">{{ $vehicle->model }}</span></div>
                             <div class="info-row"><span class="info-label">Year</span><span class="info-value">{{ $vehicle->year }}</span></div>
                             <div class="info-row"><span class="info-label">Color</span><span class="info-value">{{ $vehicle->color ?? 'N/A' }}</span></div>
-                            <div class="info-row"><span class="info-label">Chassis Number</span><span class="info-value">{{ $vehicle->chassis_number }}</span></div>
-                            <div class="info-row"><span class="info-label">Engine Number</span><span class="info-value">{{ $vehicle->engine_number ?? 'N/A' }}</span></div>
+                            <div class="info-row">
+                                <span class="info-label">Chassis Number</span>
+                                <span class="info-value flex items-center gap-2">
+                                    <span class="font-mono">{{ $vehicle->chassis_number }}</span>
+                                    <button onclick="copyToClipboard('{{ $vehicle->chassis_number }}', 'Chassis Number')" class="text-gray-400 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5 transition" title="Copy Chassis Number" aria-label="Copy Chassis Number">
+                                        <i class="far fa-copy text-xs"></i>
+                                    </button>
+                                </span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Engine Number</span>
+                                <span class="info-value flex items-center gap-2">
+                                    <span class="font-mono">{{ $vehicle->engine_number ?? 'N/A' }}</span>
+                                    @if($vehicle->engine_number)
+                                    <button onclick="copyToClipboard('{{ $vehicle->engine_number }}', 'Engine Number')" class="text-gray-400 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5 transition" title="Copy Engine Number" aria-label="Copy Engine Number">
+                                        <i class="far fa-copy text-xs"></i>
+                                    </button>
+                                    @endif
+                                </span>
+                            </div>
                             <div class="info-row"><span class="info-label">Vehicle Type</span><span class="info-value">{{ $vehicle->vehicle_type }}</span></div>
                             <div class="info-row"><span class="info-label">Fuel Consumption</span><span class="info-value">{{ $vehicle->fuel_consumption ?? 'N/A' }} km/L</span></div>
                             <div class="info-row"><span class="info-label">Region</span><span class="info-value">{{ $vehicle->region->name ?? 'N/A' }}</span></div>
@@ -1747,28 +1765,49 @@ url: '{{ route("vehicles.fuel.store") }}',
     });
 });
 
-// Simple notification function (you can customize this)
-function copyToClipboard(text) {
-    if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(text).then(() => {
-            showNotification('success', 'Registration number copied to clipboard');
-        }).catch(err => {
-            console.error('Could not copy text: ', err);
-        });
-    } else {
-        // Fallback for non-secure contexts
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
-        try {
-            document.execCommand('copy');
-            showNotification('success', 'Registration number copied to clipboard');
-        } catch (err) {
-            console.error('Fallback copy failed: ', err);
-        }
-        document.body.removeChild(textArea);
+/**
+ * Copy text to clipboard with fallback and notification
+ */
+function copyToClipboard(text, label = 'Registration number') {
+    if (!navigator.clipboard) {
+        fallbackCopyToClipboard(text, label);
+        return;
     }
+    navigator.clipboard.writeText(text).then(function() {
+        showNotification('success', `${label} copied to clipboard!`);
+    }, function(err) {
+        console.error('Could not copy text: ', err);
+        fallbackCopyToClipboard(text, label);
+    });
+}
+
+function fallbackCopyToClipboard(text, label = 'Registration number') {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+
+    // Ensure textarea is not visible but part of the DOM
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showNotification('success', `${label} copied to clipboard!`);
+        } else {
+            showNotification('error', `Failed to copy ${label.toLowerCase()}.`);
+        }
+    } catch (err) {
+        console.error('Fallback: Oops, unable to copy', err);
+        showNotification('error', `Failed to copy ${label.toLowerCase()}.`);
+    }
+
+    document.body.removeChild(textArea);
 }
 
 function showNotification(type, message) {
@@ -2176,50 +2215,6 @@ $(document).ready(function() {
     });
 });
 
-/**
- * Copy text to clipboard with fallback and notification
- */
-function copyToClipboard(text) {
-    if (!navigator.clipboard) {
-        fallbackCopyToClipboard(text);
-        return;
-    }
-    navigator.clipboard.writeText(text).then(function() {
-        showNotification('success', 'Registration number copied to clipboard!');
-    }, function(err) {
-        console.error('Could not copy text: ', err);
-        fallbackCopyToClipboard(text);
-    });
-}
-
-function fallbackCopyToClipboard(text) {
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-
-    // Ensure textarea is not visible but part of the DOM
-    textArea.style.top = "0";
-    textArea.style.left = "0";
-    textArea.style.position = "fixed";
-    textArea.style.opacity = "0";
-
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-
-    try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-            showNotification('success', 'Registration number copied to clipboard!');
-        } else {
-            showNotification('error', 'Failed to copy text.');
-        }
-    } catch (err) {
-        console.error('Fallback: Oops, unable to copy', err);
-        showNotification('error', 'Failed to copy text.');
-    }
-
-    document.body.removeChild(textArea);
-}
 </script>
 
 
