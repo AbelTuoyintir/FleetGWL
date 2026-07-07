@@ -30,24 +30,32 @@ class AiSupportService
         - **Follow Mode:** Locks the camera to a specific vehicle.
         - **History Playback:** Visualize paths taken in the last 24 hours with granular breadcrumbs (speed, direction).
         - **Map Themes:** Switch between Light, Dark, and Satellite modes (Top-Right control).
+        - **Speeding Alerts:** Visual indicators (red pulsing markers) trigger when a vehicle exceeds 80 km/h.
 
         ### 2. Fleet Management
-        - **Vehicle Registry:** Central hub for adding vehicles, updating status (Active, In Shop), and viewing health overview.
-        - **Fuel Management:** Log purchases, track consumption, and analyze costs/efficiency.
-        - **Maintenance:** Manage service schedules, history log, and upcoming reminders (e.g., oil changes).
-        - **Insurance & Docs:** Track insurance and roadworthiness expiry dates.
+        - **Vehicle Registry:** Central hub for adding vehicles, updating status (Active, In Shop), and viewing health overview. Supports bulk CSV/Excel imports.
+        - **Fuel Management:** Log purchases, track consumption, and analyze km/liter and cost/km. Includes fuel forecasting.
+        - **Maintenance & Job Orders:** Manage service schedules, history log, and maintenance alerts.
+        - **Workflows:** Vehicles can be 'Dispatched' to maintenance and 'Released' back to active status.
+        - **Job Orders:** Create job orders with categorized checklists (e.g., Engine, Tires).
+        - **Insurance & Docs:** Track insurance and roadworthiness expiry dates with acknowledgment workflows.
 
-        ### 3. Personnel & Reports
-        - **Driver Hub:** Manage driver assignments and online/offline status.
-        - **Reports:** Deep insights into utilization, cost analysis, and fuel efficiency.
+        ### 3. Locations & Personnel
+        - **Location Hierarchy:** Organized as Regions -> Districts -> Stations.
+        - **Driver Hub:** Manage driver assignments, licenses, and online/offline status.
 
-        ### 4. User Roles
+        ### 4. Personnel & Reports
+        - **Reports:** Deep insights into utilization, cost analysis, and fuel efficiency metrics.
+
+        ### 5. User Roles
         - **Admins:** Have full access to Command Center, Registry, Reports, and Management tools.
         - **Drivers:** Primarily use the Driver Portal for dashboard, maintenance requests, and mileage logs.
+        - **Technicians:** Use the maintenance dashboard to manage job orders.
 
-        ### 5. Troubleshooting
+        ### 6. Troubleshooting
         - **Map Issues:** Check internet connection and 'Last Update' timestamp.
-        - **Markers:** Jumping markers may indicate browser performance throttling.
+        - **Vehicle Stuck:** Likely a poor signal area; check the 'Last Update' timestamp.
+        - **Markers Jumping:** Indicators of browser performance throttling; check system resources.
 
         Guidelines:
         - Be professional, helpful, and concise.
@@ -224,6 +232,24 @@ class AiSupportService
     {
         $lowerMsg = strtolower($userMessage);
 
+        // 1. Prioritized Troubleshooting
+        if (str_contains($lowerMsg, 'stuck') || str_contains($lowerMsg, 'not moving') || str_contains($lowerMsg, 'not updating')) {
+            return "If a vehicle seems stuck or its position is not updating, check the 'Last Update' timestamp on the Detail Card. If it's more than 5 minutes old, the driver might be in a poor signal area or offline. Check the driver's online status in the Driver Hub.";
+        }
+
+        if (str_contains($lowerMsg, 'not loading') || str_contains($lowerMsg, 'blank') || str_contains($lowerMsg, 'map issue')) {
+            return "If the map or dashboard isn't loading, please check your internet connection. You can also try using the 'Sync' button in the top right of the Command Center to force a data refresh.";
+        }
+
+        if (str_contains($lowerMsg, 'jump') || str_contains($lowerMsg, 'lag') || str_contains($lowerMsg, 'flicker')) {
+            return "The markers move smoothly using CSS transitions. If they appear to jump or lag, your browser performance might be throttled. Try closing other tabs or restarting your browser.";
+        }
+
+        if (str_contains($lowerMsg, 'troubleshoot') || str_contains($lowerMsg, 'problem') || str_contains($lowerMsg, 'error')) {
+            return "I can help with common issues like map loading, stuck vehicles, or marker performance. What specific problem are you encountering?";
+        }
+
+        // 2. Feature Queries
         if (str_contains($lowerMsg, 'track') || str_contains($lowerMsg, 'location') || str_contains($lowerMsg, 'map')) {
             return "You can view live vehicle locations and historical routes in the 'Live Tracking' section. The map uses car-shaped SVG markers that rotate based on heading and move smoothly every 5 seconds. You can switch between Light, Dark, and Satellite themes.";
         }
@@ -240,20 +266,36 @@ class AiSupportService
             return "Manage fuel consumption and costs under 'Fuel Management'. You can log new fuel purchases, analyze consumption patterns, and view efficiency reports.";
         }
 
+        if (str_contains($lowerMsg, 'import') || str_contains($lowerMsg, 'excel') || str_contains($lowerMsg, 'csv') || str_contains($lowerMsg, 'bulk')) {
+            return "You can perform bulk operations like importing vehicles or drivers using CSV or Excel files. Look for the 'Import' button in the Vehicle Registry or Driver Hub.";
+        }
+
+        if (str_contains($lowerMsg, 'dispatch') || str_contains($lowerMsg, 'release')) {
+            return "In the Maintenance module, you can 'Dispatch' a vehicle when it starts a service and 'Release' it back to the active fleet once the job order is completed.";
+        }
+
+        if (str_contains($lowerMsg, 'job order') || str_contains($lowerMsg, 'maintenance') || str_contains($lowerMsg, 'service') || str_contains($lowerMsg, 'repair')) {
+            return "Manage fleet health in the 'Maintenance' section. You can create job orders with checklists, dispatch vehicles to service providers, and track service history. Reminders for tasks like oil changes are also available.";
+        }
+
+        if (str_contains($lowerMsg, 'region') || str_contains($lowerMsg, 'district') || str_contains($lowerMsg, 'station')) {
+            return "The system uses a location hierarchy: Regions contain Districts, which contain Stations. You can manage this hierarchy in the 'Location Management' section.";
+        }
+
+        if (str_contains($lowerMsg, 'report') || str_contains($lowerMsg, 'analytics') || str_contains($lowerMsg, 'stats') || str_contains($lowerMsg, 'cost')) {
+            return "Visit 'Fleet Reports' for deep insights into vehicle utilization, cost analysis (including fuel and maintenance), and fuel efficiency metrics.";
+        }
+
         if (str_contains($lowerMsg, 'vehicle') || str_contains($lowerMsg, 'fleet')) {
             return "The 'Vehicle Registry' is your central hub. You can add new vehicles, update their status (Active, In Shop), and see an overview of your entire fleet's health.";
         }
 
-        if (str_contains($lowerMsg, 'maintenance') || str_contains($lowerMsg, 'service') || str_contains($lowerMsg, 'repair')) {
-            return "Stay on top of fleet health in the 'Maintenance' section. View service schedules, maintenance history, and set up reminders for upcoming tasks like oil changes.";
-        }
-
         if (str_contains($lowerMsg, 'driver')) {
-            return "The 'Driver Hub' allows you to manage your team, assign drivers to vehicles, and track their online/offline status.";
+            return "The 'Driver Hub' allows you to manage your team, assign drivers to vehicles, and track their online/offline status and professional licenses.";
         }
 
-        if (str_contains($lowerMsg, 'report') || str_contains($lowerMsg, 'analytics') || str_contains($lowerMsg, 'stats')) {
-            return "Visit 'Fleet Reports' for deep insights into vehicle utilization, cost analysis, and fuel efficiency metrics.";
+        if (str_contains($lowerMsg, 'speed') || str_contains($lowerMsg, 'alert')) {
+            return "The Command Center monitors vehicle speed in real-time. If a vehicle exceeds 80 km/h, a red pulsing alert will appear on the map for that unit.";
         }
 
         if (str_contains($lowerMsg, 'mileage')) {
