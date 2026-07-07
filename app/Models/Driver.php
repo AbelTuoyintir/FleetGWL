@@ -10,13 +10,16 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 use App\Traits\Auditable;
+use App\Traits\BelongsToTenant;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Driver extends Model
 {
-    use HasFactory, Auditable;
+    use HasFactory, Auditable, SoftDeletes, BelongsToTenant;
 
     protected $fillable = [
         'user_id',
+        'company_id',
         'license_number',
         'license_expiry_date',
         'license_class',

@@ -22,22 +22,33 @@ class AiSupportController extends Controller
         ]);
 
         try {
-            $aiMessage = $this->aiSupportService->processMessage(
+            $aiResponse = $this->aiSupportService->processMessage(
                 Auth::user(),
                 $request->message,
                 $request->session()->getId()
             );
 
+            $messageText = 'Sorry, I could not generate a response.';
+            if (is_string($aiResponse)) {
+                $messageText = $aiResponse;
+            } elseif (is_object($aiResponse)) {
+                if (isset($aiResponse->message)) {
+                    $messageText = (string) $aiResponse->message;
+                } elseif (isset($aiResponse->content)) {
+                    $messageText = (string) $aiResponse->content;
+                }
+            }
+
             return response()->json([
                 'status' => 'success',
-                'ai_message' => (is_object($aiMessage) && isset($aiMessage->message))
-                    ? (string) $aiMessage->message
-                    : (string) ($aiMessage->message ?? $aiMessage ?? 'Sorry, I could not generate a response.'),
+                'ai_message' => $messageText,
             ]);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('AI Support Chat Error: ' . $e->getMessage(), [
-                'user_id' => Auth::id(),
-                'exception' => $e
+                'user_id' => optional(Auth::user())->id,
+                'exception_class' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
             ]);
 
             return response()->json([

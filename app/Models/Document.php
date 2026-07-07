@@ -4,11 +4,14 @@ namespace App\Models;
 
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BelongsToTenant;
 use Illuminate\Support\Str;
+
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Document extends Model
 {
-    use Auditable;
+    use Auditable, SoftDeletes, BelongsToTenant;
 
     protected $fillable = [
         'title',
@@ -31,6 +34,7 @@ class Document extends Model
         'requires_acknowledgement',
         'acknowledged_at',
         'acknowledged_by',
+        'company_id',
         'metadata',
         'tags',
         'version',

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\Company;
 use App\Models\SupportChat;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -14,13 +15,14 @@ class AiSupportTest extends TestCase
 
     public function test_guest_can_access_ai_support()
     {
+        config(['services.openai.api_key' => 'test-key']);
         Http::fake([
-            '*' => Http::response(['choices' => [['message' => ['content' => 'AI Response']]]], 200)
+            'https://api.openai.com/v1/chat/completions' => Http::response(['choices' => [['message' => ['content' => 'AI Response']]]], 200)
         ]);
 
         $this->postJson(route('ai-support.chat'), ['message' => 'Hello'])
             ->assertStatus(200)
-            ->assertJson(['status' => 'success']);
+            ->assertJson(['status' => 'success', 'ai_message' => 'AI Response']);
 
         $this->getJson(route('ai-support.history'))
             ->assertStatus(200)
@@ -29,21 +31,20 @@ class AiSupportTest extends TestCase
 
     public function test_user_can_send_message_and_get_openai_response()
     {
-        $user = User::factory()->create(['name' => 'John Doe', 'role' => 'admin']);
+        $company = Company::create(['name' => 'Test', 'slug' => 'test']);
+        $user = User::factory()->create(['company_id' => $company->id]);
+
+        // Ensure tenant is bound for test
+        app()->instance('tenant_id', $company->id);
+
         config(['services.openai.api_key' => 'test-key']);
 
         Http::fake([
-            'https://api.openai.com/v1/chat/completions' => function (\Illuminate\Http\Client\Request $request) {
-                $messages = $request['messages'];
-                $systemPrompt = $messages[0]['content'];
-
-                if (str_contains($systemPrompt, 'Current User: John Doe') && str_contains($systemPrompt, 'Role: admin')) {
-                    return Http::response([
-                        'choices' => [['message' => ['content' => 'Hello John Doe, I see you are an admin.']]]
-                    ], 200);
-                }
-                return Http::response([], 500);
-            }
+            'https://api.openai.com/v1/chat/completions' => Http::response([
+                'choices' => [
+                    ['message' => ['content' => 'OpenAI Response']]
+                ]
+            ], 200)
         ]);
 
         $response = $this->actingAs($user)
@@ -52,18 +53,46 @@ class AiSupportTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'status' => 'success',
-                'ai_message' => 'Hello John Doe, I see you are an admin.'
+                'ai_message' => 'OpenAI Response'
             ]);
 
         $this->assertDatabaseHas('support_messages', [
-            'message' => 'Hello John Doe, I see you are an admin.',
+            'message' => 'OpenAI Response',
             'sender_type' => 'ai'
         ]);
     }
 
+    public function test_ai_support_uses_personalized_system_prompt()
+    {
+        $company = Company::create(['name' => 'Test', 'slug' => 'test']);
+        $user = User::factory()->create(['name' => 'John Doe', 'role' => 'admin', 'company_id' => $company->id]);
+        config(['services.openai.api_key' => 'test-key']);
+
+        Http::fake([
+            'https://api.openai.com/v1/chat/completions' => function ($request) {
+                $messages = $request['messages'];
+                $systemMessage = collect($messages)->firstWhere('role', 'system')['content'];
+
+                if (str_contains($systemMessage, 'John Doe') && str_contains($systemMessage, 'admin')) {
+                    return Http::response([
+                        'choices' => [['message' => ['content' => 'Personalized Response']]]
+                    ], 200);
+                }
+                return Http::response([], 400);
+            }
+        ]);
+
+        $response = $this->actingAs($user)
+            ->postJson(route('ai-support.chat'), ['message' => 'Help me']);
+
+        $response->assertStatus(200)
+            ->assertJson(['ai_message' => 'Personalized Response']);
+    }
+
     public function test_user_falls_back_to_ollama_if_openai_fails()
     {
-        $user = User::factory()->create();
+        $company = Company::create(['name' => 'Test', 'slug' => 'test']);
+        $user = User::factory()->create(['company_id' => $company->id]);
         config(['services.openai.api_key' => 'test-key']);
         config(['services.ollama.base_url' => 'http://localhost:11434']);
 
@@ -86,7 +115,8 @@ class AiSupportTest extends TestCase
 
     public function test_user_falls_back_to_keywords_if_all_apis_fail()
     {
-        $user = User::factory()->create();
+        $company = Company::create(['name' => 'Test', 'slug' => 'test']);
+        $user = User::factory()->create(['company_id' => $company->id]);
         config(['services.openai.api_key' => 'test-key']);
 
         Http::fake([
@@ -106,7 +136,8 @@ class AiSupportTest extends TestCase
 
     public function test_user_can_ask_about_follow_mode_in_fallback()
     {
-        $user = User::factory()->create();
+        $company = Company::create(['name' => 'Test', 'slug' => 'test']);
+        $user = User::factory()->create(['company_id' => $company->id]);
         Http::fake(['*' => Http::response([], 500)]);
 
         $response = $this->actingAs($user)
@@ -118,7 +149,11 @@ class AiSupportTest extends TestCase
 
     public function test_user_can_get_chat_history()
     {
-        $user = User::factory()->create();
+        $company = Company::create(['name' => 'Test', 'slug' => 'test']);
+        $user = User::factory()->create(['company_id' => $company->id]);
+
+        // Ensure tenant is bound for test
+        app()->instance('tenant_id', $company->id);
 
         // Mock response
         Http::fake([

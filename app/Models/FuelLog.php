@@ -3,14 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\Auditable;
 
 class FuelLog extends Model
 {
-    use Auditable, SoftDeletes;
+    use Auditable, SoftDeletes, BelongsToTenant;
 
     protected $fillable = [
+        "company_id",
         'vehicle_id',
         'date',
         'odometer',

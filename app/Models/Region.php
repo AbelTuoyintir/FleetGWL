@@ -4,12 +4,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Region extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, BelongsToTenant;
 
     /**
      * The attributes that are mass assignable.
@@ -17,6 +18,7 @@ class Region extends Model
      * @var array<string>
      */
     protected $fillable = [
+        "company_id",
         'name',
         'code',
         'status',

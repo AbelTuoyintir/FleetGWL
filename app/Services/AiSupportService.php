@@ -4,79 +4,69 @@ namespace App\Services;
 
 use App\Models\SupportChat;
 use App\Models\SupportMessage;
+use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-use App\Models\User;
-
 class AiSupportService
 {
-    public function getSystemPrompt(?User $user): string
+    protected function getSystemPrompt(?User $user): string
     {
-        $name = $user ? $user->name : 'Guest';
-        $role = $user ? $user->role : 'Unauthenticated User';
+        $userName = $user ? $user->name : 'Guest';
+        $userRole = $user ? $user->role : 'visitor';
 
-        $prompt = "You are a 24/7 AI support agent for the Ghana Water Limited (GWL) Fleet Management system.
-        Current User: {$name}
-        Role: {$role}
+        return "You are a 24/7 AI support agent for the Ghana Water Limited (GWL) Fleet Management system.
+        The current user is {$userName} with the role of {$userRole}. Always address them appropriately.
 
-        Assist users with questions about the platform using the following information:
+        Operational Context (from USER_MANUAL.md):
+        - Live Vehicle Tracking: Real-time map with car-shaped SVG icons.
+          - Blue markers: Vehicle on active trip.
+          - Green markers: Vehicle available/idling.
+          - Smooth movement: CSS transitions applied to markers every 5 seconds.
+        - Map Controls: Theme switcher (Light, Dark, Satellite) and Sync button.
+        - Interaction: Click sidebar item or map icon to 'Fly-to' vehicle and open Detail Card.
+        - Detail Card Features: Speed (km/h), Follow Mode (locks camera), History Playback (last 24 hours path).
+        - Driver Guidance: Drivers are 'Online' automatically when logged in. Position updates every 5 seconds.
 
-        ### 1. Live Vehicle Tracking (Command Center)
-        - **Map Interface:** Real-time visualization of fleet units using car-shaped SVG markers that rotate based on heading.
-        - **Color Coding:** Blue (Active Trip), Green (Available/Idling).
-        - **Smooth Movement:** CSS transitions provide fluid updates every 5 seconds.
-        - **Detail Card:** Click a vehicle to see speed (km/h), status, and last update.
-        - **Follow Mode:** Locks the camera to a specific vehicle.
-        - **History Playback:** Visualize paths taken in the last 24 hours with granular breadcrumbs (speed, direction).
-        - **Map Themes:** Switch between Light, Dark, and Satellite modes (Top-Right control).
+        Technical Context (from TRACKING_DOCUMENTATION.md):
+        - Database Tables: `vehicles` (current state), `vehicle_location_histories` (breadcrumbs for playback), `users` & `drivers`.
+        - Performance: Marker movement is linear via `transition: transform 0.8s linear;`.
+        - Polling: `/vehicles/tracking/data` endpoint is polled every 5 seconds.
 
-        ### 2. Fleet Management
-        - **Vehicle Registry:** Central hub for adding vehicles, updating status (Active, In Shop), and viewing health overview.
-        - **Fuel Management:** Log purchases, track consumption, and analyze costs/efficiency.
-        - **Maintenance:** Manage service schedules, history log, and upcoming reminders (e.g., oil changes).
-        - **Insurance & Docs:** Track insurance and roadworthiness expiry dates.
+        Other Key Modules:
+        - Fuel Management: Log purchases, analyze consumption, and efficiency reports.
+        - Maintenance: Service schedules, history, and automated alerts.
+        - Reports: In-depth utilization and cost analysis.
+        - Documents: Manage insurance and roadworthiness certificates with expiry tracking.
 
-        ### 3. Personnel & Reports
-        - **Driver Hub:** Manage driver assignments and online/offline status.
-        - **Reports:** Deep insights into utilization, cost analysis, and fuel efficiency.
-
-        ### 4. User Roles
-        - **Admins:** Have full access to Command Center, Registry, Reports, and Management tools.
-        - **Drivers:** Primarily use the Driver Portal for dashboard, maintenance requests, and mileage logs.
-
-        ### 5. Troubleshooting
-        - **Map Issues:** Check internet connection and 'Last Update' timestamp.
-        - **Markers:** Jumping markers may indicate browser performance throttling.
-
-        Guidelines:
+        Instructions:
         - Be professional, helpful, and concise.
-        - Address the user as {$name} if they are authenticated.
-        - If the user is a driver, prioritize features available in the Driver Portal.
-        - If the user is an admin, provide comprehensive fleet oversight instructions.";
-
-        return $prompt;
+        - If the user is a driver, prioritize features relevant to them (like status management).
+        - If the user is an admin, provide deeper technical or administrative guidance.
+        - Encourage use of specific features like 'Follow Mode' or 'History Playback' when relevant.";
     }
 
-    public function getOrCreateChat(?int $userId, string $sessionId = null)
+    public function getOrCreateChat(?User $user, ?string $sessionId = null)
     {
         try {
+            if (!$user && !$sessionId) {
+                return null;
+            }
+
             $query = SupportChat::where('status', 'active');
 
-            if ($userId) {
-                $query->where('user_id', $userId);
-            } elseif ($sessionId) {
-                $query->where('session_id', $sessionId);
+            if ($user) {
+                $query->where('user_id', $user->id);
             } else {
-                return null;
+                $query->where('session_id', $sessionId);
             }
 
             $chat = $query->first();
 
             if (!$chat) {
                 $chat = SupportChat::create([
-                    'user_id' => $userId,
-                    'session_id' => $sessionId,
+                    'user_id' => $user ? $user->id : null,
+                    'session_id' => $user ? null : $sessionId,
                     'subject' => 'AI System Support',
                     'status' => 'active'
                 ]);
@@ -89,10 +79,9 @@ class AiSupportService
         }
     }
 
-    public function processMessage(?User $user, string $messageText, string $sessionId = null)
+    public function processMessage(?User $user, string $messageText, ?string $sessionId = null)
     {
-        $userId = $user ? $user->id : null;
-        $chat = $this->getOrCreateChat($userId, $sessionId);
+        $chat = $this->getOrCreateChat($user, $sessionId);
         $history = collect();
 
         if ($chat) {
@@ -275,10 +264,9 @@ class AiSupportService
         return "I'm your 24/7 AI support agent for the Ghana Water Limited Fleet Management system. How can I assist you with your fleet, fuel, or maintenance needs today?";
     }
 
-    public function getChatHistory(?User $user, string $sessionId = null)
+    public function getChatHistory(?User $user, ?string $sessionId = null)
     {
-        $userId = $user ? $user->id : null;
-        $chat = $this->getOrCreateChat($userId, $sessionId);
+        $chat = $this->getOrCreateChat($user, $sessionId);
         if (!$chat) {
             return collect();
         }

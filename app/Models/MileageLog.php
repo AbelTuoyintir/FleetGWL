@@ -4,15 +4,17 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 use App\Traits\Auditable;
 
 class MileageLog extends Model
 {
-    use HasFactory, Auditable;
+    use HasFactory, Auditable, BelongsToTenant;
 
     protected $fillable = [
+        "company_id",
         'vehicle_id',
         'driver_id',
         'start_mileage',
