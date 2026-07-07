@@ -30,6 +30,13 @@
             <!-- Messages will be loaded here -->
         </div>
 
+        <!-- Quick Start Suggestions -->
+        <div id="quick-suggestions" class="hidden p-3 bg-white border-t border-gray-100 flex flex-wrap gap-2">
+            <button onclick="sendQuickMessage('How do I track a vehicle?')" class="text-[11px] bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-100 transition">Live Tracking</button>
+            <button onclick="sendQuickMessage('How to log fuel?')" class="text-[11px] bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-100 transition">Fuel Logging</button>
+            <button onclick="sendQuickMessage('Troubleshoot map issues')" class="text-[11px] bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-100 transition">Troubleshooting</button>
+        </div>
+
         <!-- Input Area -->
         <div class="p-4 bg-white border-t border-gray-100">
             <form id="chat-form" class="flex gap-2">
@@ -98,10 +105,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatForm = document.getElementById('chat-form');
     const chatInput = document.getElementById('chat-input');
     const chatMessages = document.getElementById('chat-messages');
+    const quickSuggestions = document.getElementById('quick-suggestions');
 
     const historyRoute = "{{ route('ai-support.history') }}";
     const chatRoute = "{{ route('ai-support.chat') }}";
-    const userName = "{{ Auth::user()->name ?? '' }}";
+    const userName = @json(Auth::user()->name ?? '');
 
     // Toggle Chat
     function toggleChat(forceClose = false) {
@@ -140,10 +148,14 @@ document.addEventListener('DOMContentLoaded', function() {
                             ? `Hello ${userName}! I am your Ghana Water Limited Fleet Support AI. How can I help you today?`
                             : 'Hello! I am your Ghana Water Limited Fleet Support AI. How can I help you today?';
                         appendMessage('ai', greeting);
+                        quickSuggestions.classList.remove('hidden');
                     } else {
                         data.history.forEach(msg => {
                             appendMessage(msg.sender_type, msg.message);
                         });
+                        if (data.history.length < 3) {
+                             quickSuggestions.classList.remove('hidden');
+                        }
                     }
                 }
             })
@@ -151,6 +163,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Failed to load history:', err);
             });
     }
+
+    window.sendQuickMessage = function(text) {
+        chatInput.value = text;
+        chatForm.dispatchEvent(new Event('submit'));
+        quickSuggestions.classList.add('hidden');
+    };
 
     // Append Message to UI
     function appendMessage(sender, text) {
@@ -169,6 +187,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         appendMessage('user', message);
         chatInput.value = '';
+        quickSuggestions.classList.add('hidden');
 
         // Add loading state
         const loadingDiv = document.createElement('div');

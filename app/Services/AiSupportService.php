@@ -46,8 +46,9 @@ class AiSupportService
         - **Drivers:** Primarily use the Driver Portal for dashboard, maintenance requests, and mileage logs.
 
         ### 5. Troubleshooting
-        - **Map Issues:** Check internet connection and 'Last Update' timestamp.
-        - **Markers:** Jumping markers may indicate browser performance throttling.
+        - **Map Issues:** Check internet connection and 'Last Update' timestamp. If it's more than 5 minutes old, the driver may be in a poor signal area.
+        - **Markers:** Jumping markers may indicate browser performance throttling. The system uses car-shaped SVG icons that rotate based on heading and move smoothly every 5 seconds.
+        - **Platform Access:** Ensure you have the correct role (Admin vs. Driver) to see specific features.
 
         Guidelines:
         - Be professional, helpful, and concise.
@@ -223,6 +224,11 @@ class AiSupportService
     protected function keywordFallback(string $userMessage): string
     {
         $lowerMsg = strtolower($userMessage);
+
+        // Prioritize Troubleshooting
+        if (str_contains($lowerMsg, 'stuck') || str_contains($lowerMsg, 'not loading') || str_contains($lowerMsg, 'troubleshoot') || str_contains($lowerMsg, 'slow')) {
+            return "If the map isn't loading or markers seem stuck: 1. Check your internet connection. 2. Verify the 'Last Update' timestamp on the vehicle card (if >5m, it might be a signal issue). 3. If markers 'jump', your browser might be throttling performance. Try refreshing the page using the 'Refresh Data' button in the user menu.";
+        }
 
         if (str_contains($lowerMsg, 'track') || str_contains($lowerMsg, 'location') || str_contains($lowerMsg, 'map')) {
             return "You can view live vehicle locations and historical routes in the 'Live Tracking' section. The map uses car-shaped SVG markers that rotate based on heading and move smoothly every 5 seconds. You can switch between Light, Dark, and Satellite themes.";
