@@ -482,9 +482,16 @@
                         </div>
                         
                         <div class="space-y-2 text-sm">
-                            <div class="flex justify-between">
+                            <div class="flex justify-between items-center">
                                 <span class="text-gray-500">Document Number:</span>
-                                <span class="font-medium">{{ $document->document_number ?? 'N/A' }}</span>
+                                <span class="font-medium flex items-center gap-2">
+                                    <span class="font-mono">{{ $document->document_number ?? 'N/A' }}</span>
+                                    @if($document->document_number)
+                                    <button onclick="copyToClipboard('{{ $document->document_number }}', 'Document Number')" class="text-gray-400 hover:text-blue-600 transition-colors" title="Copy Document Number" aria-label="Copy Document Number">
+                                        <i class="far fa-copy text-xs"></i>
+                                    </button>
+                                    @endif
+                                </span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-500">Issue Date:</span>
