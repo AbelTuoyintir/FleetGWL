@@ -10,6 +10,7 @@ use App\Models\FuelStation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Support\SqlDate;
 
 class FuelManagementController extends Controller
 {
@@ -355,48 +356,89 @@ public function index(Request $request)
 
     public function analyticsData(Request $request)
     {
-        $query = FuelLog::where('status', '!=', 'deleted');
+        // Bolt: Optimized by replacing in-memory collection processing with database-level aggregation.
+        // This avoids fetching all fuel logs and hydrating models, significantly reducing memory and CPU usage.
+        $baseQuery = FuelLog::where('fuel_logs.status', '!=', 'deleted');
 
         if ($request->filled('vehicle_id')) {
-            $query->where('vehicle_id', $request->vehicle_id);
+            $baseQuery->where('vehicle_id', $request->vehicle_id);
         }
         if ($request->filled('date_from')) {
-            $query->where('date', '>=', $request->date_from);
+            $baseQuery->where('date', '>=', $request->date_from);
         }
         if ($request->filled('date_to')) {
-            $query->where('date', '<=', $request->date_to);
+            $baseQuery->where('date', '<=', $request->date_to);
         }
 
-        $logs = $query->with('vehicle')->orderBy('date')->get();
-        $byMonth = $logs->groupBy(fn ($log) => $log->date->format('M Y'));
+        // 1. Monthly Trends
+        $monthlyStats = (clone $baseQuery)
+            ->selectRaw(
+                SqlDate::year('date') . ' as year, ' .
+                SqlDate::month('date') . ' as month, ' .
+                'SUM(fuel_quantity) as total_fuel, ' .
+                'SUM(fuel_cost) as total_cost, ' .
+                'SUM(distance_traveled) as total_distance, ' .
+                'AVG(CASE WHEN fuel_efficiency > 0 THEN fuel_efficiency ELSE NULL END) as avg_efficiency'
+            )
+            ->groupBy(DB::raw(SqlDate::year('date')), DB::raw(SqlDate::month('date')))
+            ->orderBy('year')
+            ->orderBy('month')
+            ->get();
+
+        // 2. Fuel Type Distribution
+        $fuelTypeStats = (clone $baseQuery)
+            ->selectRaw('fuel_type, SUM(fuel_quantity) as total_fuel')
+            ->groupBy('fuel_type')
+            ->get();
+
+        // 3. Vehicle Efficiency
+        $vehicleStats = (clone $baseQuery)
+            ->join('vehicles', 'fuel_logs.vehicle_id', '=', 'vehicles.id')
+            ->selectRaw(
+                'vehicles.registration_number, vehicles.make, ' .
+                'AVG(CASE WHEN fuel_efficiency > 0 THEN fuel_efficiency ELSE NULL END) as avg_efficiency'
+            )
+            ->groupBy('vehicles.id', 'vehicles.registration_number', 'vehicles.make')
+            ->get();
+
+        // Format data for the response to maintain compatibility with the frontend
+        $months = [];
+        $fuelData = [];
+        $costData = [];
+        $monthlySummary = [];
+
+        foreach ($monthlyStats as $stat) {
+            $monthName = Carbon::create($stat->year, $stat->month, 1)->format('M Y');
+            $months[] = $monthName;
+            $fuelData[] = (float) $stat->total_fuel;
+            $costData[] = (float) $stat->total_cost;
+
+            $distance = (float) $stat->total_distance;
+            $cost = (float) $stat->total_cost;
+
+            $monthlySummary[] = [
+                'month' => $monthName,
+                'fuel' => (float) $stat->total_fuel,
+                'cost' => $cost,
+                'distance' => $distance,
+                'efficiency' => (float) ($stat->avg_efficiency ?? 0),
+                'cost_per_km' => $distance > 0 ? $cost / $distance : 0,
+            ];
+        }
 
         $data = [
-            'months' => $byMonth->keys()->values(),
-            'fuel_data' => $byMonth->map(fn ($group) => (float) $group->sum('fuel_quantity'))->values(),
-            'cost_data' => $byMonth->map(fn ($group) => (float) $group->sum('fuel_cost'))->values(),
+            'months' => $months,
+            'fuel_data' => $fuelData,
+            'cost_data' => $costData,
             'fuel_types' => [
-                'labels' => $logs->groupBy('fuel_type')->keys()->values(),
-                'values' => $logs->groupBy('fuel_type')->map(fn ($group) => (float) $group->sum('fuel_quantity'))->values(),
+                'labels' => $fuelTypeStats->pluck('fuel_type')->values(),
+                'values' => $fuelTypeStats->pluck('total_fuel')->map(fn($v) => (float)$v)->values(),
             ],
             'efficiency' => [
-                'vehicles' => $logs->groupBy('vehicle_id')->map(function ($group) {
-                    $vehicle = $group->first()->vehicle;
-                    return $vehicle ? ($vehicle->registration_number . ' - ' . $vehicle->make) : 'Unknown';
-                })->values(),
-                'values' => $logs->groupBy('vehicle_id')->map(fn ($group) => (float) ($group->where('fuel_efficiency', '>', 0)->avg('fuel_efficiency') ?? 0))->values(),
+                'vehicles' => $vehicleStats->map(fn($v) => ($v->registration_number . ' - ' . $v->make))->values(),
+                'values' => $vehicleStats->pluck('avg_efficiency')->map(fn($v) => (float)$v)->values(),
             ],
-            'monthly_summary' => $byMonth->map(function ($group, $month) {
-                $distance = (float) $group->sum('distance_traveled');
-                $cost = (float) $group->sum('fuel_cost');
-                return [
-                    'month' => $month,
-                    'fuel' => (float) $group->sum('fuel_quantity'),
-                    'cost' => $cost,
-                    'distance' => $distance,
-                    'efficiency' => (float) ($group->where('fuel_efficiency', '>', 0)->avg('fuel_efficiency') ?? 0),
-                    'cost_per_km' => $distance > 0 ? $cost / $distance : 0,
-                ];
-            })->values(),
+            'monthly_summary' => $monthlySummary,
         ];
 
         return response()->json(['success' => true, 'data' => $data]);
