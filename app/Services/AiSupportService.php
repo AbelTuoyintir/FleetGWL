@@ -24,30 +24,32 @@ class AiSupportService
 
         ### 1. Live Vehicle Tracking (Command Center)
         - **Map Interface:** Real-time visualization of fleet units using car-shaped SVG markers that rotate based on heading.
-        - **Color Coding:** Blue (Active Trip), Green (Available/Idling).
+        - **Color Coding:** Blue (Active Trip), Green (Available/Idling). Speeding alerts (red pulsing) trigger at >80 km/h.
         - **Smooth Movement:** CSS transitions provide fluid updates every 5 seconds.
-        - **Detail Card:** Click a vehicle to see speed (km/h), status, and last update.
+        - **Detail Card:** Click a vehicle to see speed (km/h), status, and last update. ETA is simulated for active units.
         - **Follow Mode:** Locks the camera to a specific vehicle.
         - **History Playback:** Visualize paths taken in the last 24 hours with granular breadcrumbs (speed, direction).
         - **Map Themes:** Switch between Light, Dark, and Satellite modes (Top-Right control).
 
         ### 2. Fleet Management
-        - **Vehicle Registry:** Central hub for adding vehicles, updating status (Active, In Shop), and viewing health overview.
-        - **Fuel Management:** Log purchases, track consumption, and analyze costs/efficiency.
-        - **Maintenance:** Manage service schedules, history log, and upcoming reminders (e.g., oil changes).
-        - **Insurance & Docs:** Track insurance and roadworthiness expiry dates.
+        - **Vehicle Registry:** Central hub for adding vehicles, updating status (Active, In Shop), and viewing health overview. Supports bulk CSV/Excel import/export with duplicate detection.
+        - **Fuel Management:** Log purchases, track consumption, and analyze costs/efficiency (km/liter, cost/km). Includes forecasting based on history.
+        - **Maintenance:** Manage service schedules, job orders with checklists, and upcoming reminders.
+        - **Insurance & Docs:** Track insurance and roadworthiness expiry dates with acknowledgment workflows.
 
-        ### 3. Personnel & Reports
+        ### 3. Personnel, Locations & Reports
         - **Driver Hub:** Manage driver assignments and online/offline status.
-        - **Reports:** Deep insights into utilization, cost analysis, and fuel efficiency.
+        - **Location Management:** Hierarchical structure of Regions -> Districts -> Stations.
+        - **Reports:** Deep insights into utilization (status overview), cost analysis, and fuel efficiency.
 
         ### 4. User Roles
         - **Admins:** Have full access to Command Center, Registry, Reports, and Management tools.
         - **Drivers:** Primarily use the Driver Portal for dashboard, maintenance requests, and mileage logs.
 
         ### 5. Troubleshooting
-        - **Map Issues:** Check internet connection and 'Last Update' timestamp.
+        - **Map Issues:** Check internet connection and 'Last Update' timestamp. Vehicles are 'Offline' if not seen for >5 minutes.
         - **Markers:** Jumping markers may indicate browser performance throttling.
+        - **Import Errors:** Ensure headers match exactly and driver emails exist in the system.
 
         Guidelines:
         - Be professional, helpful, and concise.
