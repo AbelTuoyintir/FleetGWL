@@ -181,15 +181,15 @@
                 </span>
                 LIVE UPDATING
             </div>
-            <div class="flex bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
-                <button onclick="setMapTheme('light')" class="px-3 py-1 text-xs font-medium rounded-md hover:bg-gray-100 transition" id="theme-light">Light</button>
-                <button onclick="setMapTheme('dark')" class="px-3 py-1 text-xs font-medium rounded-md hover:bg-gray-100 transition" id="theme-dark">Dark</button>
-                <button onclick="setMapTheme('satellite')" class="px-3 py-1 text-xs font-medium rounded-md hover:bg-gray-100 transition" id="theme-satellite">Satellite</button>
+            <div class="flex bg-white border border-gray-200 rounded-lg p-1 shadow-sm" role="group" aria-label="Map Theme Switcher">
+                <button onclick="setMapTheme('light')" class="px-3 py-1 text-xs font-medium rounded-md hover:bg-gray-100 transition" id="theme-light" aria-label="Set map theme to Light" title="Light Theme">Light</button>
+                <button onclick="setMapTheme('dark')" class="px-3 py-1 text-xs font-medium rounded-md hover:bg-gray-100 transition" id="theme-dark" aria-label="Set map theme to Dark" title="Dark Theme">Dark</button>
+                <button onclick="setMapTheme('satellite')" class="px-3 py-1 text-xs font-medium rounded-md hover:bg-gray-100 transition" id="theme-satellite" aria-label="Set map theme to Satellite" title="Satellite Theme">Satellite</button>
             </div>
-            <button onclick="fitAllVehicles()" class="bg-blue-50 border border-blue-200 px-4 py-2 rounded-lg text-sm font-bold text-blue-700 hover:bg-blue-100 transition shadow-sm">
+            <button onclick="fitAllVehicles()" class="bg-blue-50 border border-blue-200 px-4 py-2 rounded-lg text-sm font-bold text-blue-700 hover:bg-blue-100 transition shadow-sm" aria-label="Fit all vehicles on map" title="Fit All Vehicles">
                 <i class="fas fa-compress-alt mr-2"></i>Fit All
             </button>
-            <button onclick="refreshMap()" class="bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition shadow-sm">
+            <button onclick="refreshMap()" class="bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition shadow-sm" aria-label="Refresh tracking data" title="Sync Live Data">
                 <i class="fas fa-sync-alt mr-2"></i>Sync
             </button>
         </div>
@@ -272,7 +272,7 @@
                                 <h3 id="cardReg" class="text-2xl font-black tracking-tight leading-none mb-1">---</h3>
                                 <p id="cardModel" class="text-[10px] uppercase tracking-widest opacity-60 font-bold">---</p>
                             </div>
-                            <button onclick="closeDetailCard()" class="text-white/40 hover:text-white transition"><i class="fas fa-times"></i></button>
+                            <button onclick="closeDetailCard()" class="text-white/40 hover:text-white transition" aria-label="Close detail card" title="Close"><i class="fas fa-times"></i></button>
                         </div>
                     </div>
 
@@ -342,10 +342,10 @@
                         </div>
 
                         <div class="grid grid-cols-2 gap-3">
-                            <button id="historyBtn" class="bg-gray-100 text-gray-900 py-3 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-gray-200 transition">
+                            <button id="historyBtn" class="bg-gray-100 text-gray-900 py-3 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-gray-200 transition" aria-label="View route history for the last 24 hours" title="Route History">
                                 <i class="fas fa-route mr-2"></i>History
                             </button>
-                            <button id="followBtn" onclick="toggleFollow()" class="bg-blue-600 text-white py-3 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-blue-700 transition shadow-lg shadow-blue-200">
+                            <button id="followBtn" onclick="toggleFollow()" class="bg-blue-600 text-white py-3 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-blue-700 transition shadow-lg shadow-blue-200" aria-label="Toggle following this vehicle on the map" title="Follow Vehicle">
                                 <i class="fas fa-crosshairs mr-2"></i>Follow
                             </button>
                         </div>
