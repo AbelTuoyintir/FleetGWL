@@ -90,7 +90,7 @@
         .form-input:focus {
             outline: none;
             border-color: #3b82f6;
-            ring: 2px solid #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
         }
         .form-label {
             font-size: 13px;
@@ -276,7 +276,7 @@
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label class="form-label">Registration Number *</label>
-                                        <input type="text" name="registration_number" class="form-input" required>
+                                        <input type="text" name="registration_number" class="form-input font-mono" required>
                                     </div>
                                     <div>
                                         <label class="form-label">Vehicle Type *</label>
@@ -310,11 +310,11 @@
                                     </div>
                                     <div>
                                         <label class="form-label">Chassis Number *</label>
-                                        <input type="text" name="chassis_number" class="form-input" required>
+                                        <input type="text" name="chassis_number" class="form-input font-mono" required>
                                     </div>
                                     <div>
                                         <label class="form-label">Engine Number</label>
-                                        <input type="text" name="engine_number" class="form-input">
+                                        <input type="text" name="engine_number" class="form-input font-mono">
                                     </div>
                                     <div>
                                         <label class="form-label">Current Mileage (km)</label>
@@ -740,7 +740,7 @@ function renderVehiclesTable(vehicles) {
         
         html += `
             <tr>
-                <td class="font-medium">${vehicle.registration_number}</td>
+                <td class="font-medium font-mono">${vehicle.registration_number}</td>
                 <td>${vehicle.make} ${vehicle.model}<br><span class="text-xs text-gray-500">${vehicle.year || 'N/A'}</span></td>
                 <td>${vehicle.vehicle_type}</td>
                 <td><span class="status-badge ${statusClass}">${vehicle.status}</span></td>
