@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>GWCL | Asset Portal Login</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="csrf-token" content="{{ csrf_token() }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -53,11 +54,15 @@
     </div>
 
     <!-- Password -->
-    <div class="relative">
-      <input type="password" id="password" name="password" required placeholder="Password" class="w-full google-input pr-12"/>
-      <button type="button" onclick="togglePassword()" id="togglePasswordBtn" aria-label="Show password" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none rounded p-1">
-        <i id="eyeIcon" class="fas fa-eye"></i>
-      </button>
+    <div>
+      <label for="password" class="block text-sm font-medium mb-1">Password</label>
+      <div class="relative">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white/60"><i class="fas fa-lock"></i></span>
+        <input type="password" id="password" name="password" required class="w-full pl-10 pr-10 py-2 bg-white/10 border border-white/20 rounded-lg placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-white"/>
+        <button type="button" onclick="togglePassword()" id="togglePasswordBtn" aria-label="Show password" title="Show password" class="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-300 rounded">
+          <i id="eyeIcon" class="fas fa-eye"></i>
+        </button>
+      </div>
       @error('password')
         <p class="text-[#d93025] text-xs mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p>
       @enderror
