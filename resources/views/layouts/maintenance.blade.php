@@ -13,8 +13,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        * { font-family: 'Inter', sans-serif; }
-        body { background: #f8fafc; }
+        * { font-family: 'Inter', 'Roboto', sans-serif; }
+        body { background: #f4f4f4; color: #202124; }
+        .google-card { background: #ffffff; border: 1px solid #e8eaed; border-radius: 8px; box-shadow: 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15); }
     </style>
 </head>
 <body class="text-gray-800 antialiased">

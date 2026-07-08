@@ -4,14 +4,14 @@
     <style>
         .stat-card {
             transition: all 0.2s ease;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #e8eaed;
             background-color: #ffffff;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);
+            border-radius: 8px;
         }
         .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px -6px rgba(0,0,0,0.08);
-            border-color: #cbd5e1;
+            box-shadow: 0 4px 8px 3px rgba(60,64,67,.15), 0 1px 3px 1px rgba(60,64,67,.15);
+            border-color: #dadce0;
         }
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 10px; }
@@ -29,7 +29,7 @@
                 <p class="text-gray-500 text-xs mt-0.5">Ghana Water Company Limited - Real-time fleet intelligence</p>
             </div>
             <div class="flex gap-2 mt-2 sm:mt-0">
-                <a href="{{ route('vehicles.tracking') }}" class="bg-blue-600 text-white rounded-lg px-4 py-1.5 text-xs font-bold hover:bg-blue-700 transition flex items-center shadow-sm">
+                <a href="{{ route('vehicles.tracking') }}" class="bg-[#1a73e8] text-white rounded-md px-4 py-1.5 text-xs font-bold hover:bg-blue-700 transition flex items-center shadow-sm">
                     <i class="fas fa-map-marked-alt mr-2"></i> Live Fleet Map
                 </a>
                 <span class="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs">
@@ -199,8 +199,8 @@
             <div class="space-y-5">
                 <!-- Live Fleet Ticker -->
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="bg-slate-900 p-4 text-white flex justify-between items-center">
-                        <h3 class="font-bold text-sm uppercase tracking-widest"><i class="fas fa-satellite-dish mr-2 text-blue-400"></i>Live Fleet Ticker</h3>
+                <div class="bg-[#202124] p-4 text-white flex justify-between items-center rounded-t-xl">
+                    <h3 class="font-bold text-sm uppercase tracking-widest"><i class="fas fa-satellite-dish mr-2 text-[#1a73e8]"></i>Live Fleet Ticker</h3>
                         <div class="flex items-center gap-1.5">
                             <span class="relative flex h-2 w-2">
                                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>

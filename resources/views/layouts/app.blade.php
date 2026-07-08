@@ -17,21 +17,21 @@
   
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <style>
-        * { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-        body { background: #f4f7fc; overflow-x: hidden; }
-        /* Glassmorphism refined */
-        .glass-card { background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); }
-        .sidebar-glass { background: rgba(255,255,255,0.94); backdrop-filter: blur(16px); border-right: 1px solid rgba(0,0,0,0.05); }
+        * { font-family: 'Inter', 'Roboto', system-ui, -apple-system, sans-serif; }
+        body { background: #f4f4f4; overflow-x: hidden; color: #202124; }
+        /* Google Stitch Style */
+        .google-card { background: #ffffff; border: 1px solid #e8eaed; border-radius: 8px; box-shadow: 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15); }
+        .sidebar-google { background: #ffffff; border-right: 1px solid #e8eaed; }
         /* Sidebar transitions */
-        .sidebar-fleet { position: fixed; top: 0; left: 0; height: 100vh; width: 280px; z-index: 40; transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1); }
+        .sidebar-fleet { position: fixed; top: 0; left: 0; height: 100vh; width: 280px; z-index: 40; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
         .sidebar-closed { transform: translateX(-100%); }
-        .overlay-fleet { position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(2px); z-index: 35; display: none; }
+        .overlay-fleet { position: fixed; inset: 0; background: rgba(32,33,36,0.6); z-index: 35; display: none; }
         .overlay-open { display: block; }
         /* Navigation items */
-        .nav-item-fleet { transition: all 0.2s ease; border-radius: 12px; margin-bottom: 2px; }
-        .nav-item-fleet:hover { background: rgba(59,130,246,0.12); color: #1e40af; }
-        .nav-item-fleet:focus-visible { outline: 2px solid #3b82f6; outline-offset: -2px; background: rgba(59,130,246,0.12); }
-        .nav-active-fleet { background: #eef2ff; color: #2563eb; font-weight: 500; border-left: 3px solid #3b82f6; }
+        .nav-item-fleet { transition: all 0.2s ease; border-radius: 0 24px 24px 0; margin-right: 12px; padding-left: 24px !important; }
+        .nav-item-fleet:hover { background: #f8f9fa; color: #1a73e8; }
+        .nav-item-fleet:focus-visible { outline: 2px solid #1a73e8; outline-offset: -2px; background: #f8f9fa; }
+        .nav-active-fleet { background: #e8f0fe; color: #1a73e8; font-weight: 500; border-left: 4px solid #1a73e8; }
         .submenu-item { padding-left: 2.5rem; transition: all 0.2s; }
         .rotate-180 { transform: rotate(180deg); }
         /* custom scroll */
@@ -79,7 +79,7 @@
 <div id="mobileOverlay" class="overlay-fleet"></div>
 
 <!-- STICKY HEADER -->
-<header class="sticky top-0 z-30 glass-card shadow-sm flex items-center justify-between lg:justify-end px-5 py-3 border-b border-white/60">
+<header class="sticky top-0 z-30 bg-white shadow-sm flex items-center justify-between lg:justify-end px-5 py-3 border-b border-gray-200">
     <button id="menuToggleBtn" aria-label="Open Sidebar" title="Open Sidebar" aria-expanded="false" aria-controls="fleetSidebar" class="lg:hidden text-gray-600 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-1">
         <i class="fas fa-bars text-xl"></i>
     </button>
@@ -93,16 +93,16 @@
             }
             $initials = $initials ?: 'KA';
         @endphp
-        <button id="userMenuToggle" type="button" aria-expanded="false" aria-controls="userMenuDropdown" class="flex items-center gap-2 bg-slate-50 rounded-full pl-2 pr-3 py-1 border border-slate-200 hover:bg-slate-100 transition focus-visible:ring-2 focus-visible:ring-blue-500 outline-none">
-            <div class="w-7 h-7 bg-blue-700 text-white rounded-full flex items-center justify-center text-xs font-bold">{{ $initials }}</div>
+        <button id="userMenuToggle" type="button" aria-expanded="false" aria-controls="userMenuDropdown" class="flex items-center gap-2 bg-gray-50 rounded-full pl-2 pr-3 py-1 border border-gray-200 hover:bg-gray-100 transition focus-visible:ring-2 focus-visible:ring-blue-500 outline-none">
+            <div class="w-7 h-7 bg-[#1a73e8] text-white rounded-full flex items-center justify-center text-xs font-bold">{{ $initials }}</div>
             <span class="text-sm font-medium text-gray-700 hidden sm:inline">{{ $userName }}</span>
-            <span class="text-[11px] bg-slate-200 text-gray-700 px-2 py-0.5 rounded-full hidden sm:inline">Fleet Admin</span>
+            <span class="text-[11px] bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full hidden sm:inline">Fleet Admin</span>
             <i class="fas fa-chevron-down text-[10px] text-gray-500"></i>
         </button>
 
         <div id="userMenuDropdown" class="hidden user-menu-dropdown">
             <button id="refreshDashboardBtn" type="button">
-                <i class="fas fa-sync-alt text-blue-600 w-5"></i>
+                <i class="fas fa-sync-alt text-[#1a73e8] w-5"></i>
                 <span>Refresh Data</span>
             </button>
             <a id="logoutBtn" href="{{ route('logout') }}">
@@ -114,34 +114,34 @@
 </header>
 
 <!-- SIDEBAR -->
-<aside id="fleetSidebar" class="sidebar-fleet sidebar-closed lg:translate-x-0 sidebar-glass shadow-2xl flex flex-col">
+<aside id="fleetSidebar" class="sidebar-fleet sidebar-closed lg:translate-x-0 sidebar-google flex flex-col">
     <!-- brand area -->
-    <div class="p-5 border-b border-gray-200/70 flex items-center justify-between">
+    <div class="p-5 border-b border-gray-200 flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-md">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm">
                 <img src="/images/gwl-logo.png" alt="GWL Logo" class="object-cover w-full h-full">
             </div>
             <div>
-                <h1 class="font-bold text-lg tracking-tight text-gray-800">Ghana<span class="text-blue-600">Water</span><span class="text-gray-800">Limited</span></h1>
-                <p class="text-[10px] text-gray-500 uppercase tracking-wide">Vehicle fleet intelligence</p>
+                <h1 class="font-bold text-lg tracking-tight text-gray-900">Ghana<span class="text-[#1a73e8]">Water</span></h1>
+                <p class="text-[10px] text-gray-500 uppercase tracking-wide">Fleet Intelligence</p>
             </div>
         </div>
-        <button id="closeSidebarBtn" aria-label="Close Sidebar" title="Close Sidebar" class="lg:hidden text-gray-500 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-1"><i class="fas fa-times text-lg"></i></button>
+        <button id="closeSidebarBtn" aria-label="Close Sidebar" title="Close Sidebar" class="lg:hidden text-gray-500 hover:text-[#1a73e8] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-1"><i class="fas fa-times text-lg"></i></button>
     </div>
 
     <!-- navigation menu -->
-    <nav id="fleetNav" class="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
+    <nav id="fleetNav" class="flex-1 py-5 space-y-1 overflow-y-auto">
         <!-- Dashboard (Fleet Overview) -->
-        <a href="#" data-nav="dashboard" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl transition">
-            <i class="fas fa-chart-line w-5 text-center text-gray-500"></i><span>Fleet Overview</span>
+        <a href="#" data-nav="dashboard" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 transition">
+            <i class="fas fa-chart-line w-5 text-center text-gray-500"></i><span class="text-gray-700">Fleet Overview</span>
         </a>
 
         <!-- Live Command Center -->
-        <a href="#" data-nav="live-tracking" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl transition">
-            <i class="fas fa-satellite-dish w-5 text-center text-blue-600"></i><span class="font-bold">Live Tracking</span>
-            <span class="ml-auto flex h-2 w-2">
+        <a href="#" data-nav="live-tracking" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 transition">
+            <i class="fas fa-satellite-dish w-5 text-center text-[#1a73e8]"></i><span class="font-bold text-gray-700">Live Tracking</span>
+            <span class="ml-auto flex h-2 w-2 mr-2">
                 <span class="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-blue-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-[#1a73e8]"></span>
             </span>
         </a>
 
@@ -208,13 +208,13 @@
         </div>
 
         <!-- Driver Management - Make sure data-nav="drivers" is present -->
-        <a href="#" data-nav="drivers" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl">
-        <i class="fas fa-id-card w-5 text-center text-gray-500"></i><span>Driver Hub</span>
+        <a href="#" data-nav="drivers" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5">
+        <i class="fas fa-id-card w-5 text-center text-gray-500"></i><span class="text-gray-700">Driver Hub</span>
         </a>
 
         <!-- Insurance & Documents -->
-        <a href="#" data-nav="documents" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl">
-            <i class="fas fa-file-invoice w-5 text-center text-gray-500"></i><span>Insurance & Docs</span>
+        <a href="#" data-nav="documents" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5">
+            <i class="fas fa-file-invoice w-5 text-center text-gray-500"></i><span class="text-gray-700">Insurance & Docs</span>
         </a>
 
         <!-- Fleet Reports -->
@@ -231,8 +231,8 @@
         </div>
 
         <!-- Fleet Settings -->
-        <a href="#" data-nav="settings" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl">
-            <i class="fas fa-sliders-h w-5 text-center text-gray-500"></i><span>Fleet Settings</span>
+        <a href="#" data-nav="settings" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5">
+            <i class="fas fa-sliders-h w-5 text-center text-gray-500"></i><span class="text-gray-700">Fleet Settings</span>
         </a>
     </nav>
 

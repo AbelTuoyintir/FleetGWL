@@ -19,24 +19,24 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     
     <style>
-        * { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-        body { background: #f4f7fc; overflow-x: hidden; }
+        * { font-family: 'Inter', 'Roboto', system-ui, -apple-system, sans-serif; }
+        body { background: #f4f4f4; overflow-x: hidden; color: #202124; }
         
-        /* Glassmorphism refined */
-        .glass-card { background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); }
-        .sidebar-glass { background: rgba(255,255,255,0.94); backdrop-filter: blur(16px); border-right: 1px solid rgba(0,0,0,0.05); }
+        /* Google Stitch Style */
+        .google-card { background: #ffffff; border: 1px solid #e8eaed; border-radius: 8px; box-shadow: 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15); }
+        .sidebar-google { background: #ffffff; border-right: 1px solid #e8eaed; }
         
         /* Sidebar transitions */
-        .sidebar-fleet { position: fixed; top: 0; left: 0; height: 100vh; width: 280px; z-index: 40; transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1); }
+        .sidebar-fleet { position: fixed; top: 0; left: 0; height: 100vh; width: 280px; z-index: 40; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
         .sidebar-closed { transform: translateX(-100%); }
-        .overlay-fleet { position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(2px); z-index: 35; display: none; }
+        .overlay-fleet { position: fixed; inset: 0; background: rgba(32,33,36,0.6); z-index: 35; display: none; }
         .overlay-open { display: block; }
         
         /* Navigation items */
-        .nav-item-fleet { transition: all 0.2s ease; border-radius: 12px; margin-bottom: 2px; }
-        .nav-item-fleet:hover { background: rgba(59,130,246,0.12); color: #1e40af; }
-        .nav-item-fleet:focus-visible { outline: 2px solid #3b82f6; outline-offset: -2px; background: rgba(59,130,246,0.12); }
-        .nav-active-fleet { background: #eef2ff; color: #2563eb; font-weight: 500; border-left: 3px solid #3b82f6; }
+        .nav-item-fleet { transition: all 0.2s ease; border-radius: 0 24px 24px 0; margin-right: 12px; padding-left: 24px !important; }
+        .nav-item-fleet:hover { background: #f8f9fa; color: #1a73e8; }
+        .nav-item-fleet:focus-visible { outline: 2px solid #1a73e8; outline-offset: -2px; background: #f8f9fa; }
+        .nav-active-fleet { background: #e8f0fe; color: #1a73e8; font-weight: 500; border-left: 4px solid #1a73e8; }
         .submenu-item { padding-left: 2.5rem; transition: all 0.2s; }
         .rotate-180 { transform: rotate(180deg); }
         
@@ -137,7 +137,7 @@
 <div id="mobileOverlay" class="overlay-fleet"></div>
 
 <!-- STICKY HEADER -->
-<header class="sticky top-0 z-30 glass-card shadow-sm flex items-center justify-between lg:justify-end px-5 py-3 border-b border-white/60">
+<header class="sticky top-0 z-30 bg-white shadow-sm flex items-center justify-between lg:justify-end px-5 py-3 border-b border-gray-200">
     <button id="menuToggleBtn" aria-label="Open Sidebar" title="Open Sidebar" aria-expanded="false" aria-controls="fleetSidebar" class="lg:hidden text-gray-600 hover:text-green-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 rounded p-1">
         <i class="fas fa-bars text-xl"></i>
     </button>
@@ -205,46 +205,46 @@
 </header>
 
 <!-- SIDEBAR (Driver Only) -->
-<aside id="fleetSidebar" class="sidebar-fleet sidebar-closed lg:translate-x-0 sidebar-glass shadow-2xl flex flex-col">
+<aside id="fleetSidebar" class="sidebar-fleet sidebar-closed lg:translate-x-0 sidebar-google flex flex-col">
     <!-- brand area -->
-    <div class="p-5 border-b border-gray-200/70 flex items-center justify-between">
+    <div class="p-5 border-b border-gray-200 flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-md">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm">
                 <img src="/images/gwl-logo.png" alt="GWL Logo" class="object-cover w-full h-full">
             </div>
             <div>
-                <h1 class="font-bold text-lg tracking-tight text-gray-800">Driver<span class="text-green-600">Portal</span></h1>
+                <h1 class="font-bold text-lg tracking-tight text-gray-900">Driver<span class="text-[#1a73e8]">Portal</span></h1>
                 <p class="text-[10px] text-gray-500 uppercase tracking-wide">Ghana Water Limited</p>
             </div>
         </div>
-        <button id="closeSidebarBtn" aria-label="Close Sidebar" title="Close Sidebar" class="lg:hidden text-gray-500 hover:text-green-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 rounded p-1"><i class="fas fa-times text-lg"></i></button>
+        <button id="closeSidebarBtn" aria-label="Close Sidebar" title="Close Sidebar" class="lg:hidden text-gray-500 hover:text-[#1a73e8] focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 rounded p-1"><i class="fas fa-times text-lg"></i></button>
     </div>
 
     <!-- Driver Navigation Menu -->
-    <nav class="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
+    <nav class="flex-1 py-5 space-y-1 overflow-y-auto">
         <!-- Dashboard -->
-        <a href="{{ route('driver.fuel-mileage.dashboard') }}" data-nav="dashboard" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl transition">
-            <i class="fas fa-chart-line w-5 text-center text-gray-500"></i><span>Dashboard</span>
+        <a href="{{ route('driver.fuel-mileage.dashboard') }}" data-nav="dashboard" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 transition">
+            <i class="fas fa-chart-line w-5 text-center text-gray-500"></i><span class="text-gray-700">Dashboard</span>
         </a>
 
         <!-- Maintenance Requests -->
-        <a href="{{ route('driver.fuel-mileage.maintenance.index') }}" data-nav="maintenance" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl transition">
-            <i class="fas fa-tools w-5 text-center text-gray-500"></i><span>Maintenance Requests</span>
+        <a href="{{ route('driver.fuel-mileage.maintenance.index') }}" data-nav="maintenance" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 transition">
+            <i class="fas fa-tools w-5 text-center text-gray-500"></i><span class="text-gray-700">Maintenance Requests</span>
         </a>
 
         <!-- Mileage Logs -->
-        <a href="{{ route('driver.fuel-mileage.mileage-logs.index') }}" data-nav="mileage-logs" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl transition">
-            <i class="fas fa-tachometer-alt w-5 text-center text-gray-500"></i><span>Mileage Logs</span>
+        <a href="{{ route('driver.fuel-mileage.mileage-logs.index') }}" data-nav="mileage-logs" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 transition">
+            <i class="fas fa-tachometer-alt w-5 text-center text-gray-500"></i><span class="text-gray-700">Mileage Logs</span>
         </a>
 
         <!-- Reports -->
-        <a href="{{ route('driver.fuel-mileage.reports') }}" data-nav="reports" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl transition">
-            <i class="fas fa-chart-pie w-5 text-center text-gray-500"></i><span>Reports</span>
+        <a href="{{ route('driver.fuel-mileage.reports') }}" data-nav="reports" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 transition">
+            <i class="fas fa-chart-pie w-5 text-center text-gray-500"></i><span class="text-gray-700">Reports</span>
         </a>
 
         <!-- My Vehicle -->
-        <a href="#" data-nav="my-vehicle" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl transition">
-            <i class="fas fa-truck w-5 text-center text-gray-500"></i><span>My Vehicle</span>
+        <a href="#" data-nav="my-vehicle" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 transition">
+            <i class="fas fa-truck w-5 text-center text-gray-500"></i><span class="text-gray-700">My Vehicle</span>
         </a>
     </nav>
 
