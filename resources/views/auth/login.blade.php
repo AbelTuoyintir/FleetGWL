@@ -10,51 +10,46 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
   <style>
-    /* Glass-morphism */
-    .glass{background:rgba(255,255,255,.15);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.2);}
-    /* Animated gradient background */
-    .gradient-bg{background:linear-gradient(-45deg,#0ea5e9,#3b82f6,#6366f1,#06b6d4);background-size:400% 400%;animation:gradient 15s ease infinite;}
-    @keyframes gradient{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    body { background-color: #f4f4f4; font-family: 'Inter', 'Roboto', sans-serif; color: #202124; }
+    .google-login-card { background: #ffffff; border: 1px solid #dadce0; border-radius: 8px; }
+    .google-btn { background-color: #1a73e8; color: #ffffff; transition: background-color .2s; }
+    .google-btn:hover { background-color: #1b66c9; }
+    .google-btn:focus { background-color: #1a73e8; box-shadow: 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15); }
+    .google-input { border: 1px solid #dadce0; border-radius: 4px; padding: 13px 15px; font-size: 16px; transition: border .2s; }
+    .google-input:focus { border: 2px solid #1a73e8; outline: none; padding: 12px 14px; }
     /* Car-track loader */
     .car-track{position:relative;width:80px;height:40px;margin:auto;}
-    .car{position:absolute;width:40px;height-20px;background:#fff;border-radius:4px;animation:drive 1.8s linear infinite;}
-    .track{position:absolute;bottom:0;left:0;right:0;height-2px;background:rgba(255,255,255,.3);overflow:hidden;}
-    .track::after{content:'';position:absolute;width:20px;height-2px;background:rgba(255,255,255,.6);animation:track 0.9s linear infinite;}
+    .car{position:absolute;width:40px;height-20px;background:#1a73e8;border-radius:4px;animation:drive 1.8s linear infinite;}
+    .track{position:absolute;bottom:0;left:0;right:0;height-2px;background:rgba(26,115,232,.3);overflow:hidden;}
+    .track::after{content:'';position:absolute;width:20px;height-2px;background:rgba(26,115,232,.6);animation:track 0.9s linear infinite;}
     @keyframes drive{0%{left:-40px;}100%{left:calc(100% + 40px);}}
     @keyframes track{0%{left:-20px;}100%{left:100%;}}
-    /* Fade-in animation */
-    .fade-in{animation:fadeIn .8s ease forwards;}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
   </style>
   @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
     @vite('resources/css/app.css')
   @endif
 </head>
-<body class="gradient-bg min-h-screen flex items-center justify-center p-4 text-white fade-in">
+<body class="min-h-screen flex items-center justify-center p-4">
 
 <!-- LOGIN CARD -->
-<div class="w-full max-w-md glass rounded-2xl shadow-2xl p-8 space-y-6">
+<div class="w-full max-w-[450px] google-login-card p-10 space-y-6">
   <!-- Logo / Title -->
-  <div class="text-center">
-    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
-        <img src="{{ asset('images/gwcl-logo.png') }}" alt="GWCL Logo" class="w-full h-full object-cover rounded-xl">
+  <div class="text-center mb-8">
+    <div class="w-12 h-12 flex items-center justify-center mx-auto mb-4">
+        <img src="{{ asset('images/gwcl-logo.png') }}" alt="GWL Logo" class="w-full h-full object-contain">
     </div>
-    <h1 class="text-2xl font-bold">GWC Asset Portal</h1>
-    <p class="text-sm text-white/70">Sign in to manage fleet & assets</p>
+    <h1 class="text-2xl font-normal mb-2">Sign in</h1>
+    <p class="text-base text-[#202124]">Use your GWC Asset Account</p>
   </div>
 
   <!-- FORM -->
-  <form id="loginForm" method="POST" action="{{ route('login.submit') }}" class="space-y-5">
+  <form id="loginForm" method="POST" action="{{ route('login.submit') }}" class="space-y-6">
     @csrf
     <!-- Email -->
     <div>
-      <label for="email" class="block text-sm font-medium mb-1">Email</label>
-      <div class="relative">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-white/60"><i class="fas fa-envelope"></i></span>
-        <input type="email" id="email" name="email" value="{{ old('email') }}" required class="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-cyan-300 text-white"/>
-      </div>
+      <input type="email" id="email" name="email" value="{{ old('email') }}" required placeholder="Email" class="w-full google-input"/>
       @error('email')
-        <p class="text-red-300 text-sm">{{ $message }}</p>
+        <p class="text-[#d93025] text-xs mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p>
       @enderror
     </div>
 
@@ -69,28 +64,31 @@
         </button>
       </div>
       @error('password')
-        <p class="text-red-300 text-sm">{{ $message }}</p>
+        <p class="text-[#d93025] text-xs mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p>
       @enderror
     </div>
 
     <!-- Remember + Forgot -->
-    <div class="flex items-center justify-between text-sm">
-      <label class="flex items-center gap-2 cursor-pointer">
-        <input type="checkbox" id="remember" name="remember" class="rounded border-white/30 bg-white/10 text-cyan-300 focus:ring-cyan-300"/>
+    <div class="flex items-center justify-between text-sm pt-2">
+      <label class="flex items-center gap-2 cursor-pointer text-gray-600">
+        <input type="checkbox" id="remember" name="remember" class="rounded border-gray-300 text-[#1a73e8] focus:ring-[#1a73e8]"/>
         <span>Remember me</span>
       </label>
-      <a href="{{ route('password.request') }}" class="text-cyan-300 hover:underline">Forgot password?</a>
+      <a href="{{ route('password.request') }}" class="text-[#1a73e8] font-medium hover:underline">Forgot password?</a>
     </div>
 
     <!-- Submit -->
-    <button type="submit" id="submitBtn" class="w-full bg-cyan-400 hover:bg-cyan-300 text-slate-900 font-semibold py-2.5 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl">
-      <span id="btnText">Sign In</span>
-      <div id="loader" class="hidden car-track"><div class="car"></div><div class="track"></div></div>
-    </button>
+    <div class="flex justify-between items-center pt-6">
+      <a href="#" class="text-[#1a73e8] font-medium hover:underline text-sm">Create account</a>
+      <button type="submit" id="submitBtn" class="google-btn px-6 py-2 rounded font-medium text-sm transition-all flex items-center justify-center gap-2 min-w-[100px]">
+        <span id="btnText">Next</span>
+        <div id="loader" class="hidden car-track scale-50"><div class="car"></div><div class="track"></div></div>
+      </button>
+    </div>
 
     <!-- Footer -->
-    <p class="text-center text-xs text-white/60">
-      © 2024 Ghana Water Company Limited. All rights reserved.
+    <p class="text-center text-[12px] text-gray-500 pt-10">
+      © 2024 Ghana Water Company Limited
     </p>
   </form>
 </div>
