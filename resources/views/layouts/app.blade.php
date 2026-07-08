@@ -132,12 +132,12 @@
     <!-- navigation menu -->
     <nav id="fleetNav" class="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
         <!-- Dashboard (Fleet Overview) -->
-        <a href="#" data-nav="dashboard" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl transition">
+        <a href="{{ route('dashboard') }}" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl transition {{ request()->routeIs('dashboard') ? 'nav-active-fleet' : '' }}">
             <i class="fas fa-chart-line w-5 text-center text-gray-500"></i><span>Fleet Overview</span>
         </a>
 
         <!-- Live Command Center -->
-        <a href="#" data-nav="live-tracking" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl transition">
+        <a href="{{ route('vehicles.tracking') }}" class="nav-item-fleet flex items-center gap-3 px-3 py-2.5 rounded-xl transition {{ request()->routeIs('vehicles.tracking') ? 'nav-active-fleet' : '' }}">
             <i class="fas fa-satellite-dish w-5 text-center text-blue-600"></i><span class="font-bold">Live Tracking</span>
             <span class="ml-auto flex h-2 w-2">
                 <span class="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-blue-400 opacity-75"></span>
