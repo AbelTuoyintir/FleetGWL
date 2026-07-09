@@ -138,4 +138,30 @@ class AiSupportTest extends TestCase
             ])
             ->assertJsonCount(2, 'history'); // User message + AI response
     }
+
+    public function test_ai_responds_to_new_keywords()
+    {
+        $user = User::factory()->create();
+        $keywords = [
+            'track' => 'Live Tracking',
+            'report' => 'Fleet Reports',
+            'mileage' => 'Mileage Management',
+            'document' => 'Insurance & Docs',
+            'setting' => 'Fleet Settings',
+            'help' => 'I can help you with',
+        ];
+
+        foreach ($keywords as $keyword => $expectedResponse) {
+            $response = $this->actingAs($user)
+                ->postJson(route('ai-support.chat'), ['message' => "I need help with $keyword"]);
+
+            $response->assertStatus(200)
+                ->assertJsonFragment(['ai_message' => $this->getResponseForKeyword($keyword)]);
+        }
+    }
+
+    private function getResponseForKeyword($keyword)
+    {
+        return (new \App\Services\AiSupportService)->generateAiResponse($keyword);
+    }
 }

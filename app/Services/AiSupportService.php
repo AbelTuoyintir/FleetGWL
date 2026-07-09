@@ -247,6 +247,10 @@ class AiSupportService
             return "Manage fuel consumption and costs under 'Fuel Management'. You can log new fuel purchases, analyze consumption patterns, and view efficiency reports.";
         }
 
+        if (str_contains($lowerMsg, 'track') || str_contains($lowerMsg, 'location') || str_contains($lowerMsg, 'map')) {
+            return "The 'Live Tracking' map (under Vehicle Registry) shows the real-time position of all active vehicles in your fleet.";
+        }
+
         if (str_contains($lowerMsg, 'vehicle') || str_contains($lowerMsg, 'fleet')) {
             return "The 'Vehicle Registry' is your central hub. You can add new vehicles, update their status (Active, In Shop), and see an overview of your entire fleet's health.";
         }
