@@ -108,9 +108,9 @@ class DocumentController extends Controller
             $validated = $request->validate([
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
-                'file' => 'required_without:files|file|max:10240', // 10MB max
+                'file' => 'required_without:files|file|mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx,csv,txt|max:10240', // 10MB max
                 'files' => 'required_without:file|array',
-                'files.*' => 'file|max:10240',
+                'files.*' => 'file|mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx,csv,txt|max:10240',
                 'document_type' => 'required|string|in:' . implode(',', Document::getDocumentTypes()),
                 'reference_number' => 'nullable|string|max:100',
                 'vehicle_id' => 'nullable|exists:vehicles,id',
@@ -243,7 +243,7 @@ class DocumentController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'file' => 'nullable|file|max:10240',
+            'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx,csv,txt|max:10240',
             'document_type' => 'required|string|in:' . implode(',', Document::getDocumentTypes()),
             'reference_number' => 'nullable|string|max:100',
             'vehicle_id' => 'nullable|exists:vehicles,id',
