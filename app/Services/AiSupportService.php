@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\SupportChat;
 use App\Models\SupportMessage;
+use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -70,8 +71,8 @@ class AiSupportService
         try {
             $query = SupportChat::where('status', 'active');
 
-            if ($userId) {
-                $query->where('user_id', $userId);
+            if ($user) {
+                $query->where('user_id', $user->id);
             } elseif ($sessionId) {
                 $query->where('session_id', $sessionId);
             } else {
@@ -82,7 +83,7 @@ class AiSupportService
 
             if (!$chat) {
                 $chat = SupportChat::create([
-                    'user_id' => $userId,
+                    'user_id' => $user ? $user->id : null,
                     'session_id' => $sessionId,
                     'subject' => 'AI System Support',
                     'status' => 'active'
