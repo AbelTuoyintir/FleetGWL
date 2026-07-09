@@ -116,6 +116,27 @@ class AiSupportTest extends TestCase
         $this->assertStringContainsString('select \'Follow\'', $response->json('ai_message'));
     }
 
+    public function test_user_gets_technical_details_in_fallback()
+    {
+        $user = User::factory()->create();
+        Http::fake(['*' => Http::response([], 500)]);
+
+        // Test speeding alert
+        $response = $this->actingAs($user)
+            ->postJson(route('ai-support.chat'), ['message' => 'what is the speeding limit?']);
+        $this->assertStringContainsString('80 km/h', $response->json('ai_message'));
+
+        // Test offline threshold
+        $response = $this->actingAs($user)
+            ->postJson(route('ai-support.chat'), ['message' => 'why is vehicle offline?']);
+        $this->assertStringContainsString('5 minutes', $response->json('ai_message'));
+
+        // Test maintenance dispatch
+        $response = $this->actingAs($user)
+            ->postJson(route('ai-support.chat'), ['message' => 'how to dispatch a vehicle?']);
+        $this->assertStringContainsString('Dispatched', $response->json('ai_message'));
+    }
+
     public function test_user_can_get_chat_history()
     {
         $user = User::factory()->create();
