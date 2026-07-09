@@ -453,9 +453,12 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     @forelse($documents as $document)
                     <?php
-                        $expiryDate = $document->expiry_date ? \Carbon\Carbon::parse($document->expiry_date) : null;
-                        $isExpiring = $expiryDate && $expiryDate->isFuture() && $expiryDate->diffInDays(now()) <= 30;
-                        $isExpired = $expiryDate && $expiryDate->isPast();
+
+use Carbon\Carbon;
+
+                        $expiryDate = $document->expiry_date ? Carbon::parse($document->expiry_date) : null;
+                    $isExpiring = $expiryDate && $expiryDate->isFuture() && $expiryDate->diffInDays(now()) <= 30;
+                    $isExpired = $expiryDate && $expiryDate->isPast();
                     ?>
                     <div class="document-card bg-white border rounded-lg p-4 hover:shadow-md transition 
                         {{ $isExpiring ? 'expiring-soon' : ($isExpired ? 'expired' : '') }}">
