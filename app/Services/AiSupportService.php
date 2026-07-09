@@ -231,6 +231,10 @@ class AiSupportService
     {
         $lowerMsg = strtolower($userMessage);
 
+        if (str_contains($lowerMsg, 'troubleshoot') || str_contains($lowerMsg, 'not loading') || str_contains($lowerMsg, 'stuck')) {
+            return "If the map isn't loading, check your internet connection. If a vehicle appears stuck, check its 'Last Update' timestamp; if it's over 5 minutes old, the driver may be in a poor signal area. You can also try the 'Sync' button to force a refresh.";
+        }
+
         if (str_contains($lowerMsg, 'track') || str_contains($lowerMsg, 'location') || str_contains($lowerMsg, 'map')) {
             return "You can view live vehicle locations and historical routes in the 'Live Tracking' section. The map uses car-shaped SVG markers that rotate based on heading and move smoothly every 5 seconds. You can switch between Light, Dark, and Satellite themes.";
         }
@@ -285,6 +289,19 @@ class AiSupportService
 
         if (str_contains($lowerMsg, 'theme') || str_contains($lowerMsg, 'dark mode') || str_contains($lowerMsg, 'satellite')) {
             return "The tracking map supports three themes: Light (general use), Dark (night monitoring), and Satellite (real-world terrain). Switch themes using the control in the top-right of the map.";
+        }
+
+        if (str_contains($lowerMsg, 'sync') || str_contains($lowerMsg, 'refresh')) {
+            return "Use the 'Sync' button in the top-right Map Controls to force an immediate refresh of all vehicle data.";
+        }
+
+        if (str_contains($lowerMsg, 'color') || str_contains($lowerMsg, 'blue') || str_contains($lowerMsg, 'green')) {
+            return "On the map, Blue car markers indicate a vehicle is currently on an active trip, while Green markers indicate the vehicle is available or idling.";
+        }
+
+
+        if (str_contains($lowerMsg, 'online') || str_contains($lowerMsg, 'status')) {
+            return "Drivers are automatically set to 'Online' when they log in. You can track their real-time status and vehicle assignments in the Driver Hub.";
         }
 
         if (str_contains($lowerMsg, 'help')) {
