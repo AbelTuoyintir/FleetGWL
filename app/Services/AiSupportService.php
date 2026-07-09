@@ -52,9 +52,14 @@ class AiSupportService
         - **Efficiency Tracking:** Automatic calculation of fuel efficiency (km/L) and cost per km.
         - **Security:** Support for 2FA, session management, and activity logging.
 
-        ### 6. Troubleshooting
-        - **Map Issues:** Check internet connection and 'Last Update' timestamp.
-        - **Markers:** Jumping markers may indicate browser performance throttling.
+        ### 6. Maintenance & Dispatch
+        - **Workflow:** Statuses include Waiting (Driver request), Dispatched (Admin assigned), In Progress (Technician active), and Completed.
+        - **Role Logic:** Driver requests default to 'Waiting' and trigger admin notifications. Admin entries default to 'Dispatched'.
+
+        ### 7. Troubleshooting & Thresholds
+        - **Speeding Alerts:** Visual alerts trigger when a vehicle exceeds 80 km/h.
+        - **Offline Status:** Vehicles are marked offline if no data is received for 5 minutes (300 seconds).
+        - **Map Issues:** Check 'Last Update' timestamp; jumping markers may indicate browser performance throttling.
 
         Guidelines:
         - Be professional, helpful, and concise.
@@ -247,12 +252,24 @@ class AiSupportService
             return "Manage fuel consumption and costs under 'Fuel Management'. You can log new fuel purchases, analyze consumption patterns, and view efficiency reports.";
         }
 
+        if (str_contains($lowerMsg, 'dispatch')) {
+            return "Admins can dispatch vehicles for maintenance. When an admin logs a maintenance record, the status defaults to 'Dispatched' unless otherwise specified.";
+        }
+
+        if (str_contains($lowerMsg, 'speeding') || str_contains($lowerMsg, 'limit') || str_contains($lowerMsg, 'alert')) {
+            return "The system monitors vehicle speeds in real-time. Speeding alerts (red pulsing markers) are triggered when a vehicle exceeds the threshold of 80 km/h.";
+        }
+
+        if (str_contains($lowerMsg, 'offline') || str_contains($lowerMsg, 'not moving') || str_contains($lowerMsg, 'not updating')) {
+            return "If a vehicle hasn't sent telemetry data for 5 minutes (300 seconds), it is marked as 'Offline'. Check the 'Last Update' timestamp on the vehicle's detail card to verify its status.";
+        }
+
         if (str_contains($lowerMsg, 'vehicle') || str_contains($lowerMsg, 'fleet')) {
             return "The 'Vehicle Registry' is your central hub. You can add new vehicles, update their status (Active, In Shop), and see an overview of your entire fleet's health.";
         }
 
         if (str_contains($lowerMsg, 'maintenance') || str_contains($lowerMsg, 'service') || str_contains($lowerMsg, 'repair')) {
-            return "Stay on top of fleet health in the 'Maintenance' section. View service schedules, maintenance history, and set up reminders for upcoming tasks like oil changes.";
+            return "Stay on top of fleet health in the 'Maintenance' section. The workflow follows: Waiting -> Dispatched -> In Progress -> Completed. Drivers can request maintenance (status: Waiting), which notifies admins, while admins can dispatch vehicles directly.";
         }
 
         if (str_contains($lowerMsg, 'driver')) {
