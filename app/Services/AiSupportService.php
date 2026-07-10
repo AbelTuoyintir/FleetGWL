@@ -24,7 +24,8 @@ class AiSupportService
 
         ### 1. Live Vehicle Tracking (Command Center)
         - **Map Interface:** Real-time visualization of fleet units using car-shaped SVG markers that rotate based on heading.
-        - **Color Coding:** Blue (Active Trip), Green (Available/Idling).
+        - **Color Coding:** Blue (Active Trip), Green (Available/Idling). Red markers indicate speeding (> 80 km/h).
+        - **Connectivity:** Vehicles are marked as 'Offline' if no telemetry is received for 5 minutes (300 seconds).
         - **Smooth Movement:** CSS transitions provide fluid updates every 5 seconds.
         - **Detail Card:** Click a vehicle to see speed (km/h), status, and last update.
         - **Follow Mode:** Locks the camera to a specific vehicle.
@@ -34,7 +35,7 @@ class AiSupportService
         ### 2. Fleet Management
         - **Vehicle Registry:** Central hub for adding vehicles, updating status (Active, In Shop), and viewing health overview.
         - **Fuel Management:** Log purchases, track consumption, and analyze costs/efficiency.
-        - **Maintenance:** Manage service schedules, history log, and upcoming reminders (e.g., oil changes).
+        - **Maintenance:** Manage service schedules and history. Statuses: 'Waiting' (driver request), 'Dispatched' (admin entry), 'In Progress', and 'Completed'.
         - **Insurance & Docs:** Track insurance and roadworthiness expiry dates.
 
         ### 3. Personnel & Reports
@@ -231,6 +232,18 @@ class AiSupportService
     {
         $lowerMsg = strtolower($userMessage);
 
+        if (str_contains($lowerMsg, 'speeding') || str_contains($lowerMsg, 'fast')) {
+            return "Speeding alerts are triggered when a vehicle exceeds 80 km/h. In the 'Live Tracking' view, speeding vehicles are highlighted with red pulsing markers and labels for immediate attention.";
+        }
+
+        if (str_contains($lowerMsg, 'offline') || str_contains($lowerMsg, 'stuck')) {
+            return "A vehicle is marked as 'Offline' if the system has not received telemetry for more than 5 minutes (300 seconds). If a vehicle appears stuck, check the 'Last Update' timestamp and the driver's signal area.";
+        }
+
+        if (str_contains($lowerMsg, 'dispatch')) {
+            return "Admins can dispatch vehicles for maintenance. In the 'Maintenance' module, entries added by admins default to 'Dispatched' status, while driver requests start as 'Waiting' and require admin notification.";
+        }
+
         if (str_contains($lowerMsg, 'track') || str_contains($lowerMsg, 'location') || str_contains($lowerMsg, 'map')) {
             return "You can view live vehicle locations and historical routes in the 'Live Tracking' section. The map uses car-shaped SVG markers that rotate based on heading and move smoothly every 5 seconds. You can switch between Light, Dark, and Satellite themes.";
         }
@@ -252,7 +265,7 @@ class AiSupportService
         }
 
         if (str_contains($lowerMsg, 'maintenance') || str_contains($lowerMsg, 'service') || str_contains($lowerMsg, 'repair')) {
-            return "Stay on top of fleet health in the 'Maintenance' section. View service schedules, maintenance history, and set up reminders for upcoming tasks like oil changes.";
+            return "Stay on top of fleet health in the 'Maintenance' section. Workflow statuses include 'Waiting', 'Dispatched', 'In Progress', and 'Completed'. Drivers can submit requests which start as 'Waiting' and notify admins.";
         }
 
         if (str_contains($lowerMsg, 'driver')) {
