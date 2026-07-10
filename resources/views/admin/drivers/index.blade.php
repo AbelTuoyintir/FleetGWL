@@ -126,7 +126,7 @@
                                     <p class="text-xs text-gray-500">{{ $user?->email ?? '—' }}</p>
                                 </td>
                                 <td>
-                                    <p class="text-gray-800">{{ $driver->license_number ?? '—' }}</p>
+                                    <p class="text-gray-800 font-mono">{{ $driver->license_number ?? '—' }}</p>
                                     <p class="text-xs text-gray-500">
                                         @if($driver->license_expiry_date)
                                             Expires {{ $driver->license_expiry_date->format('M d, Y') }}
@@ -141,18 +141,18 @@
                                         <p class="text-xs text-gray-500">{{ $driver->vehicle->make }} {{ $driver->vehicle->model }}</p>
                                         <form method="POST" action="{{ route('drivers.unassign-vehicle', $driver) }}" class="mt-1">
                                             @csrf
-                                            <button type="submit" class="text-xs text-red-600 hover:underline">Unassign</button>
+                                            <button type="submit" class="text-xs text-red-600 hover:underline" title="Unassign vehicle from this driver">Unassign</button>
                                         </form>
                                     @elseif($availableVehicles->isNotEmpty())
                                         <form method="POST" action="{{ route('drivers.assign-vehicle', $driver) }}" class="flex items-center gap-2">
                                             @csrf
-                                            <select name="vehicle_id" class="text-xs border border-gray-200 rounded px-2 py-1" required>
+                                            <select name="vehicle_id" aria-label="Assign vehicle" class="text-xs border border-gray-200 rounded px-2 py-1" required title="Select vehicle to assign">
                                                 <option value="">Assign vehicle…</option>
                                                 @foreach($availableVehicles as $vehicle)
                                                     <option value="{{ $vehicle->id }}">{{ $vehicle->registration_number }}</option>
                                                 @endforeach
                                             </select>
-                                            <button type="submit" class="text-xs text-blue-600 hover:underline whitespace-nowrap">Assign</button>
+                                            <button type="submit" class="text-xs text-blue-600 hover:underline whitespace-nowrap" title="Assign selected vehicle to this driver">Assign</button>
                                         </form>
                                     @else
                                         <span class="text-gray-400 text-sm">Unassigned</span>
@@ -160,6 +160,7 @@
                                 </td>
                                 <td>
                                     <span class="status-badge status-{{ $driver->status }}">
+                                        <i class="fas {{ $driver->status == 'active' ? 'fa-check-circle' : 'fa-times-circle' }}"></i>
                                         {{ ucfirst($driver->status) }}
                                     </span>
                                 </td>
@@ -168,12 +169,12 @@
                                     <div>{{ $driver->fuel_logs_count }} fuel logs</div>
                                 </td>
                                 <td class="text-right whitespace-nowrap">
-                                    <a href="{{ route('drivers.show', $driver) }}" class="text-blue-600 hover:text-blue-800 text-sm mr-3">View</a>
-                                    <a href="{{ route('drivers.edit', $driver) }}" class="text-gray-600 hover:text-gray-800 text-sm mr-3">Edit</a>
+                                    <a href="{{ route('drivers.show', $driver) }}" class="text-blue-600 hover:text-blue-800 text-sm mr-3" title="View Driver Details">View</a>
+                                    <a href="{{ route('drivers.edit', $driver) }}" class="text-gray-600 hover:text-gray-800 text-sm mr-3" title="Edit Driver Info">Edit</a>
                                     <form method="POST" action="{{ route('drivers.destroy', $driver) }}" class="inline" onsubmit="return confirm('Remove this driver from the fleet?');">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
+                                        <button type="submit" class="text-red-600 hover:text-red-800 text-sm" title="Delete Driver">Delete</button>
                                     </form>
                                 </td>
                             </tr>

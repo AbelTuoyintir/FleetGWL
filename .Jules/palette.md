@@ -29,3 +29,7 @@
 ## 2026-07-08 - [Monospace Identifiers & Parameterized Copy Utility]
 **Learning:** Using the `font-mono` class for alphanumeric identifiers (Registration, Chassis, Engine, and Document numbers) drastically improves character distinction (e.g., '0' vs 'O'). Additionally, parameterizing the `copyToClipboard(text, label)` function allows for contextualized user feedback, which makes the interface feel more responsive and intelligent than using generic messages.
 **Action:** Default to `font-mono` for all key alphanumeric identifiers and ensure copy utilities support descriptive labels for toast notifications.
+
+## 2026-07-09 - [Consistent Action Feedback & Status Visualization]
+**Learning:** In data-dense administrative tables (like the Driver Hub), common text-based actions (View, Edit, Delete) benefit significantly from descriptive `title` attributes to provide immediate hover context. Furthermore, augmenting status badges with semantic icons (e.g., `fa-check-circle` for active) creates a redundant visual cue that speeds up status recognition compared to color or text alone.
+**Action:** Always include descriptive `title` attributes for table actions and pair status badges with representative FontAwesome icons for better "at-a-glance" readability.
