@@ -27,6 +27,8 @@ class AiSupportService
         - **Color Coding:** Blue (Active Trip), Green (Available/Idling).
         - **Smooth Movement:** CSS transitions provide fluid updates every 5 seconds.
         - **Detail Card:** Click a vehicle to see speed (km/h), status, and last update.
+        - **Alerts:** Automatic speeding alerts are triggered for speeds exceeding 80 km/h.
+        - **Connectivity:** Vehicles are marked as 'offline' if telemetry is not received within 5 minutes (300 seconds).
         - **Follow Mode:** Locks the camera to a specific vehicle.
         - **History Playback:** Visualize paths taken in the last 24 hours with granular breadcrumbs (speed, direction).
         - **Map Themes:** Switch between Light, Dark, and Satellite modes (Top-Right control).
@@ -34,7 +36,8 @@ class AiSupportService
         ### 2. Fleet Management
         - **Vehicle Registry:** Central hub for adding vehicles, updating status (Active, In Shop), and viewing health overview.
         - **Fuel Management:** Log purchases, track consumption, and analyze costs/efficiency.
-        - **Maintenance:** Manage service schedules, history log, and upcoming reminders (e.g., oil changes).
+        - **Maintenance Workflow:** 4-stage process: 'Waiting', 'Dispatched', 'In Progress', and 'Completed'.
+        - **Maintenance Requests:** Driver requests default to 'Waiting' and notify admins. Admin entries default to 'Dispatched'.
         - **Insurance & Docs:** Track insurance and roadworthiness expiry dates.
 
         ### 3. Personnel & Reports
@@ -231,8 +234,16 @@ class AiSupportService
     {
         $lowerMsg = strtolower($userMessage);
 
+        if (str_contains($lowerMsg, 'speeding') || str_contains($lowerMsg, 'speed')) {
+            return "The system monitors vehicle speed in real-time. Automatic speeding alerts are triggered when a vehicle exceeds 80 km/h. These alerts are visible in the Live Tracking dashboard and recorded in driver reports.";
+        }
+
+        if (str_contains($lowerMsg, 'offline') || str_contains($lowerMsg, 'stuck') || str_contains($lowerMsg, 'not updating')) {
+            return "Vehicles are marked as 'offline' in the tracking interface if no telemetry data is received for 5 minutes (300 seconds). If a vehicle is offline, check its hardware connectivity or cellular signal strength.";
+        }
+
         if (str_contains($lowerMsg, 'track') || str_contains($lowerMsg, 'location') || str_contains($lowerMsg, 'map')) {
-            return "You can view live vehicle locations and historical routes in the 'Live Tracking' section. The map uses car-shaped SVG markers that rotate based on heading and move smoothly every 5 seconds. You can switch between Light, Dark, and Satellite themes.";
+            return "You can view live vehicle locations and historical routes in the 'Live Tracking' section. The map uses car-shaped SVG markers that rotate based on heading and move smoothly every 5 seconds. Vehicles not updating for more than 5 minutes (300s) are marked offline. You can switch between Light, Dark, and Satellite themes.";
         }
 
         if (str_contains($lowerMsg, 'follow')) {
@@ -251,8 +262,8 @@ class AiSupportService
             return "The 'Vehicle Registry' is your central hub. You can add new vehicles, update their status (Active, In Shop), and see an overview of your entire fleet's health.";
         }
 
-        if (str_contains($lowerMsg, 'maintenance') || str_contains($lowerMsg, 'service') || str_contains($lowerMsg, 'repair')) {
-            return "Stay on top of fleet health in the 'Maintenance' section. View service schedules, maintenance history, and set up reminders for upcoming tasks like oil changes.";
+        if (str_contains($lowerMsg, 'maintenance') || str_contains($lowerMsg, 'service') || str_contains($lowerMsg, 'repair') || str_contains($lowerMsg, 'dispatch')) {
+            return "The maintenance workflow follows a 4-stage process: 'Waiting', 'Dispatched', 'In Progress', and 'Completed'. Driver-initiated requests start at 'Waiting' (notifying admins), while Admin-logged tasks default to 'Dispatched'. You can track these in the Maintenance dashboard.";
         }
 
         if (str_contains($lowerMsg, 'driver')) {
