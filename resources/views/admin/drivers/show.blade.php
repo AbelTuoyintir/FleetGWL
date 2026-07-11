@@ -54,7 +54,17 @@
                     <i class="fas fa-id-card text-green-600 mr-2"></i>License Information
                 </h3>
                 <div class="space-y-3">
-                    <div><label class="text-xs text-gray-500">License Number</label><p class="font-medium">{{ $driver->license_number ?? 'N/A' }}</p></div>
+                    <div>
+                        <label class="text-xs text-gray-500">License Number</label>
+                        <div class="flex items-center gap-2">
+                            <p class="font-medium font-mono">{{ $driver->license_number ?? 'N/A' }}</p>
+                            @if($driver->license_number)
+                            <button onclick="copyToClipboard('{{ $driver->license_number }}', 'License Number')" class="text-gray-400 hover:text-blue-600 focus:outline-none transition-colors" title="Copy License Number" aria-label="Copy License Number">
+                                <i class="far fa-copy text-xs"></i>
+                            </button>
+                            @endif
+                        </div>
+                    </div>
                     <div><label class="text-xs text-gray-500">License Class</label><p class="font-medium">{{ $driver->license_class ?? 'N/A' }}</p></div>
                     <div><label class="text-xs text-gray-500">Expiry Date</label><p class="font-medium {{ $driver->license_expiry_date && $driver->license_expiry_date->isPast() ? 'text-red-600' : '' }}">{{ $driver->license_expiry_date ? $driver->license_expiry_date->format('M d, Y') : 'N/A' }}</p></div>
                     @if($driver->license_photo)

@@ -740,7 +740,14 @@ function renderVehiclesTable(vehicles) {
         
         html += `
             <tr>
-                <td class="font-medium font-mono">${vehicle.registration_number}</td>
+                <td class="font-medium font-mono">
+                    <div class="flex items-center gap-2">
+                        ${vehicle.registration_number}
+                        <button onclick="copyToClipboard('${vehicle.registration_number}', 'Registration Number')" class="text-gray-400 hover:text-blue-600 transition-colors" title="Copy Registration Number" aria-label="Copy Registration Number">
+                            <i class="far fa-copy text-xs"></i>
+                        </button>
+                    </div>
+                </td>
                 <td>${vehicle.make} ${vehicle.model}<br><span class="text-xs text-gray-500">${vehicle.year || 'N/A'}</span></td>
                 <td>${vehicle.vehicle_type}</td>
                 <td><span class="status-badge ${statusClass}">${vehicle.status}</span></td>
