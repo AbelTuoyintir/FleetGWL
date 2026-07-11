@@ -110,7 +110,7 @@
                                         $model = data_get($v, 'make_model', 'Unknown');
                                         $nextDue = data_get($m, 'next_service_due');
                                     @endphp
-                                    <span><span class="font-medium">{{ $plate }}</span> ({{ $model }})</span>
+                                    <span><span class="font-medium font-mono">{{ $plate }}</span> ({{ $model }})</span>
                                     <span class="text-amber-700">Due {{ $nextDue ? \Carbon\Carbon::parse($nextDue)->format('M j, Y') : 'TBD' }}</span>
                                 </div>
                             @empty
@@ -152,7 +152,7 @@
                                         $driverName = is_string($driverValue) ? $driverValue : data_get($v, 'assignedDriver.name');
                                     @endphp
                                     <tr class="hover-row">
-                                        <td class="font-medium">{{ data_get($v, 'plate_number', 'N/A') }}</td>
+                                        <td class="font-medium font-mono">{{ data_get($v, 'plate_number', 'N/A') }}</td>
                                         <td>{{ $regionName ?: '-' }}</td>
                                         <td>
                                             @if($driverName)
@@ -185,7 +185,7 @@
                         <div class="space-y-2" id="fuelEfficiencyList">
                             @forelse($fuelEfficiency as $f)
                                 <div class="flex justify-between items-center text-xs">
-                                    <span class="font-medium">{{ $f->vehicle }}</span>
+                                    <span class="font-medium font-mono">{{ $f->vehicle }}</span>
                                     <span class="bg-slate-100 px-2 py-0.5 rounded-full">{{ $f->avg_km_per_litre }} km/L</span>
                                 </div>
                             @empty
@@ -271,7 +271,7 @@
                             <div class="flex justify-between items-center border-b border-slate-100 pb-1 text-xs">
                                 <div>
                                     <span class="font-medium">{{ data_get($doc, 'document_type') }}</span>
-                                    <span class="text-gray-500">{{ data_get($doc, 'vehicle.plate_number') ?? data_get($doc, 'vehicle_plate') ?? 'N/A' }}</span>
+                                    <span class="text-gray-500 font-mono">{{ data_get($doc, 'vehicle.plate_number') ?? data_get($doc, 'vehicle_plate') ?? 'N/A' }}</span>
                                 </div>
                                 <span class="badge-warning px-2 py-0.5 rounded-full text-[10px]">{{ \Carbon\Carbon::parse(data_get($doc, 'expiry_date'))->format('M j, Y') }}</span>
                             </div>
@@ -362,7 +362,7 @@
             }
             root.innerHTML = items.map((m) => `
                 <div class="flex justify-between text-xs border-b border-slate-100 py-1">
-                    <span><span class="font-medium">${m.vehicle?.plate_number || 'N/A'}</span> (${m.vehicle?.make_model || 'Unknown'})</span>
+                    <span><span class="font-medium font-mono">${m.vehicle?.plate_number || 'N/A'}</span> (${m.vehicle?.make_model || 'Unknown'})</span>
                     <span class="text-amber-700">Due ${formatDate(m.next_service_due)}</span>
                 </div>
             `).join('');
@@ -377,7 +377,7 @@
             }
             root.innerHTML = items.map((v) => `
                 <tr class="hover-row">
-                    <td class="font-medium">${v.plate_number || 'N/A'}</td>
+                    <td class="font-medium font-mono">${v.plate_number || 'N/A'}</td>
                     <td>${v.region?.name || '-'}</td>
                     <td>${v.assignedDriver?.name || '<span class="text-gray-400">Unassigned</span>'}</td>
                     <td>${v.created_at || '-'}</td>
@@ -394,7 +394,7 @@
             }
             root.innerHTML = items.map((f) => `
                 <div class="flex justify-between items-center text-xs">
-                    <span class="font-medium">${f.vehicle}</span>
+                    <span class="font-medium font-mono">${f.vehicle}</span>
                     <span class="bg-slate-100 px-2 py-0.5 rounded-full">${f.avg_km_per_litre} km/L</span>
                 </div>
             `).join('');
@@ -430,7 +430,7 @@
             }
             root.innerHTML = items.map((doc) => `
                 <div class="flex justify-between items-center border-b border-slate-100 pb-1 text-xs">
-                    <div><span class="font-medium">${doc.document_type}</span> <span class="text-gray-500">${doc.vehicle?.plate_number || 'N/A'}</span></div>
+                    <div><span class="font-medium">${doc.document_type}</span> <span class="text-gray-500 font-mono">${doc.vehicle?.plate_number || 'N/A'}</span></div>
                     <span class="badge-warning px-2 py-0.5 rounded-full text-[10px]">${formatDate(doc.expiry_date)}</span>
                 </div>
             `).join('');
@@ -551,7 +551,7 @@
                                     <div class="border rounded-lg p-4 hover:shadow-md transition">
                                         <div class="flex justify-between items-start mb-2">
                                             <div>
-                                                <h4 class="font-bold text-gray-800">${vehicle.registration_number}</h4>
+                                                <h4 class="font-bold text-gray-800 font-mono">${vehicle.registration_number}</h4>
                                                 <p class="text-sm text-gray-500">${vehicle.make} ${vehicle.model}</p>
                                             </div>
                                             <span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">Alert!</span>
@@ -653,7 +653,7 @@
                                             <i class="fas ${isSpeeding ? 'fa-bolt' : 'fa-truck-moving'}"></i>
                                         </div>
                                         <div>
-                                            <p class="font-bold text-gray-800 text-xs">${v.registration_number}</p>
+                                            <p class="font-bold text-gray-800 text-xs font-mono">${v.registration_number}</p>
                                             <p class="text-[9px] text-gray-500 uppercase">${v.assigned_driver?.name || 'Unassigned'}</p>
                                         </div>
                                     </div>
