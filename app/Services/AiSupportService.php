@@ -24,7 +24,8 @@ class AiSupportService
 
         ### 1. Live Vehicle Tracking (Command Center)
         - **Map Interface:** Real-time visualization of fleet units using car-shaped SVG markers that rotate based on heading.
-        - **Color Coding:** Blue (Active Trip), Green (Available/Idling).
+        - **Color Coding:** Blue (Active Trip), Green (Available/Idling). Red markers indicate Speeding (>80 km/h).
+        - **Connectivity:** Vehicles are marked as 'Offline' if no telemetry is received for 300 seconds (5 minutes).
         - **Smooth Movement:** CSS transitions provide fluid updates every 5 seconds.
         - **Detail Card:** Click a vehicle to see speed (km/h), status, and last update.
         - **Follow Mode:** Locks the camera to a specific vehicle.
@@ -34,7 +35,7 @@ class AiSupportService
         ### 2. Fleet Management
         - **Vehicle Registry:** Central hub for adding vehicles, updating status (Active, In Shop), and viewing health overview.
         - **Fuel Management:** Log purchases, track consumption, and analyze costs/efficiency.
-        - **Maintenance:** Manage service schedules, history log, and upcoming reminders (e.g., oil changes).
+        - **Maintenance:** Manage service schedules and history. Workflow: Waiting (driver requested) -> Dispatched (admin assigned) -> In Progress -> Completed.
         - **Insurance & Docs:** Track insurance and roadworthiness expiry dates.
 
         ### 3. Personnel & Reports
@@ -230,6 +231,18 @@ class AiSupportService
     protected function keywordFallback(string $userMessage): string
     {
         $lowerMsg = strtolower($userMessage);
+
+        if (str_contains($lowerMsg, 'speeding') || str_contains($lowerMsg, 'fast')) {
+            return "The system triggers a speeding alert if a vehicle exceeds 80 km/h. On the map, speeding vehicles are highlighted with red markers and their speed is displayed in the vehicle detail card.";
+        }
+
+        if (str_contains($lowerMsg, 'offline') || str_contains($lowerMsg, 'not updating') || str_contains($lowerMsg, 'stuck')) {
+            return "Vehicles are marked as 'Offline' in the tracking interface if no GPS data is received for more than 300 seconds (5 minutes). Check the device connection or signal strength if a vehicle remains offline.";
+        }
+
+        if (str_contains($lowerMsg, 'dispatch') || str_contains($lowerMsg, 'workflow')) {
+            return "The maintenance workflow follows four stages: 'Waiting' (initial request), 'Dispatched' (assigned to a technician), 'In Progress', and 'Completed'. Admins can move vehicles through these stages in the Maintenance module.";
+        }
 
         if (str_contains($lowerMsg, 'track') || str_contains($lowerMsg, 'location') || str_contains($lowerMsg, 'map')) {
             return "You can view live vehicle locations and historical routes in the 'Live Tracking' section. The map uses car-shaped SVG markers that rotate based on heading and move smoothly every 5 seconds. You can switch between Light, Dark, and Satellite themes.";
