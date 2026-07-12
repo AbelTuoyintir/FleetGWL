@@ -29,3 +29,7 @@
 ## 2026-07-08 - [Monospace Identifiers & Parameterized Copy Utility]
 **Learning:** Using the `font-mono` class for alphanumeric identifiers (Registration, Chassis, Engine, and Document numbers) drastically improves character distinction (e.g., '0' vs 'O'). Additionally, parameterizing the `copyToClipboard(text, label)` function allows for contextualized user feedback, which makes the interface feel more responsive and intelligent than using generic messages.
 **Action:** Default to `font-mono` for all key alphanumeric identifiers and ensure copy utilities support descriptive labels for toast notifications.
+
+## 2026-07-12 - [Globalizing UX Utilities for Consistency]
+**Learning:** Centralizing shared UX utilities (like clipboard operations and toast notifications) in the base layout reduces code duplication and ensures a consistent interaction pattern across diverse administrative modules. This "Single Source of Truth" approach prevents visual and behavioral drift when these micro-interactions are implemented across different views.
+**Action:** Audit view-specific scripts for reusable UX patterns and consolidate them into global layouts to maintain interaction consistency.
