@@ -126,7 +126,16 @@
                                     <p class="text-xs text-gray-500">{{ $user?->email ?? '—' }}</p>
                                 </td>
                                 <td>
-                                    <p class="text-gray-800">{{ $driver->license_number ?? '—' }}</p>
+                                    <div class="flex items-center gap-2 group">
+                                        <p class="text-gray-800 font-mono">{{ $driver->license_number ?? '—' }}</p>
+                                        @if($driver->license_number)
+                                            <button onclick="copyToClipboard('{{ $driver->license_number }}', 'License Number')"
+                                                class="text-gray-400 hover:text-blue-600 focus:outline-none transition opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                title="Copy License Number" aria-label="Copy License Number">
+                                                <i class="far fa-copy text-xs"></i>
+                                            </button>
+                                        @endif
+                                    </div>
                                     <p class="text-xs text-gray-500">
                                         @if($driver->license_expiry_date)
                                             Expires {{ $driver->license_expiry_date->format('M d, Y') }}
@@ -137,7 +146,14 @@
                                 </td>
                                 <td>
                                     @if($driver->vehicle)
-                                        <p class="font-medium">{{ $driver->vehicle->registration_number }}</p>
+                                        <div class="flex items-center gap-2 group">
+                                            <p class="font-medium font-mono">{{ $driver->vehicle->registration_number }}</p>
+                                            <button onclick="copyToClipboard('{{ $driver->vehicle->registration_number }}', 'Registration Number')"
+                                                class="text-gray-400 hover:text-blue-600 focus:outline-none transition opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                title="Copy Registration Number" aria-label="Copy Registration Number">
+                                                <i class="far fa-copy text-xs"></i>
+                                            </button>
+                                        </div>
                                         <p class="text-xs text-gray-500">{{ $driver->vehicle->make }} {{ $driver->vehicle->model }}</p>
                                         <form method="POST" action="{{ route('drivers.unassign-vehicle', $driver) }}" class="mt-1">
                                             @csrf
