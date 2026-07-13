@@ -27,6 +27,8 @@ class AiSupportService
         - **Color Coding:** Blue (Active Trip), Green (Available/Idling).
         - **Smooth Movement:** CSS transitions provide fluid updates every 5 seconds.
         - **Detail Card:** Click a vehicle to see speed (km/h), status, and last update.
+        - **Speeding Alerts:** System triggers alerts for speeds exceeding **80 km/h**.
+        - **Offline Status:** Vehicles are marked as 'offline' in the tracking interface if no telemetry is received for **5 minutes (300 seconds)**.
         - **Follow Mode:** Locks the camera to a specific vehicle.
         - **History Playback:** Visualize paths taken in the last 24 hours with granular breadcrumbs (speed, direction).
         - **Map Themes:** Switch between Light, Dark, and Satellite modes (Top-Right control).
@@ -35,6 +37,11 @@ class AiSupportService
         - **Vehicle Registry:** Central hub for adding vehicles, updating status (Active, In Shop), and viewing health overview.
         - **Fuel Management:** Log purchases, track consumption, and analyze costs/efficiency.
         - **Maintenance:** Manage service schedules, history log, and upcoming reminders (e.g., oil changes).
+        - **Maintenance Workflow:**
+            - **Waiting:** Default status for driver-initiated requests (notifies admin).
+            - **Dispatched:** Default status for admin-initiated entries.
+            - **In Progress:** Vehicle is currently being serviced.
+            - **Completed:** Service is finalized and vehicle is released.
         - **Insurance & Docs:** Track insurance and roadworthiness expiry dates.
 
         ### 3. Personnel & Reports
@@ -230,6 +237,18 @@ class AiSupportService
     protected function keywordFallback(string $userMessage): string
     {
         $lowerMsg = strtolower($userMessage);
+
+        if (str_contains($lowerMsg, 'speeding') || str_contains($lowerMsg, 'fast')) {
+            return "The system monitors vehicle speeds in real-time. Alerts are automatically triggered when a vehicle exceeds the 80 km/h safety threshold. You can see live speed data in the 'Live Tracking' command center.";
+        }
+
+        if (str_contains($lowerMsg, 'offline') || str_contains($lowerMsg, 'not updating') || str_contains($lowerMsg, 'stuck')) {
+            return "A vehicle is marked as 'offline' if the system doesn't receive telemetry for more than 5 minutes (300 seconds). If a vehicle appears 'stuck' on the map, please check its 'Last Update' timestamp and ensure the tracking device has a stable cellular connection.";
+        }
+
+        if (str_contains($lowerMsg, 'maintenance') || str_contains($lowerMsg, 'service') || str_contains($lowerMsg, 'repair') || str_contains($lowerMsg, 'dispatch')) {
+            return "The maintenance workflow follows 4 stages: 'Waiting' (driver requests), 'Dispatched' (admin assigned), 'In Progress', and 'Completed'. Drivers can initiate 'Waiting' requests via the Driver Portal, which then notifies admins for dispatching to service providers.";
+        }
 
         if (str_contains($lowerMsg, 'track') || str_contains($lowerMsg, 'location') || str_contains($lowerMsg, 'map')) {
             return "You can view live vehicle locations and historical routes in the 'Live Tracking' section. The map uses car-shaped SVG markers that rotate based on heading and move smoothly every 5 seconds. You can switch between Light, Dark, and Satellite themes.";
