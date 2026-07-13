@@ -17,8 +17,7 @@
   
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <style>
-        * { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-        body { background: #f4f7fc; overflow-x: hidden; }
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #f4f7fc; overflow-x: hidden; }
         /* Glassmorphism refined */
         .glass-card { background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); }
         .sidebar-glass { background: rgba(255,255,255,0.94); backdrop-filter: blur(16px); border-right: 1px solid rgba(0,0,0,0.05); }
@@ -70,6 +69,15 @@
         }
         .user-menu-dropdown a:hover, .user-menu-dropdown button:hover {
             background-color: #f8fafc;
+        }
+
+        /* Notifications & Animations */
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .animate-slide-in {
+            animation: slideIn 0.3s ease-out;
         }
     </style>
 </head>
@@ -320,8 +328,13 @@
         // Refresh dashboard data
         const refreshBtn = document.getElementById('refreshDashboardBtn');
         if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => {
-                window.location.reload();
+            refreshBtn.addEventListener('click', (e) => {
+                // If preventDefault was called by a page-specific handler, don't reload
+                setTimeout(() => {
+                    if (!e.defaultPrevented) {
+                        window.location.reload();
+                    }
+                }, 50);
             });
         }
 
@@ -362,6 +375,77 @@
             }
         });
     });
+
+    /**
+     * Copy text to clipboard with fallback and notification
+     */
+    function copyToClipboard(text, label = 'Registration number') {
+        if (!navigator.clipboard) {
+            fallbackCopyToClipboard(text, label);
+            return;
+        }
+        navigator.clipboard.writeText(text).then(function() {
+            showNotification('success', `${label} copied to clipboard!`);
+        }, function(err) {
+            console.error('Could not copy text: ', err);
+            fallbackCopyToClipboard(text, label);
+        });
+    }
+
+    function fallbackCopyToClipboard(text, label = 'Registration number') {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+
+        // Ensure textarea is not visible but part of the DOM
+        textArea.style.top = "0";
+        textArea.style.left = "0";
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                showNotification('success', `${label} copied to clipboard!`);
+            } else {
+                showNotification('error', `Failed to copy ${label.toLowerCase()}.`);
+            }
+        } catch (err) {
+            console.error('Fallback: Oops, unable to copy', err);
+            showNotification('error', `Failed to copy ${label.toLowerCase()}.`);
+        }
+
+        document.body.removeChild(textArea);
+    }
+
+    function showNotification(type, message) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = 'fixed top-4 right-4 z-50 animate-slide-in';
+        notification.innerHTML = `
+            <div class="px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 ${
+                type === 'success' ? 'bg-green-500' : 'bg-red-500'
+            } text-white">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+                <span class="text-sm">${message}</span>
+                <button onclick="this.closest('.fixed').remove()" class="ml-4 text-white hover:text-gray-200" aria-label="Dismiss notification" title="Dismiss">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+
+        document.body.appendChild(notification);
+
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            notification.style.transition = 'opacity 0.3s ease-out';
+            notification.style.opacity = '0';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
 </script>
 </body>
 </html>

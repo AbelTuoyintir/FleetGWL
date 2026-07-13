@@ -29,3 +29,7 @@
 ## 2026-07-08 - [Monospace Identifiers & Parameterized Copy Utility]
 **Learning:** Using the `font-mono` class for alphanumeric identifiers (Registration, Chassis, Engine, and Document numbers) drastically improves character distinction (e.g., '0' vs 'O'). Additionally, parameterizing the `copyToClipboard(text, label)` function allows for contextualized user feedback, which makes the interface feel more responsive and intelligent than using generic messages.
 **Action:** Default to `font-mono` for all key alphanumeric identifiers and ensure copy utilities support descriptive labels for toast notifications.
+
+## 2026-07-09 - [Global Utility Centralization & Selector Precision]
+**Learning:** Aggressive global selectors (like `* { font-family: ... }`) can inadvertently break intent-based overrides like `font-mono`. Switching to `body` scoped font declarations preserves the ability for specific components to use distinct typefaces. Additionally, centralizing clipboard and notification logic in the base layout ensures that micro-UX improvements (like copy buttons) can be deployed rapidly and consistently across both static templates and dynamic AJAX-rendered content.
+**Action:** Avoid universal `*` selectors for font styling and always centralize common UX utilities in the primary layout to maintain a single source of truth for feedback loops.

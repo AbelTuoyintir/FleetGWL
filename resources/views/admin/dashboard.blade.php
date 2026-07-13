@@ -492,7 +492,8 @@
             renderFleetCondition(data.vehicleStatus || {}, totalVehiclesCount);
         }
 
-        async function refreshDashboard() {
+        async function refreshDashboard(e) {
+            if (e) e.preventDefault();
             const refreshBtn = document.getElementById('refreshDashboardBtn');
             const originalIcon = refreshBtn?.innerHTML;
             if (refreshBtn) refreshBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i>';

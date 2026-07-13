@@ -4,7 +4,7 @@
 @section('content')
 
 <style>
-    * { font-family: 'Inter', sans-serif; }
+    body { font-family: 'Inter', sans-serif; }
     .stat-card {
         transition: all 0.2s ease;
         border: 1px solid #e2e8f0;
@@ -126,7 +126,14 @@
                                     <p class="text-xs text-gray-500">{{ $user?->email ?? '—' }}</p>
                                 </td>
                                 <td>
-                                    <p class="text-gray-800">{{ $driver->license_number ?? '—' }}</p>
+                                    <p class="text-gray-800 font-mono flex items-center gap-2">
+                                        {{ $driver->license_number ?? '—' }}
+                                        @if($driver->license_number)
+                                            <button onclick="copyToClipboard(@js($driver->license_number), 'License Number')" class="text-gray-400 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5 transition" title="Copy License Number" aria-label="Copy License Number">
+                                                <i class="far fa-copy text-xs"></i>
+                                            </button>
+                                        @endif
+                                    </p>
                                     <p class="text-xs text-gray-500">
                                         @if($driver->license_expiry_date)
                                             Expires {{ $driver->license_expiry_date->format('M d, Y') }}
