@@ -452,11 +452,11 @@
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     @forelse($documents as $document)
-                    <?php
+                    @php
                         $expiryDate = $document->expiry_date ? \Carbon\Carbon::parse($document->expiry_date) : null;
                         $isExpiring = $expiryDate && $expiryDate->isFuture() && $expiryDate->diffInDays(now()) <= 30;
                         $isExpired = $expiryDate && $expiryDate->isPast();
-                    ?>
+                    @endphp
                     <div class="document-card bg-white border rounded-lg p-4 hover:shadow-md transition 
                         {{ $isExpiring ? 'expiring-soon' : ($isExpired ? 'expired' : '') }}">
                         <div class="flex items-start justify-between mb-3">
@@ -1772,88 +1772,6 @@ url: '{{ route("vehicles.fuel.store") }}',
     });
 });
 
-/**
- * Copy text to clipboard with fallback and notification
- */
-function copyToClipboard(text, label = 'Registration number') {
-    if (!navigator.clipboard) {
-        fallbackCopyToClipboard(text, label);
-        return;
-    }
-    navigator.clipboard.writeText(text).then(function() {
-        showNotification('success', `${label} copied to clipboard!`);
-    }, function(err) {
-        console.error('Could not copy text: ', err);
-        fallbackCopyToClipboard(text, label);
-    });
-}
-
-function fallbackCopyToClipboard(text, label = 'Registration number') {
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-
-    // Ensure textarea is not visible but part of the DOM
-    textArea.style.top = "0";
-    textArea.style.left = "0";
-    textArea.style.position = "fixed";
-    textArea.style.opacity = "0";
-
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-
-    try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-            showNotification('success', `${label} copied to clipboard!`);
-        } else {
-            showNotification('error', `Failed to copy ${label.toLowerCase()}.`);
-        }
-    } catch (err) {
-        console.error('Fallback: Oops, unable to copy', err);
-        showNotification('error', `Failed to copy ${label.toLowerCase()}.`);
-    }
-
-    document.body.removeChild(textArea);
-}
-
-function showNotification(type, message) {
-    // Create notification element
-    let notification = $(`
-        <div class="fixed top-4 right-4 z-50 animate-slide-in">
-            <div class="px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 ${
-                type === 'success' ? 'bg-green-500' : 'bg-red-500'
-            } text-white">
-                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
-                <span class="text-sm">${message}</span>
-                <button onclick="$(this).closest('.fixed').remove()" class="ml-4 text-white hover:text-gray-200" aria-label="Dismiss notification" title="Dismiss">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        </div>
-    `);
-    
-    $('body').append(notification);
-    
-    // Auto remove after 3 seconds
-    setTimeout(() => {
-        notification.fadeOut(300, function() { $(this).remove(); });
-    }, 3000);
-}
-
-// Add CSS for slide-in animation
-$('<style>')
-    .prop('type', 'text/css')
-    .html(`
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        .animate-slide-in {
-            animation: slideIn 0.3s ease-out;
-        }
-    `)
-    .appendTo('head');
 
 // Update tab switching to load data when tabs are clicked
 
