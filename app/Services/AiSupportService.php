@@ -24,7 +24,8 @@ class AiSupportService
 
         ### 1. Live Vehicle Tracking (Command Center)
         - **Map Interface:** Real-time visualization of fleet units using car-shaped SVG markers that rotate based on heading.
-        - **Color Coding:** Blue (Active Trip), Green (Available/Idling).
+        - **Color Coding:** Blue (Active Trip), Green (Available/Idling), Red (Speeding - over 80 km/h), Gray (Offline).
+        - **Thresholds:** A vehicle is marked as 'Offline' if no signal is received for 5 minutes (300 seconds).
         - **Smooth Movement:** CSS transitions provide fluid updates every 5 seconds.
         - **Detail Card:** Click a vehicle to see speed (km/h), status, and last update.
         - **Follow Mode:** Locks the camera to a specific vehicle.
@@ -34,7 +35,7 @@ class AiSupportService
         ### 2. Fleet Management
         - **Vehicle Registry:** Central hub for adding vehicles, updating status (Active, In Shop), and viewing health overview.
         - **Fuel Management:** Log purchases, track consumption, and analyze costs/efficiency.
-        - **Maintenance:** Manage service schedules, history log, and upcoming reminders (e.g., oil changes).
+        - **Maintenance:** Manage service schedules and 4-stage workflow (Waiting -> Dispatched -> In Progress -> Completed).
         - **Insurance & Docs:** Track insurance and roadworthiness expiry dates.
 
         ### 3. Personnel & Reports
@@ -43,7 +44,7 @@ class AiSupportService
 
         ### 4. User Roles
         - **Admins:** Have full access to Command Center, Registry, Reports, and Management tools.
-        - **Drivers:** Primarily use the Driver Portal for dashboard, maintenance requests, and mileage logs.
+        - **Drivers:** Primarily use the Driver Portal for dashboard, maintenance requests (starts as 'Waiting'), and mileage logs.
         - **Technicians:** Access to maintenance dashboards and schedules.
 
         ### 5. System Features
@@ -53,7 +54,7 @@ class AiSupportService
         - **Security:** Support for 2FA, session management, and activity logging.
 
         ### 6. Troubleshooting
-        - **Map Issues:** Check internet connection and 'Last Update' timestamp.
+        - **Map Issues:** Check internet connection and 'Last Update' timestamp. If over 300s, vehicle is offline.
         - **Markers:** Jumping markers may indicate browser performance throttling.
 
         Guidelines:
@@ -230,6 +231,18 @@ class AiSupportService
     protected function keywordFallback(string $userMessage): string
     {
         $lowerMsg = strtolower($userMessage);
+
+        if (str_contains($lowerMsg, 'speed')) {
+            return "The system monitors vehicle speeds in real-time. Speeds exceeding 80 km/h are flagged as speeding alerts, and the vehicle marker on the tracking map will turn red.";
+        }
+
+        if (str_contains($lowerMsg, 'offline') || str_contains($lowerMsg, 'stuck') || str_contains($lowerMsg, 'update')) {
+            return "Vehicles are marked 'Offline' if no GPS signal is received for 300 seconds (5 minutes). If a vehicle appears stuck, check its 'Last Update' timestamp in the tracking dashboard.";
+        }
+
+        if (str_contains($lowerMsg, 'dispatch') || (str_contains($lowerMsg, 'maintenance') && str_contains($lowerMsg, 'status'))) {
+            return "The maintenance workflow follows 4 stages: 'Waiting' (initial driver request), 'Dispatched' (admin assigned to shop), 'In Progress' (technician working), and 'Completed'.";
+        }
 
         if (str_contains($lowerMsg, 'track') || str_contains($lowerMsg, 'location') || str_contains($lowerMsg, 'map')) {
             return "You can view live vehicle locations and historical routes in the 'Live Tracking' section. The map uses car-shaped SVG markers that rotate based on heading and move smoothly every 5 seconds. You can switch between Light, Dark, and Satellite themes.";

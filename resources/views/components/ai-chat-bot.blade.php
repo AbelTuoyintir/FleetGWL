@@ -34,7 +34,7 @@
         <div class="p-4 bg-white border-t border-gray-100">
             <form id="chat-form" class="flex gap-2">
                 <input type="text" id="chat-input" placeholder="Ask me anything..." aria-label="Type your message" class="flex-1 bg-gray-100 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" autocomplete="off">
-                <button type="submit" aria-label="Send Message" class="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center hover:bg-blue-700 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                <button type="submit" aria-label="Send Message" title="Send Message" class="bg-blue-600 text-white w-10 h-10 rounded-xl flex items-center justify-center hover:bg-blue-700 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                     <i class="fas fa-paper-plane text-sm"></i>
                 </button>
             </form>
