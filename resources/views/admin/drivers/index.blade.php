@@ -126,7 +126,16 @@
                                     <p class="text-xs text-gray-500">{{ $user?->email ?? '—' }}</p>
                                 </td>
                                 <td>
-                                    <p class="text-gray-800">{{ $driver->license_number ?? '—' }}</p>
+                                    <div class="flex items-center gap-2">
+                                        <p class="text-gray-800 font-mono">{{ $driver->license_number ?? '—' }}</p>
+                                        @if($driver->license_number)
+                                        <button type="button" onclick="copyToClipboard('{{ $driver->license_number }}', 'License number')"
+                                            class="text-gray-400 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5 transition"
+                                            title="Copy License Number" aria-label="Copy License Number">
+                                            <i class="far fa-copy text-xs"></i>
+                                        </button>
+                                        @endif
+                                    </div>
                                     <p class="text-xs text-gray-500">
                                         @if($driver->license_expiry_date)
                                             Expires {{ $driver->license_expiry_date->format('M d, Y') }}
