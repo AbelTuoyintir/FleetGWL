@@ -26,7 +26,7 @@ class AiSupportService
         - **Map Interface:** Real-time visualization of fleet units using car-shaped SVG markers that rotate based on heading.
         - **Color Coding:** Blue (Active Trip), Green (Available/Idling).
         - **Smooth Movement:** CSS transitions provide fluid updates every 5 seconds.
-        - **Detail Card:** Click a vehicle to see speed (km/h), status, and last update.
+        - **Detail Card:** Click a vehicle to see speed (km/h), status, and last update. Speeding alerts trigger visually when a vehicle exceeds **80 km/h**.
         - **Follow Mode:** Locks the camera to a specific vehicle.
         - **History Playback:** Visualize paths taken in the last 24 hours with granular breadcrumbs (speed, direction).
         - **Map Themes:** Switch between Light, Dark, and Satellite modes (Top-Right control).
@@ -52,8 +52,14 @@ class AiSupportService
         - **Efficiency Tracking:** Automatic calculation of fuel efficiency (km/L) and cost per km.
         - **Security:** Support for 2FA, session management, and activity logging.
 
-        ### 6. Troubleshooting
-        - **Map Issues:** Check internet connection and 'Last Update' timestamp.
+        ### 6. Maintenance Dispatch Workflow
+        - **Waiting:** Default for driver-initiated requests; triggers admin notification.
+        - **Dispatched:** Default for admin entries; vehicle is scheduled for service.
+        - **In Progress:** Vehicle is currently being worked on.
+        - **Completed:** Service is finished; vehicle is ready for release.
+
+        ### 7. Troubleshooting
+        - **Map Issues:** Check internet connection and 'Last Update' timestamp. Vehicles are marked as **'Offline'** if no signal is received for **300 seconds (5 minutes)**.
         - **Markers:** Jumping markers may indicate browser performance throttling.
 
         Guidelines:
@@ -231,6 +237,18 @@ class AiSupportService
     {
         $lowerMsg = strtolower($userMessage);
 
+        if (str_contains($lowerMsg, 'speeding') || str_contains($lowerMsg, 'fast')) {
+            return "Speeding alerts are triggered when a vehicle exceeds 80 km/h. On the tracking map, these vehicles will have a red pulsing marker and a visual 'SPEEDING' label.";
+        }
+
+        if (str_contains($lowerMsg, 'offline') || str_contains($lowerMsg, 'stuck') || str_contains($lowerMsg, 'disconnect')) {
+            return "A vehicle is marked as 'Offline' if the system doesn't receive a GPS signal for 300 seconds (5 minutes). Check the 'Last Update' timestamp on the vehicle's detail card for more information.";
+        }
+
+        if (str_contains($lowerMsg, 'dispatch')) {
+            return "The maintenance workflow uses four stages: 'Waiting' (driver request), 'Dispatched' (admin entry), 'In Progress', and 'Completed'. Admins can dispatch vehicles to specific service providers via the maintenance dashboard.";
+        }
+
         if (str_contains($lowerMsg, 'track') || str_contains($lowerMsg, 'location') || str_contains($lowerMsg, 'map')) {
             return "You can view live vehicle locations and historical routes in the 'Live Tracking' section. The map uses car-shaped SVG markers that rotate based on heading and move smoothly every 5 seconds. You can switch between Light, Dark, and Satellite themes.";
         }
@@ -252,7 +270,7 @@ class AiSupportService
         }
 
         if (str_contains($lowerMsg, 'maintenance') || str_contains($lowerMsg, 'service') || str_contains($lowerMsg, 'repair')) {
-            return "Stay on top of fleet health in the 'Maintenance' section. View service schedules, maintenance history, and set up reminders for upcoming tasks like oil changes.";
+            return "The maintenance workflow includes four stages: 'Waiting', 'Dispatched', 'In Progress', and 'Completed'. You can view service schedules, maintenance history, and set up reminders in the 'Maintenance' section.";
         }
 
         if (str_contains($lowerMsg, 'driver')) {

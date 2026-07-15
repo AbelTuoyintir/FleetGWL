@@ -320,7 +320,10 @@
         // Refresh dashboard data
         const refreshBtn = document.getElementById('refreshDashboardBtn');
         if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => {
+            refreshBtn.addEventListener('click', (e) => {
+                // If a page-specific script has already handled this (e.g. AJAX refresh),
+                // it should call e.preventDefault() to stop the full page reload.
+                if (e.defaultPrevented) return;
                 window.location.reload();
             });
         }
