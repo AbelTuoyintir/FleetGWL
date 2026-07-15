@@ -29,3 +29,7 @@
 ## 2026-07-08 - [Monospace Identifiers & Parameterized Copy Utility]
 **Learning:** Using the `font-mono` class for alphanumeric identifiers (Registration, Chassis, Engine, and Document numbers) drastically improves character distinction (e.g., '0' vs 'O'). Additionally, parameterizing the `copyToClipboard(text, label)` function allows for contextualized user feedback, which makes the interface feel more responsive and intelligent than using generic messages.
 **Action:** Default to `font-mono` for all key alphanumeric identifiers and ensure copy utilities support descriptive labels for toast notifications.
+
+## 2025-07-15 - [Monospace + Copy Button UX Pattern]
+**Learning:** Applying the `font-mono` class to alphanumeric identifiers (like License Numbers) significantly improves readability and character distinction. Pairing this with a "Copy to Clipboard" button that uses synchronized `aria-label` and `title` attributes creates a highly accessible and useful pattern for administrative data tables. Always use `type="button"` for these action buttons to prevent accidental form submissions.
+**Action:** Standardize the "Monospace + Copy Button" pattern for all primary alphanumeric identifiers across the platform.
