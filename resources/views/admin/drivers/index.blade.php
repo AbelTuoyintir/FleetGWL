@@ -126,7 +126,14 @@
                                     <p class="text-xs text-gray-500">{{ $user?->email ?? '—' }}</p>
                                 </td>
                                 <td>
-                                    <p class="text-gray-800">{{ $driver->license_number ?? '—' }}</p>
+                                    <div class="flex items-center gap-2">
+                                        <p class="text-gray-800 font-mono">{{ $driver->license_number ?? '—' }}</p>
+                                        @if($driver->license_number)
+                                        <button onclick="copyToClipboard('{{ addslashes($driver->license_number) }}', 'License Number')" class="text-gray-400 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5 transition" title="Copy License Number" aria-label="Copy License Number">
+                                            <i class="far fa-copy text-xs"></i>
+                                        </button>
+                                        @endif
+                                    </div>
                                     <p class="text-xs text-gray-500">
                                         @if($driver->license_expiry_date)
                                             Expires {{ $driver->license_expiry_date->format('M d, Y') }}
@@ -168,13 +175,21 @@
                                     <div>{{ $driver->fuel_logs_count }} fuel logs</div>
                                 </td>
                                 <td class="text-right whitespace-nowrap">
-                                    <a href="{{ route('drivers.show', $driver) }}" class="text-blue-600 hover:text-blue-800 text-sm mr-3">View</a>
-                                    <a href="{{ route('drivers.edit', $driver) }}" class="text-gray-600 hover:text-gray-800 text-sm mr-3">Edit</a>
-                                    <form method="POST" action="{{ route('drivers.destroy', $driver) }}" class="inline" onsubmit="return confirm('Remove this driver from the fleet?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
-                                    </form>
+                                    <div class="flex justify-end gap-2">
+                                        <a href="{{ route('drivers.show', $driver) }}" class="text-blue-600 hover:text-blue-800 transition p-1" title="View Driver Details" aria-label="View Driver Details">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ route('drivers.edit', $driver) }}" class="text-gray-600 hover:text-gray-800 transition p-1" title="Edit Driver" aria-label="Edit Driver">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form method="POST" action="{{ route('drivers.destroy', $driver) }}" class="inline" onsubmit="return confirm('Remove this driver from the fleet?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-red-600 hover:text-red-800 transition p-1" title="Delete Driver" aria-label="Delete Driver">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
