@@ -71,6 +71,7 @@
         .user-menu-dropdown a:hover, .user-menu-dropdown button:hover {
             background-color: #f8fafc;
         }
+
     </style>
 </head>
 <body class="text-gray-800 antialiased text-sm">
@@ -251,6 +252,9 @@
 <!-- AI SUPPORT CHAT BOT -->
 @include('components.ai-chat-bot')
 
+<!-- GLOBAL JS UTILITIES -->
+@include('components.js-utilities')
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     // Keep sidebar controls working even when a page doesn't define its own handlers.
@@ -362,6 +366,7 @@
             }
         });
     });
+
 </script>
 </body>
 </html>

@@ -129,6 +129,7 @@
         .notification-item.unread:hover {
             background: #dbeafe;
         }
+
     </style>
 </head>
 <body class="text-gray-800 antialiased text-sm">
@@ -262,6 +263,9 @@
 
 <!-- AI SUPPORT CHAT BOT -->
 @include('components.ai-chat-bot')
+
+<!-- GLOBAL JS UTILITIES -->
+@include('components.js-utilities')
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
@@ -460,6 +464,7 @@
             });
         });
     });
+
 </script>
 </body>
 </html>

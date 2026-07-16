@@ -139,7 +139,7 @@
                     </a>
                     <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
                         <span id="plateNumber" class="font-mono">{{ $vehicle->registration_number }}</span>
-                        <button onclick="copyToClipboard('{{ $vehicle->registration_number }}', 'Registration number')" class="text-gray-400 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5 transition" title="Copy Registration Number" aria-label="Copy Registration Number">
+                        <button onclick="copyToClipboard('{{ addslashes($vehicle->registration_number) }}', 'Registration Number')" class="text-gray-400 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5 transition" title="Copy Registration Number" aria-label="Copy Registration Number">
                             <i class="far fa-copy text-sm"></i>
                         </button>
                     </h1>
@@ -270,7 +270,7 @@
                                 <span class="info-label">Chassis Number</span>
                                 <span class="info-value flex items-center gap-2">
                                     <span class="font-mono">{{ $vehicle->chassis_number }}</span>
-                                    <button onclick="copyToClipboard('{{ $vehicle->chassis_number }}', 'Chassis Number')" class="text-gray-400 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5 transition" title="Copy Chassis Number" aria-label="Copy Chassis Number">
+                                    <button onclick="copyToClipboard('{{ addslashes($vehicle->chassis_number) }}', 'Chassis Number')" class="text-gray-400 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5 transition" title="Copy Chassis Number" aria-label="Copy Chassis Number">
                                         <i class="far fa-copy text-xs"></i>
                                     </button>
                                 </span>
@@ -280,7 +280,7 @@
                                 <span class="info-value flex items-center gap-2">
                                     <span class="font-mono">{{ $vehicle->engine_number ?? 'N/A' }}</span>
                                     @if($vehicle->engine_number)
-                                    <button onclick="copyToClipboard('{{ $vehicle->engine_number }}', 'Engine Number')" class="text-gray-400 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5 transition" title="Copy Engine Number" aria-label="Copy Engine Number">
+                                    <button onclick="copyToClipboard('{{ addslashes($vehicle->engine_number) }}', 'Engine Number')" class="text-gray-400 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5 transition" title="Copy Engine Number" aria-label="Copy Engine Number">
                                         <i class="far fa-copy text-xs"></i>
                                     </button>
                                     @endif
@@ -487,7 +487,7 @@
                                 <span class="font-medium flex items-center gap-2">
                                     <span class="font-mono">{{ $document->document_number ?? 'N/A' }}</span>
                                     @if($document->document_number)
-                                    <button onclick="copyToClipboard('{{ $document->document_number }}', 'Document Number')" class="text-gray-400 hover:text-blue-600 transition-colors" title="Copy Document Number" aria-label="Copy Document Number">
+                                    <button onclick="copyToClipboard('{{ addslashes($document->document_number) }}', 'Document Number')" class="text-gray-400 hover:text-blue-600 transition-colors" title="Copy Document Number" aria-label="Copy Document Number">
                                         <i class="far fa-copy text-xs"></i>
                                     </button>
                                     @endif
@@ -1772,90 +1772,7 @@ url: '{{ route("vehicles.fuel.store") }}',
     });
 });
 
-/**
- * Copy text to clipboard with fallback and notification
- */
-function copyToClipboard(text, label = 'Registration number') {
-    if (!navigator.clipboard) {
-        fallbackCopyToClipboard(text, label);
-        return;
-    }
-    navigator.clipboard.writeText(text).then(function() {
-        showNotification('success', `${label} copied to clipboard!`);
-    }, function(err) {
-        console.error('Could not copy text: ', err);
-        fallbackCopyToClipboard(text, label);
-    });
-}
-
-function fallbackCopyToClipboard(text, label = 'Registration number') {
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-
-    // Ensure textarea is not visible but part of the DOM
-    textArea.style.top = "0";
-    textArea.style.left = "0";
-    textArea.style.position = "fixed";
-    textArea.style.opacity = "0";
-
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-
-    try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-            showNotification('success', `${label} copied to clipboard!`);
-        } else {
-            showNotification('error', `Failed to copy ${label.toLowerCase()}.`);
-        }
-    } catch (err) {
-        console.error('Fallback: Oops, unable to copy', err);
-        showNotification('error', `Failed to copy ${label.toLowerCase()}.`);
-    }
-
-    document.body.removeChild(textArea);
-}
-
-function showNotification(type, message) {
-    // Create notification element
-    let notification = $(`
-        <div class="fixed top-4 right-4 z-50 animate-slide-in">
-            <div class="px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 ${
-                type === 'success' ? 'bg-green-500' : 'bg-red-500'
-            } text-white">
-                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
-                <span class="text-sm">${message}</span>
-                <button onclick="$(this).closest('.fixed').remove()" class="ml-4 text-white hover:text-gray-200" aria-label="Dismiss notification" title="Dismiss">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        </div>
-    `);
-    
-    $('body').append(notification);
-    
-    // Auto remove after 3 seconds
-    setTimeout(() => {
-        notification.fadeOut(300, function() { $(this).remove(); });
-    }, 3000);
-}
-
-// Add CSS for slide-in animation
-$('<style>')
-    .prop('type', 'text/css')
-    .html(`
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        .animate-slide-in {
-            animation: slideIn 0.3s ease-out;
-        }
-    `)
-    .appendTo('head');
-
-// Update tab switching to load data when tabs are clicked
+// Local copyToClipboard and showNotification removed as they are now global
 
    
     
