@@ -116,6 +116,43 @@ class AiSupportTest extends TestCase
         $this->assertStringContainsString('select \'Follow\'', $response->json('ai_message'));
     }
 
+    public function test_user_can_ask_about_speeding_in_fallback()
+    {
+        $user = User::factory()->create();
+        Http::fake(['*' => Http::response([], 500)]);
+
+        $response = $this->actingAs($user)
+            ->postJson(route('ai-support.chat'), ['message' => 'what is the speeding limit?']);
+
+        $response->assertStatus(200);
+        $this->assertStringContainsString('exceed 80 km/h', $response->json('ai_message'));
+    }
+
+    public function test_user_can_ask_about_offline_status_in_fallback()
+    {
+        $user = User::factory()->create();
+        Http::fake(['*' => Http::response([], 500)]);
+
+        $response = $this->actingAs($user)
+            ->postJson(route('ai-support.chat'), ['message' => 'why is my vehicle offline?']);
+
+        $response->assertStatus(200);
+        $this->assertStringContainsString('more than 5 minutes (300 seconds)', $response->json('ai_message'));
+    }
+
+    public function test_user_can_ask_about_maintenance_workflow_in_fallback()
+    {
+        $user = User::factory()->create();
+        Http::fake(['*' => Http::response([], 500)]);
+
+        $response = $this->actingAs($user)
+            ->postJson(route('ai-support.chat'), ['message' => 'tell me about maintenance dispatch']);
+
+        $response->assertStatus(200);
+        $this->assertStringContainsString('4-stage workflow', $response->json('ai_message'));
+        $this->assertStringContainsString('Dispatched', $response->json('ai_message'));
+    }
+
     public function test_user_can_get_chat_history()
     {
         $user = User::factory()->create();

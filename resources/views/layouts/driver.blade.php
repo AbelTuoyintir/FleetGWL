@@ -354,7 +354,8 @@
         // Refresh dashboard data
         const refreshBtn = document.getElementById('refreshDashboardBtn');
         if (refreshBtn) {
-            refreshBtn.addEventListener('click', () => {
+            refreshBtn.addEventListener('click', (e) => {
+                if (e.defaultPrevented) return;
                 window.location.reload();
             });
         }

@@ -27,6 +27,8 @@ class AiSupportService
         - **Color Coding:** Blue (Active Trip), Green (Available/Idling).
         - **Smooth Movement:** CSS transitions provide fluid updates every 5 seconds.
         - **Detail Card:** Click a vehicle to see speed (km/h), status, and last update.
+        - **Speeding Alerts:** The system flags vehicles exceeding 80 km/h.
+        - **Offline Threshold:** Vehicles not reporting data for over 5 minutes (300 seconds) are marked as offline.
         - **Follow Mode:** Locks the camera to a specific vehicle.
         - **History Playback:** Visualize paths taken in the last 24 hours with granular breadcrumbs (speed, direction).
         - **Map Themes:** Switch between Light, Dark, and Satellite modes (Top-Right control).
@@ -34,7 +36,7 @@ class AiSupportService
         ### 2. Fleet Management
         - **Vehicle Registry:** Central hub for adding vehicles, updating status (Active, In Shop), and viewing health overview.
         - **Fuel Management:** Log purchases, track consumption, and analyze costs/efficiency.
-        - **Maintenance:** Manage service schedules, history log, and upcoming reminders (e.g., oil changes).
+        - **Maintenance Workflow:** 4-stage process: 'Waiting' (initial request), 'Dispatched' (assigned to shop), 'In Progress' (repairing), and 'Completed'.
         - **Insurance & Docs:** Track insurance and roadworthiness expiry dates.
 
         ### 3. Personnel & Reports
@@ -235,6 +237,14 @@ class AiSupportService
             return "You can view live vehicle locations and historical routes in the 'Live Tracking' section. The map uses car-shaped SVG markers that rotate based on heading and move smoothly every 5 seconds. You can switch between Light, Dark, and Satellite themes.";
         }
 
+        if (str_contains($lowerMsg, 'speeding') || str_contains($lowerMsg, 'speed')) {
+            return "The system automatically flags vehicles as 'Speeding' if they exceed 80 km/h. You can view real-time speeds on the Live Tracking map by clicking on a vehicle marker.";
+        }
+
+        if (str_contains($lowerMsg, 'offline') || str_contains($lowerMsg, 'not moving') || str_contains($lowerMsg, 'stuck')) {
+            return "Vehicles are marked as offline if they fail to transmit data for more than 5 minutes (300 seconds). If a vehicle is unexpectedly offline, check its hardware connectivity or local network coverage.";
+        }
+
         if (str_contains($lowerMsg, 'follow')) {
             return "In 'Live Tracking', click on a vehicle to open its detail card and select 'Follow'. This locks the camera to that vehicle as it moves.";
         }
@@ -251,8 +261,8 @@ class AiSupportService
             return "The 'Vehicle Registry' is your central hub. You can add new vehicles, update their status (Active, In Shop), and see an overview of your entire fleet's health.";
         }
 
-        if (str_contains($lowerMsg, 'maintenance') || str_contains($lowerMsg, 'service') || str_contains($lowerMsg, 'repair')) {
-            return "Stay on top of fleet health in the 'Maintenance' section. View service schedules, maintenance history, and set up reminders for upcoming tasks like oil changes.";
+        if (str_contains($lowerMsg, 'maintenance') || str_contains($lowerMsg, 'service') || str_contains($lowerMsg, 'repair') || str_contains($lowerMsg, 'dispatch')) {
+            return "Maintenance follows a 4-stage workflow: 'Waiting' (logged), 'Dispatched' (at workshop), 'In Progress' (active repairs), and 'Completed'. You can track progress and set up reminders for tasks like oil changes in the 'Maintenance' section.";
         }
 
         if (str_contains($lowerMsg, 'driver')) {
