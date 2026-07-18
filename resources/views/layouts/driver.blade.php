@@ -461,5 +461,9 @@
         });
     });
 </script>
+
+<!-- Global JS Utilities -->
+@include('components.js-utilities')
+
 </body>
 </html>
