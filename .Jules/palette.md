@@ -19,13 +19,13 @@
 **Action:** Apply `font-mono` to all alphanumeric identifiers and always pair `aria-label` with `title` on icon-only buttons for consistent accessibility and discovery.
 
 ## 2026-06-29 - [Contextual Utility & Robust Clipboard Interactions]
-**Learning:** Adding "Copy to Clipboard" functionality for primary identifiers (like registration numbers) provides immediate value in data-heavy administrative interfaces. Ensuring a fallback mechanism () is critical for maintaining this utility across all browser contexts, including potential insecure origins or older clients. Furthermore, proactive debugging of adjacent UI elements (like fixing malformed event handlers found during inspection) reinforces the "invisible" quality of good UX.
-**Action:** Always include a robust fallback for clipboard operations and perform a "sanity check" on nearby interactive elements when modifying a view to catch legacy bugs.
-
-## 2026-06-29 - [Contextual Utility & Robust Clipboard Interactions]
 **Learning:** Adding "Copy to Clipboard" functionality for primary identifiers (like registration numbers) provides immediate value in data-heavy administrative interfaces. Ensuring a fallback mechanism (`document.execCommand`) is critical for maintaining this utility across all browser contexts, including potential insecure origins or older clients. Furthermore, proactive debugging of adjacent UI elements (like fixing malformed event handlers found during inspection) reinforces the "invisible" quality of good UX.
 **Action:** Always include a robust fallback for clipboard operations and perform a "sanity check" on nearby interactive elements when modifying a view to catch legacy bugs.
 
 ## 2026-07-08 - [Monospace Identifiers & Parameterized Copy Utility]
 **Learning:** Using the `font-mono` class for alphanumeric identifiers (Registration, Chassis, Engine, and Document numbers) drastically improves character distinction (e.g., '0' vs 'O'). Additionally, parameterizing the `copyToClipboard(text, label)` function allows for contextualized user feedback, which makes the interface feel more responsive and intelligent than using generic messages.
 **Action:** Default to `font-mono` for all key alphanumeric identifiers and ensure copy utilities support descriptive labels for toast notifications.
+
+## 2026-07-18 - [Centralized JS Clipboard Utilities & Clean Layout-driven UX]
+**Learning:** Consolidating user-interaction utilities (like copyToClipboard and toast notifications) into a dedicated global `js-utilities.blade.php` component and including it in shared base layout templates guarantees consistent performance, dry code (DRY), and effortless utility across all views. When applying this to tabular credentials (like Driver License numbers), displaying them in monospace format with synchronized `aria-label` / `title` copy buttons and explicit `type="button"` attributes ensures perfect accessibility, legibility, and usability.
+**Action:** Always isolate common UI helper scripts into dedicated components to avoid duplication, and ensure tabbed tables use type="button" and font-mono for credential interactions.
