@@ -30,7 +30,7 @@ class MaintenanceController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-public function create($vehicleId = null)
+    public function create($vehicleId = null)
 {
     $vehicles = Vehicle::query()
 
@@ -45,6 +45,7 @@ public function create($vehicleId = null)
         }, 'latest_mileage')
         ->get();
 
+
     // If a driver is creating this, they should only see their assigned vehicle
     if (auth()->user() && auth()->user()->isDriver()) {
         $driver = auth()->user()->driver;
@@ -55,9 +56,23 @@ public function create($vehicleId = null)
     }
 
     $selectedVehicle = $vehicleId ? $vehicles->firstWhere('id', $vehicleId) : null;
+
+    // If no vehicleId is provided, default to the first available vehicle.
+    // This prevents GET /maintenance/create from always 404-ing.
+    if (!$selectedVehicle) {
+        $selectedVehicle = $vehicles->first();
+    }
+
+    // Blade expects a single Vehicle model (not a Collection) and cannot render without it.
+    $vehicle = $selectedVehicle;
+    if (!$vehicle) {
+        abort(404, 'Vehicle not found for maintenance job order.');
+    }
+
+
     $drivers = \App\Models\Driver::where('status', 'active')->with('user')->get();
     
-$maintenance = new Maintenance();
+    $maintenance = new Maintenance();
 
     // Pre-fill some common fields for the create form
     if ($selectedVehicle) {
@@ -68,7 +83,7 @@ $maintenance = new Maintenance();
     // Default values expected by the Blade
     $maintenance->status = $maintenance->status ?? 'scheduled';
 
-    return view('vehicle-maintenance.edit', compact('vehicles', 'drivers', 'vehicleId', 'selectedVehicle', 'maintenance'));
+    return view('vehicle-maintenance.edit', compact('vehicles', 'vehicle', 'drivers', 'vehicleId', 'selectedVehicle', 'maintenance'));
 }
 
     /**
