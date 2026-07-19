@@ -30,6 +30,8 @@ class AiSupportService
         - **Follow Mode:** Locks the camera to a specific vehicle.
         - **History Playback:** Visualize paths taken in the last 24 hours with granular breadcrumbs (speed, direction).
         - **Map Themes:** Switch between Light, Dark, and Satellite modes (Top-Right control).
+        - **Speeding Alerts:** Triggers immediately when a vehicle's speed exceeds 80 km/h.
+        - **Offline Threshold:** Vehicles are marked as 'offline' in the tracking interface if there is no connectivity or update for 5 minutes (300 seconds).
 
         ### 2. Fleet Management
         - **Vehicle Registry:** Central hub for adding vehicles, updating status (Active, In Shop), and viewing health overview.
@@ -48,9 +50,14 @@ class AiSupportService
 
         ### 5. System Features
         - **Bulk Operations:** Admins can import/export vehicles via CSV/Excel.
-        - **Location Hierarchy:** Managed through Regions -> Districts -> Stations.
+        - **Location Hierarchy:** Organized structured mapping through Regions -> Districts -> Stations.
         - **Efficiency Tracking:** Automatic calculation of fuel efficiency (km/L) and cost per km.
         - **Security:** Support for 2FA, session management, and activity logging.
+        - **Maintenance Dispatch Workflow:** A 4-stage process comprising:
+          * **Waiting:** Default status for driver-initiated maintenance requests (triggers admin notification).
+          * **Dispatched:** Default status for admin-logged entries.
+          * **In Progress:** Servicing has commenced.
+          * **Completed:** Task finalized, releasing vehicle back to operations.
 
         ### 6. Troubleshooting
         - **Map Issues:** Check internet connection and 'Last Update' timestamp.
@@ -231,6 +238,19 @@ class AiSupportService
     {
         $lowerMsg = strtolower($userMessage);
 
+        // Highly-prioritized specific technical keywords
+        if (str_contains($lowerMsg, 'speeding')) {
+            return "Speeding alerts trigger immediately when a vehicle's speed exceeds the threshold of 80 km/h. High-speed alerts are visible on the admin command center.";
+        }
+
+        if (str_contains($lowerMsg, 'offline') || str_contains($lowerMsg, 'stuck')) {
+            return "Vehicles are marked as 'offline' in the tracking interface if there is no connectivity or update for 5 minutes (300 seconds). If a vehicle is stuck offline, check the hardware or network connection.";
+        }
+
+        if (str_contains($lowerMsg, 'dispatch') || str_contains($lowerMsg, 'maintenance') || str_contains($lowerMsg, 'service') || str_contains($lowerMsg, 'repair')) {
+            return "The maintenance dispatch workflow is a 4-stage process: 'Waiting' (default for driver requests, triggers admin notification), 'Dispatched' (default for admin entries), 'In Progress', and 'Completed'.";
+        }
+
         if (str_contains($lowerMsg, 'track') || str_contains($lowerMsg, 'location') || str_contains($lowerMsg, 'map')) {
             return "You can view live vehicle locations and historical routes in the 'Live Tracking' section. The map uses car-shaped SVG markers that rotate based on heading and move smoothly every 5 seconds. You can switch between Light, Dark, and Satellite themes.";
         }
@@ -249,10 +269,6 @@ class AiSupportService
 
         if (str_contains($lowerMsg, 'vehicle') || str_contains($lowerMsg, 'fleet')) {
             return "The 'Vehicle Registry' is your central hub. You can add new vehicles, update their status (Active, In Shop), and see an overview of your entire fleet's health.";
-        }
-
-        if (str_contains($lowerMsg, 'maintenance') || str_contains($lowerMsg, 'service') || str_contains($lowerMsg, 'repair')) {
-            return "Stay on top of fleet health in the 'Maintenance' section. View service schedules, maintenance history, and set up reminders for upcoming tasks like oil changes.";
         }
 
         if (str_contains($lowerMsg, 'driver')) {
