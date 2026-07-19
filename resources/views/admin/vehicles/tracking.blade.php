@@ -46,28 +46,70 @@
         z-index: -1;
     }
 
-    .pulse {
+    .pulse, .pulse-blue, .pulse-red {
         display: block;
         width: 10px;
         height: 10px;
         border-radius: 50%;
-        background: #10b981;
         cursor: pointer;
-        box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
-        animation: pulse 2s infinite;
     }
 
-    @keyframes pulse {
+    .pulse {
+        background: #10b981;
+        box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+        animation: pulse-green 2s infinite;
+    }
+
+    @keyframes pulse-green {
         0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
         70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
         100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
     }
 
-    .pulse-blue { background: #3b82f6; box-shadow: 0 0 0 rgba(59, 130, 246, 0.4); animation: pulse-blue 2s infinite; }
-    @keyframes pulse-blue {
+    .pulse-blue {
+        background: #3b82f6;
+        box-shadow: 0 0 0 rgba(59, 130, 246, 0.4);
+        animation: pulse-blue-anim 2s infinite;
+    }
+
+    @keyframes pulse-blue-anim {
         0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
         70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
         100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+    }
+
+    .pulse-red {
+        background: #ef4444;
+        box-shadow: 0 0 0 rgba(239, 68, 68, 0.4);
+        animation: pulse-red-anim 2s infinite;
+    }
+
+    @keyframes pulse-red-anim {
+        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    .on-trip-badge {
+        background: #2563eb;
+        color: white;
+        font-size: 9px;
+        font-weight: 800;
+        padding: 1px 6px;
+        border-radius: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .speeding-marker {
+        border: 2px solid #ef4444 !important;
+        animation: speeding-pulse 1s infinite;
+    }
+
+    @keyframes speeding-pulse {
+        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
     }
 
     .live-dot {
@@ -102,6 +144,27 @@
         50% { opacity: 1; }
         100% { opacity: 0.5; }
     }
+
+    .speeding-marker {
+        animation: speeding-pulse 1s infinite !important;
+    }
+
+    @keyframes speeding-pulse {
+        0% { filter: drop-shadow(0 0 0px rgba(239, 68, 68, 0.7)); }
+        50% { filter: drop-shadow(0 0 12px rgba(239, 68, 68, 1)); }
+        100% { filter: drop-shadow(0 0 0px rgba(239, 68, 68, 0.7)); }
+    }
+
+    .marker-label.speeding {
+        background: #ef4444 !important;
+        color: white !important;
+        border-color: #b91c1c !important;
+    }
+
+    .on-trip-badge {
+        background: #ede9fe;
+        color: #6d28d9;
+    }
 </style>
 
 <div class="space-y-6">
@@ -118,15 +181,15 @@
                 </span>
                 LIVE UPDATING
             </div>
-            <div class="flex bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
-                <button onclick="setMapTheme('light')" class="px-3 py-1 text-xs font-medium rounded-md hover:bg-gray-100 transition" id="theme-light">Light</button>
-                <button onclick="setMapTheme('dark')" class="px-3 py-1 text-xs font-medium rounded-md hover:bg-gray-100 transition" id="theme-dark">Dark</button>
-                <button onclick="setMapTheme('satellite')" class="px-3 py-1 text-xs font-medium rounded-md hover:bg-gray-100 transition" id="theme-satellite">Satellite</button>
+            <div class="flex bg-white border border-gray-200 rounded-lg p-1 shadow-sm" role="group" aria-label="Map Theme Switcher">
+                <button onclick="setMapTheme('light')" class="px-3 py-1 text-xs font-medium rounded-md hover:bg-gray-100 transition" id="theme-light" aria-label="Set map theme to Light" title="Light Theme">Light</button>
+                <button onclick="setMapTheme('dark')" class="px-3 py-1 text-xs font-medium rounded-md hover:bg-gray-100 transition" id="theme-dark" aria-label="Set map theme to Dark" title="Dark Theme">Dark</button>
+                <button onclick="setMapTheme('satellite')" class="px-3 py-1 text-xs font-medium rounded-md hover:bg-gray-100 transition" id="theme-satellite" aria-label="Set map theme to Satellite" title="Satellite Theme">Satellite</button>
             </div>
-            <button onclick="fitAllVehicles()" class="bg-blue-50 border border-blue-200 px-4 py-2 rounded-lg text-sm font-bold text-blue-700 hover:bg-blue-100 transition shadow-sm">
+            <button onclick="fitAllVehicles()" class="bg-blue-50 border border-blue-200 px-4 py-2 rounded-lg text-sm font-bold text-blue-700 hover:bg-blue-100 transition shadow-sm" aria-label="Fit all vehicles on map" title="Fit All Vehicles">
                 <i class="fas fa-compress-alt mr-2"></i>Fit All
             </button>
-            <button onclick="refreshMap()" class="bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition shadow-sm">
+            <button onclick="refreshMap()" class="bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition shadow-sm" aria-label="Refresh tracking data" title="Sync Live Data">
                 <i class="fas fa-sync-alt mr-2"></i>Sync
             </button>
         </div>
@@ -159,13 +222,23 @@
                     </span>
                     <input type="text" id="vehicleSearch" class="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="Search registration, driver...">
                 </div>
-                <div class="flex gap-2">
+                <div class="grid grid-cols-1 gap-2">
                     <select id="statusFilter" class="w-full text-xs border-gray-200 rounded-lg py-1">
-                        <option value="all">All Units</option>
+                        <option value="all">All Statuses</option>
                         <option value="moving">Moving Only</option>
                         <option value="idle">Idle Only</option>
                         <option value="offline">Offline Only</option>
+                        <option value="on-trip">On Trip</option>
+                        <option value="speeding">Speeding Only</option>
                     </select>
+                    <div class="grid grid-cols-2 gap-2">
+                        <select id="regionFilter" class="w-full text-xs border-gray-200 rounded-lg py-1">
+                            <option value="all">All Regions</option>
+                        </select>
+                        <select id="districtFilter" class="w-full text-xs border-gray-200 rounded-lg py-1">
+                            <option value="all">All Districts</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -199,11 +272,20 @@
                                 <h3 id="cardReg" class="text-2xl font-black tracking-tight leading-none mb-1">---</h3>
                                 <p id="cardModel" class="text-[10px] uppercase tracking-widest opacity-60 font-bold">---</p>
                             </div>
-                            <button onclick="closeDetailCard()" class="text-white/40 hover:text-white transition"><i class="fas fa-times"></i></button>
+                            <button onclick="closeDetailCard()" class="text-white/40 hover:text-white transition" aria-label="Close detail card" title="Close"><i class="fas fa-times"></i></button>
                         </div>
                     </div>
 
                     <div class="p-5">
+                        <div class="flex items-center justify-between mb-4">
+                            <div id="cardTripBadge" class="px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest bg-gray-100 text-gray-600 hidden">
+                                On Trip
+                            </div>
+                            <div id="cardETABadge" class="text-[10px] font-bold text-blue-600 hidden">
+                                <i class="fas fa-clock mr-1"></i>ETA: <span id="cardETAText">--</span>m
+                            </div>
+                        </div>
+
                         <div class="flex items-end gap-3 mb-6">
                             <div class="flex-1">
                                 <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Current Speed</p>
@@ -260,10 +342,10 @@
                         </div>
 
                         <div class="grid grid-cols-2 gap-3">
-                            <button id="historyBtn" class="bg-gray-100 text-gray-900 py-3 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-gray-200 transition">
+                            <button id="historyBtn" class="bg-gray-100 text-gray-900 py-3 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-gray-200 transition" aria-label="View route history for the last 24 hours" title="Route History">
                                 <i class="fas fa-route mr-2"></i>History
                             </button>
-                            <button id="followBtn" onclick="toggleFollow()" class="bg-blue-600 text-white py-3 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-blue-700 transition shadow-lg shadow-blue-200">
+                            <button id="followBtn" onclick="toggleFollow()" class="bg-blue-600 text-white py-3 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-blue-700 transition shadow-lg shadow-blue-200" aria-label="Toggle following this vehicle on the map" title="Follow Vehicle">
                                 <i class="fas fa-crosshairs mr-2"></i>Follow
                             </button>
                         </div>
@@ -306,6 +388,7 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         initMap();
+        loadFilters();
         fetchData().then(() => {
             // Auto-focus if ID is in URL
             const urlParams = new URLSearchParams(window.location.search);
@@ -319,7 +402,50 @@
 
         document.getElementById('vehicleSearch').addEventListener('input', e => filterVehicles());
         document.getElementById('statusFilter').addEventListener('change', e => filterVehicles());
+        document.getElementById('regionFilter').addEventListener('change', e => {
+            loadDistricts(e.target.value);
+            filterVehicles();
+        });
+        document.getElementById('districtFilter').addEventListener('change', e => filterVehicles());
     });
+
+    function loadFilters() {
+        fetch('{{ route("locations.regions.list") }}')
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    const select = document.getElementById('regionFilter');
+                    const regions = result.regions || result.data || [];
+                    regions.forEach(region => {
+                        const opt = document.createElement('option');
+                        opt.value = region.id;
+                        opt.textContent = region.name;
+                        select.appendChild(opt);
+                    });
+                }
+            });
+    }
+
+    function loadDistricts(regionId) {
+        const select = document.getElementById('districtFilter');
+        select.innerHTML = '<option value="all">All Districts</option>';
+
+        if (regionId === 'all') return;
+
+        fetch(`/locations/regions/${regionId}/districts`)
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    const districts = result.districts || result.data || [];
+                    districts.forEach(district => {
+                        const opt = document.createElement('option');
+                        opt.value = district.id;
+                        opt.textContent = district.name;
+                        select.appendChild(opt);
+                    });
+                }
+            });
+    }
 
     function initMap() {
         map = L.map('map', {
@@ -378,6 +504,10 @@
                             } else if (oldV.speed > 0 && newV.speed === 0) {
                                 addActivityLog(newV.registration_number, 'Stopped', 'emerald');
                             }
+
+                            if (oldV.speed <= 80 && newV.speed > 80) {
+                                addActivityLog(newV.registration_number, 'Speeding Alert (>80km/h)', 'red');
+                            }
                         }
                     });
 
@@ -425,6 +555,8 @@
     function updateUI() {
         const query = document.getElementById('vehicleSearch').value.toLowerCase();
         const status = document.getElementById('statusFilter').value;
+        const region = document.getElementById('regionFilter').value;
+        const district = document.getElementById('districtFilter').value;
 
         // Calculate Stats
         const moving = vehiclesData.filter(v => v.speed > 0).length;
@@ -445,8 +577,13 @@
             if (status === 'moving') matchesStatus = v.speed > 0;
             else if (status === 'idle') matchesStatus = v.speed === 0 && !isOffline;
             else if (status === 'offline') matchesStatus = isOffline;
+            else if (status === 'on-trip') matchesStatus = v.is_on_trip;
+            else if (status === 'speeding') matchesStatus = v.speed > 80;
 
-            return matchesSearch && matchesStatus;
+            let matchesRegion = region === 'all' || v.region_id == region;
+            let matchesDistrict = district === 'all' || v.district_id == district;
+
+            return matchesSearch && matchesStatus && matchesRegion && matchesDistrict;
         });
 
         document.getElementById('vehicleCount').innerText = filtered.length;
@@ -469,25 +606,43 @@
         container.innerHTML = vehicles.map(v => {
             const isOffline = (new Date() - new Date(v.last_seen_at)) >= 300000;
             const isMoving = v.speed > 0;
-            const statusColor = isOffline ? 'bg-gray-400' : (isMoving ? 'bg-blue-500' : 'bg-emerald-500');
+            const isSpeeding = v.speed > 80;
+
+            let statusIndicator;
+            if (isOffline) {
+                statusIndicator = '<span class="w-[10px] h-[10px] rounded-full bg-gray-400 block"></span>';
+            } else if (isSpeeding) {
+                statusIndicator = '<span class="pulse-red"></span>';
+            } else if (isMoving) {
+                statusIndicator = '<span class="pulse-blue"></span>';
+            } else {
+                statusIndicator = '<span class="pulse"></span>';
+            }
+
             const movingPulseClass = isMoving ? 'sidebar-moving-pulse' : '';
+            const speedingClass = v.speed > 80 ? 'border-l-red-500 bg-red-50' : '';
+            const tripBadge = v.is_on_trip ? '<span class="on-trip-badge ml-2">On Trip</span>' : '<span class="text-[9px] font-bold text-emerald-600 ml-2 uppercase tracking-tighter">Available</span>';
 
             return `
-                <div class="vehicle-list-item p-3 ${selectedVehicleId === v.id ? 'active' : ''} ${movingPulseClass}" onclick="focusVehicle(${v.id})">
+                <div class="vehicle-list-item p-3 ${selectedVehicleId === v.id ? 'active' : ''} ${movingPulseClass} ${speedingClass}" onclick="focusVehicle(${v.id})">
                     <div class="flex justify-between items-start mb-1">
                         <div class="flex flex-col">
                             <div class="flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full ${statusColor}"></span>
+                                ${statusIndicator}
                                 <span class="font-bold text-gray-900 leading-tight">${v.registration_number}</span>
                                 ${isMoving ? '<span class="live-dot"></span>' : ''}
+                                ${tripBadge}
                             </div>
-                            <span class="text-[10px] text-gray-500 uppercase font-medium ml-4">${v.make} ${v.model}</span>
+                            <div class="flex items-center gap-2 ml-4">
+                                <span class="text-[10px] text-gray-500 uppercase font-medium">${v.make} ${v.model}</span>
+                                ${v.is_on_trip ? '<span class="px-1 py-0.5 rounded text-[8px] font-bold on-trip-badge uppercase">On Trip</span>' : ''}
+                            </div>
                         </div>
                         <div class="flex flex-col items-end">
                             <span class="text-[10px] font-black ${v.ignition === 'on' ? 'text-emerald-600' : 'text-gray-400'} uppercase">
                                 ${v.ignition === 'on' ? 'Ignition On' : 'Ignition Off'}
                             </span>
-                            <span class="text-[11px] font-bold ${isMoving ? 'text-blue-600' : 'text-gray-900'}">${v.speed} km/h</span>
+                            <span class="text-[11px] font-bold ${isSpeeding ? 'text-red-600' : (isMoving ? 'text-blue-600' : 'text-gray-900')}">${v.speed} km/h</span>
                         </div>
                     </div>
 
@@ -496,6 +651,7 @@
                             <div class="flex items-center text-[10px]">
                                 <i class="fas fa-user-circle mr-1 ${v.assigned_driver && v.assigned_driver.user && v.assigned_driver.user.online_status === 'online' ? 'text-green-500' : 'text-gray-400'}"></i>
                                 <span class="text-gray-600 truncate max-w-[100px] font-medium">${v.assigned_driver ? v.assigned_driver.name : 'Unassigned'}</span>
+                                ${v.is_on_trip ? `<span class="ml-2 text-blue-600 font-bold">ETA ${v.eta}m</span>` : ''}
                             </div>
                             <span class="text-[9px] text-gray-400 ml-4">${getTimeAgo(v.last_seen_at)}</span>
                         </div>
@@ -588,8 +744,10 @@
 
             const pos = [v.current_latitude, v.current_longitude];
             const isMoving = v.speed > 0;
+            const isSpeeding = v.speed > 80;
             const isOffline = (new Date() - new Date(v.last_seen_at)) >= 300000;
-            const markerColor = isOffline ? '#94a3b8' : (isMoving ? '#3b82f6' : '#10b981');
+            const markerColor = isOffline ? '#94a3b8' : (isSpeeding ? '#ef4444' : (isMoving ? '#3b82f6' : '#10b981'));
+            const driverName = v.assigned_driver ? v.assigned_driver.name : 'No Driver';
 
             if (markers[v.id]) {
                 markers[v.id].setLatLng(pos);
@@ -598,6 +756,7 @@
                     const icon = markerEl.querySelector('.car-marker');
                     if (icon) {
                         icon.style.transform = `rotate(${v.heading}deg)`;
+                        icon.className = `car-marker ${isSpeeding ? 'speeding-marker' : ''}`;
                         // Update SVG if color changed (e.g. status change)
                         const svgContainer = icon.querySelector('svg');
                         if (svgContainer) {
@@ -607,20 +766,26 @@
 
                     const pulseEl = markerEl.querySelector('.pulse-indicator');
                     if (pulseEl) {
-                        pulseEl.className = `pulse-indicator absolute top-0 left-0 ${isMoving ? 'pulse-blue' : (isOffline ? '' : 'pulse')}`;
+                        pulseEl.className = `pulse-indicator absolute top-0 left-0 ${isMoving && !isSpeeding ? 'pulse-blue' : (isOffline ? '' : (isSpeeding ? 'pulse-red' : 'pulse'))}`;
+                    }
+
+                    const labelEl = markerEl.querySelector('.marker-label');
+                    if (labelEl) {
+                        labelEl.className = `absolute -top-8 left-1/2 -translate-x-1/2 marker-label ${isSpeeding ? 'speeding' : ''}`;
+                        labelEl.title = `Driver: ${driverName}`;
                     }
                 }
             } else {
                 const icon = L.divIcon({
                     className: 'custom-div-icon',
                     html: `
-                        <div class="relative car-marker-container">
+                        <div class="relative car-marker-container ${v.speed > 80 ? 'speeding-marker' : ''}">
                             <div id="focus-${v.id}" class="focus-indicator ${selectedVehicleId === v.id ? 'focus-marker' : ''}"></div>
-                            <div class="pulse-indicator absolute top-0 left-0 ${isMoving ? 'pulse-blue' : (isOffline ? '' : 'pulse')}"></div>
-                            <div class="car-marker" style="transform: rotate(${v.heading}deg)">
+                            <div class="pulse-indicator absolute top-0 left-0 ${isMoving && !isSpeeding ? 'pulse-blue' : (isOffline ? '' : (isSpeeding ? 'pulse-red' : 'pulse'))}"></div>
+                            <div class="car-marker ${isSpeeding ? 'speeding-marker' : ''}" style="transform: rotate(${v.heading}deg)">
                                 ${getVehicleSvg(v.vehicle_type, markerColor)}
                             </div>
-                            <div class="absolute -top-8 left-1/2 -translate-x-1/2 marker-label">${escapeHtml(v.registration_number)}</div>
+                            <div class="absolute -top-8 left-1/2 -translate-x-1/2 marker-label ${isSpeeding ? 'speeding' : ''}" title="Driver: ${driverName}">${escapeHtml(v.registration_number)}</div>
                         </div>
                     `,
                     iconSize: [40, 40],
@@ -683,9 +848,26 @@
         document.getElementById('cardModel').innerText = `${v.make} ${v.model}`;
         document.getElementById('cardSpeed').innerText = v.speed;
 
+        // Trip Status & ETA
+        const tripBadge = document.getElementById('cardTripBadge');
+        const etaBadge = document.getElementById('cardETABadge');
+        if (v.is_on_trip) {
+            tripBadge.classList.remove('hidden');
+            etaBadge.classList.remove('hidden');
+            document.getElementById('cardETAText').innerText = v.eta;
+        } else {
+            tripBadge.classList.add('hidden');
+            etaBadge.classList.add('hidden');
+        }
+
         const ignitionBadge = document.getElementById('cardIgnitionBadge');
-        ignitionBadge.innerText = v.ignition === 'on' ? 'Ignition On' : 'Ignition Off';
-        ignitionBadge.className = `px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${v.ignition === 'on' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-500'}`;
+        if (v.is_on_trip) {
+            ignitionBadge.innerText = `On Trip • ETA ${v.eta}m`;
+            ignitionBadge.className = `px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-600 text-white`;
+        } else {
+            ignitionBadge.innerText = v.ignition === 'on' ? 'Ignition On • Available' : 'Ignition Off • Available';
+            ignitionBadge.className = `px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${v.ignition === 'on' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-500'}`;
+        }
 
         document.getElementById('cardFuelText').innerText = `${v.fuel_level}%`;
         const fuelBar = document.getElementById('cardFuelBar');
@@ -695,7 +877,7 @@
         document.getElementById('cardBattery').innerText = `${Number(v.battery).toFixed(1)}V`;
 
         document.getElementById('cardDriver').innerText = v.assigned_driver ? v.assigned_driver.name : 'Unassigned';
-        document.getElementById('cardLastSeen').innerText = getTimeAgo(v.last_seen_at);
+        document.getElementById('cardLastSeen').innerText = `${getTimeAgo(v.last_seen_at)} • ETA: ${v.eta}m`;
         document.getElementById('detailsLink').href = `/vehicles/${v.id}`;
 
         document.getElementById('historyBtn').onclick = () => loadHistory(v.id);
@@ -722,7 +904,8 @@
         // Use full class names to ensure Tailwind compiler picks them up
         const colorClasses = {
             blue: 'border-blue-500',
-            emerald: 'border-emerald-500'
+            emerald: 'border-emerald-500',
+            red: 'border-red-500'
         };
         const borderClass = colorClasses[color] || 'border-gray-500';
 

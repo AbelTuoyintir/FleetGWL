@@ -101,6 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const historyRoute = "{{ route('ai-support.history') }}";
     const chatRoute = "{{ route('ai-support.chat') }}";
+    const userName = "{{ Auth::user()->name ?? '' }}";
 
     // Toggle Chat
     function toggleChat(forceClose = false) {
@@ -135,7 +136,10 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (data.status === 'success') {
                     if (data.history.length === 0) {
-                        appendMessage('ai', 'Hello! I am your Ghana Water Limited Fleet Support AI. How can I help you today?');
+                        const greeting = userName
+                            ? `Hello ${userName}! I am your Ghana Water Limited Fleet Support AI. How can I help you today?`
+                            : 'Hello! I am your Ghana Water Limited Fleet Support AI. How can I help you today?';
+                        appendMessage('ai', greeting);
                     } else {
                         data.history.forEach(msg => {
                             appendMessage(msg.sender_type, msg.message);

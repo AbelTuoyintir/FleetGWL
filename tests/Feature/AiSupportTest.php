@@ -29,15 +29,21 @@ class AiSupportTest extends TestCase
 
     public function test_user_can_send_message_and_get_openai_response()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['name' => 'John Doe', 'role' => 'admin']);
         config(['services.openai.api_key' => 'test-key']);
 
         Http::fake([
-            'https://api.openai.com/v1/chat/completions' => Http::response([
-                'choices' => [
-                    ['message' => ['content' => 'OpenAI Response']]
-                ]
-            ], 200)
+            'https://api.openai.com/v1/chat/completions' => function (\Illuminate\Http\Client\Request $request) {
+                $messages = $request['messages'];
+                $systemPrompt = $messages[0]['content'];
+
+                if (str_contains($systemPrompt, 'Current User: John Doe') && str_contains($systemPrompt, 'Role: admin')) {
+                    return Http::response([
+                        'choices' => [['message' => ['content' => 'Hello John Doe, I see you are an admin.']]]
+                    ], 200);
+                }
+                return Http::response([], 500);
+            }
         ]);
 
         $response = $this->actingAs($user)
@@ -46,11 +52,11 @@ class AiSupportTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'status' => 'success',
-                'ai_message' => 'OpenAI Response'
+                'ai_message' => 'Hello John Doe, I see you are an admin.'
             ]);
 
         $this->assertDatabaseHas('support_messages', [
-            'message' => 'OpenAI Response',
+            'message' => 'Hello John Doe, I see you are an admin.',
             'sender_type' => 'ai'
         ]);
     }
