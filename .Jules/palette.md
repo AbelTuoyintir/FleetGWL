@@ -29,3 +29,7 @@
 ## 2026-07-08 - [Monospace Identifiers & Parameterized Copy Utility]
 **Learning:** Using the `font-mono` class for alphanumeric identifiers (Registration, Chassis, Engine, and Document numbers) drastically improves character distinction (e.g., '0' vs 'O'). Additionally, parameterizing the `copyToClipboard(text, label)` function allows for contextualized user feedback, which makes the interface feel more responsive and intelligent than using generic messages.
 **Action:** Default to `font-mono` for all key alphanumeric identifiers and ensure copy utilities support descriptive labels for toast notifications.
+
+## 2026-07-20 - [Monospace License Numbers & Clipboard Copy on Driver Hub]
+**Learning:** Extending typography enhancements (like monospace formatting) to both license and vehicle plate numbers within registry tables drastically improves readability and prevents misreading similar characters (e.g., 'B' vs '8'). Furthermore, providing self-contained, accessible copy button handlers with synchronized screen reader labels and custom slide-in visual notifications directly inside the Driver Hub index significantly improves efficiency and user satisfaction for high-precision copy actions.
+**Action:** Always format critical alphanumeric codes in data tables with `font-mono` and offer immediate copy interactions with custom toast notifications.
