@@ -138,4 +138,44 @@ class AiSupportTest extends TestCase
             ])
             ->assertJsonCount(2, 'history'); // User message + AI response
     }
+
+    public function test_fallback_keyword_speeding_triggers_correct_threshold()
+    {
+        $user = User::factory()->create();
+        Http::fake(['*' => Http::response([], 500)]);
+
+        $response = $this->actingAs($user)
+            ->postJson(route('ai-support.chat'), ['message' => 'What is the speeding limit?']);
+
+        $response->assertStatus(200);
+        $this->assertStringContainsString('80 km/h', $response->json('ai_message'));
+    }
+
+    public function test_fallback_keyword_offline_triggers_correct_threshold()
+    {
+        $user = User::factory()->create();
+        Http::fake(['*' => Http::response([], 500)]);
+
+        $response = $this->actingAs($user)
+            ->postJson(route('ai-support.chat'), ['message' => 'Why is a vehicle offline?']);
+
+        $response->assertStatus(200);
+        $this->assertStringContainsString('5 minutes', $response->json('ai_message'));
+        $this->assertStringContainsString('300 seconds', $response->json('ai_message'));
+    }
+
+    public function test_fallback_keyword_maintenance_triggers_correct_workflow_statuses()
+    {
+        $user = User::factory()->create();
+        Http::fake(['*' => Http::response([], 500)]);
+
+        $response = $this->actingAs($user)
+            ->postJson(route('ai-support.chat'), ['message' => 'What are the dispatch maintenance statuses?']);
+
+        $response->assertStatus(200);
+        $this->assertStringContainsString('Waiting', $response->json('ai_message'));
+        $this->assertStringContainsString('Dispatched', $response->json('ai_message'));
+        $this->assertStringContainsString('In Progress', $response->json('ai_message'));
+        $this->assertStringContainsString('Completed', $response->json('ai_message'));
+    }
 }

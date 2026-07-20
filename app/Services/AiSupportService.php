@@ -30,11 +30,13 @@ class AiSupportService
         - **Follow Mode:** Locks the camera to a specific vehicle.
         - **History Playback:** Visualize paths taken in the last 24 hours with granular breadcrumbs (speed, direction).
         - **Map Themes:** Switch between Light, Dark, and Satellite modes (Top-Right control).
+        - **Speeding Alerts:** Visual indicators (red pulsing markers) trigger when a vehicle exceeds the threshold of 80 km/h.
+        - **Offline Vehicles:** Vehicles are marked as offline in the tracking interface if no telemetry is received for 5 minutes (300 seconds).
 
         ### 2. Fleet Management
         - **Vehicle Registry:** Central hub for adding vehicles, updating status (Active, In Shop), and viewing health overview.
         - **Fuel Management:** Log purchases, track consumption, and analyze costs/efficiency.
-        - **Maintenance:** Manage service schedules, history log, and upcoming reminders (e.g., oil changes).
+        - **Maintenance & Dispatch Workflow:** The workflow supports four stages: 'Waiting' (default for driver requests, triggers admin notification), 'Dispatched' (default for admin entries), 'In Progress', and 'Completed'.
         - **Insurance & Docs:** Track insurance and roadworthiness expiry dates.
 
         ### 3. Personnel & Reports
@@ -48,12 +50,12 @@ class AiSupportService
 
         ### 5. System Features
         - **Bulk Operations:** Admins can import/export vehicles via CSV/Excel.
-        - **Location Hierarchy:** Managed through Regions -> Districts -> Stations.
+        - **Location Hierarchy:** Organized through a strict three-tier hierarchy: Region -> District -> Station.
         - **Efficiency Tracking:** Automatic calculation of fuel efficiency (km/L) and cost per km.
         - **Security:** Support for 2FA, session management, and activity logging.
 
         ### 6. Troubleshooting
-        - **Map Issues:** Check internet connection and 'Last Update' timestamp.
+        - **Map Issues:** Check internet connection and 'Last Update' timestamp. Vehicles are offline after 5 minutes (300 seconds) without a signal.
         - **Markers:** Jumping markers may indicate browser performance throttling.
 
         Guidelines:
@@ -231,6 +233,20 @@ class AiSupportService
     {
         $lowerMsg = strtolower($userMessage);
 
+        // Prioritize specific technical terms first
+        if (str_contains($lowerMsg, 'speeding')) {
+            return "Speeding alerts trigger when a vehicle exceeds the threshold of 80 km/h. Exceeding this threshold highlights the vehicle marker in red on the tracking interface.";
+        }
+
+        if (str_contains($lowerMsg, 'offline') || str_contains($lowerMsg, 'stuck')) {
+            return "Vehicles are marked as offline in the tracking interface if no telemetry is received for 5 minutes (300 seconds). Check the 'Last Update' timestamp to troubleshoot connectivity.";
+        }
+
+        if (str_contains($lowerMsg, 'dispatch') || str_contains($lowerMsg, 'maintenance') || str_contains($lowerMsg, 'service') || str_contains($lowerMsg, 'repair')) {
+            return "Stay on top of fleet health in the 'Maintenance' section. The maintenance dispatch workflow supports four stages: 'Waiting' (default for driver requests, triggers admin notification), 'Dispatched' (default for admin entries), 'In Progress', and 'Completed'.";
+        }
+
+        // General/less specific keyword handlers
         if (str_contains($lowerMsg, 'track') || str_contains($lowerMsg, 'location') || str_contains($lowerMsg, 'map')) {
             return "You can view live vehicle locations and historical routes in the 'Live Tracking' section. The map uses car-shaped SVG markers that rotate based on heading and move smoothly every 5 seconds. You can switch between Light, Dark, and Satellite themes.";
         }
@@ -251,10 +267,6 @@ class AiSupportService
             return "The 'Vehicle Registry' is your central hub. You can add new vehicles, update their status (Active, In Shop), and see an overview of your entire fleet's health.";
         }
 
-        if (str_contains($lowerMsg, 'maintenance') || str_contains($lowerMsg, 'service') || str_contains($lowerMsg, 'repair')) {
-            return "Stay on top of fleet health in the 'Maintenance' section. View service schedules, maintenance history, and set up reminders for upcoming tasks like oil changes.";
-        }
-
         if (str_contains($lowerMsg, 'driver')) {
             return "The 'Driver Hub' allows you to manage your team, assign drivers to vehicles, and track their online/offline status.";
         }
@@ -271,8 +283,8 @@ class AiSupportService
             return "Admins can bulk import or export vehicle data using CSV or Excel files in the 'Vehicle Registry' section. The system validates headers and handles duplicates automatically.";
         }
 
-        if (str_contains($lowerMsg, 'region') || str_contains($lowerMsg, 'district') || str_contains($lowerMsg, 'station') || str_contains($lowerMsg, 'location')) {
-            return "Locations are organized hierarchically: Regions contain Districts, which contain Stations. You can manage this structure in the 'Location Management' section.";
+        if (str_contains($lowerMsg, 'region') || str_contains($lowerMsg, 'district') || str_contains($lowerMsg, 'station')) {
+            return "Locations are organized hierarchically: Region -> District -> Station. You can manage this structure in the 'Location Management' section.";
         }
 
         if (str_contains($lowerMsg, 'security') || str_contains($lowerMsg, '2fa') || str_contains($lowerMsg, 'password')) {
