@@ -1,13 +1,11 @@
 # TODO
 
-## Migration fix for foreign key error (vehicles.region_id -> regions.id)
-- [x] Inspect migrations for `vehicles` and `regions`.
-- [x] Add migration: `2026_06_15_230000_fix_vehicles_region_fk.php` to explicitly change `vehicles.region_id` to `UNSIGNED BIGINT NULL` and recreate the FK with `ON DELETE SET NULL`.
-- [ ] Run migration(s) to verify:
-  - `php artisan migrate`
-  - If schema is inconsistent, use `php artisan migrate:refresh` / `migrate:fresh` as appropriate.
-- [ ] If FK still fails, inspect live schema with:
-  - `SHOW CREATE TABLE vehicles;`
-  - `SHOW CREATE TABLE regions;`
-  - and adjust migration accordingly.
+## Maintenance vehicle search route fix
+- [x] Add route named `maintenance.search-vehicle` in `routes/admin.php`
+- [x] Implement controller method in `app/Http/Controllers/MaintenanceController.php` to handle `registration` query and return JSON vehicle search results for the AJAX in `resources/views/vehicle-maintenance/edit.blade.php`
+
+- [x] Verify route name with `php artisan route:list --name=maintenance.search-vehicle`
+
+- [x] Smoke test the page `GET /maintenance/create` to ensure AJAX resolves and renders results
+
 

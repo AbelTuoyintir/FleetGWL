@@ -203,18 +203,25 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('reports')->name('
 // Maintenance Alert Routes
 // SECURITY: Restrict fleet maintenance management to authorized personnel.
 Route::middleware(['auth', 'role:admin,super_admin'])->prefix('maintenance')->name('maintenance.')->group(function () {
-    Route::get('/vehicles-needing', [VehicleController::class, 'vehiclesNeedingPage'])->name('vehicles-needing');
-    Route::get('/vehicles-needing/data', [VehicleController::class, 'getVehiclesNeedingMaintenance'])->name('vehicles-needing.data');
-    Route::post('/vehicle/{id}/acknowledge', [VehicleController::class, 'acknowledgeAlert'])->name('acknowledge');
-    Route::get('/schedule/{vehicleId}', [VehicleController::class, 'create'])->name('schedule');
-    Route::get('/', [VehicleController::class, 'index'])->name('index');
-    Route::get('/create', [VehicleController::class, 'create'])->name('create');
-    Route::post('/store', [VehicleController::class, 'store'])->name('store');
-    Route::get('/{id}', [VehicleController::class, 'show'])->name('show');
-    Route::get('/{id}/edit', [VehicleController::class, 'edit'])->name('edit');
-    Route::put('/{id}', [VehicleController::class, 'update'])->name('update');
-    Route::delete('/{id}', [VehicleController::class, 'destroy'])->name('destroy');
-    Route::get('/statistics', [VehicleController::class, 'statistics'])->name('statistics');
+    Route::get('/vehicles-needing', [MaintenanceController::class, 'vehiclesNeedingPage'])->name('vehicles-needing');
+    Route::get('/vehicles-needing/data', [MaintenanceController::class, 'getVehiclesNeedingMaintenance'])->name('vehicles-needing.data');
+    Route::post('/vehicle/{id}/acknowledge', [MaintenanceController::class, 'acknowledgeAlert'])->name('acknowledge');
+
+    // AJAX: Search vehicle by registration number (used on vehicle-maintenance/edit.blade.php)
+    Route::get('/search-vehicle', [MaintenanceController::class, 'searchVehicle'])->name('search-vehicle');
+
+    // Create Job Order (specific vehicle passed via {vehicleId} or query param)
+    Route::get('/schedule/{vehicleId}', [MaintenanceController::class, 'create'])->name('schedule');
+    Route::get('/create', [MaintenanceController::class, 'create'])->name('create');
+
+
+    Route::get('/', [MaintenanceController::class, 'index'])->name('index');
+    Route::post('/store', [MaintenanceController::class, 'store'])->name('store');
+    Route::get('/{id}', [MaintenanceController::class, 'show'])->name('show');
+    Route::get('/{id}/edit', [MaintenanceController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [MaintenanceController::class, 'update'])->name('update');
+    Route::delete('/{id}', [MaintenanceController::class, 'destroy'])->name('destroy');
+    Route::get('/statistics', [MaintenanceController::class, 'statistics'])->name('statistics');
 });
 
 

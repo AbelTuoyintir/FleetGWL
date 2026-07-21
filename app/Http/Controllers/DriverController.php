@@ -119,7 +119,6 @@ class DriverController extends Controller
                     'phone' => $validated['phone'] ?? null,
                     'password' => Hash::make($validated['password']),
                     'role' => 'driver',
-                    'staffID' => $this->generateDriverStaffId(),
                     'status' => 'active',
                 ]);
 

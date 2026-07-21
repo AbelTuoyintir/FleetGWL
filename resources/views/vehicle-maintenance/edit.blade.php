@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Create Maintenance Job Order - ' . ($vehicle->registration_number ?? ''))
+@section('title', 'Create Maintenance Job Order')
 @section('content')
     
     <style>
@@ -123,7 +123,7 @@
         <!-- Header -->
         <div class="mb-6">
             <div class="flex items-center gap-3 text-sm text-gray-500 mb-2">
-<a href="{{ $vehicle ? route('vehicles.show', $vehicle->id) : '#' }}" class="hover:text-blue-600" @if(!$vehicle) onclick="return false;" @endif>
+                <a href="{{ $vehicle ? back()->getTargetUrl() : '#' }}" class="hover:text-blue-600 {{ $vehicle ? '' : 'pointer-events-none opacity-50' }}">
                     <i class="fas fa-arrow-left"></i> Back to Vehicle
                 </a>
                 <i class="fas fa-chevron-right text-xs"></i>
@@ -144,10 +144,7 @@
             </div>
         </div>
         
-        <form id="jobOrderForm" action="{{ route('maintenance.create', $vehicle) }}" method="POST">
-            @csrf
-            
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
                 <!-- Left Column - Main Form -->
                 <div class="lg:col-span-2 space-y-6">
                     <!-- Maintenance Type Selection -->
@@ -301,7 +298,43 @@
                             <i class="fas fa-info-circle text-blue-600"></i>
                             Job Details
                         </h3>
-                        
+                        <div class="bg-white rounded-xl shadow-sm p-6">
+                            <h3 class="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                <i class="fas fa-search text-blue-600"></i>
+                                Search Vehicle
+                            </h3>
+
+                            <label class="form-label">Registration Number</label>
+                            <div class="relative">
+                                <input type="text" id="registrationSearch" class="form-input pl-10" placeholder="e.g. GS-1234-25" autocomplete="off">
+                                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                <div id="loadingIndicator" class="hidden absolute right-3 top-1/2 -translate-y-1/2">
+                                    <div class="loading-spinner"></div>
+                                </div>
+                            </div>
+                            <div id="searchResults" class="mt-2 space-y-2 max-h-60 overflow-y-auto hidden"></div>
+
+                            <div id="selectedVehicleInfo" class="hidden mt-4">
+                                <label class="form-label">Selected Vehicle</label>
+                                <div class="p-4 bg-blue-50 rounded-xl border border-blue-200">
+                                    <div class="flex items-start gap-3">
+                                        <i class="fas fa-truck text-blue-600 text-xl mt-1"></i>
+                                        <div class="flex-1">
+                                            <h4 class="font-semibold text-gray-800" id="selectedVehicleReg">-</h4>
+                                            <p class="text-sm text-gray-600" id="selectedVehicleDetails">-</p>
+                                            <div class="flex flex-wrap gap-2 mt-2">
+                                                <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded" id="selectedVehicleMake">-</span>
+                                                <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded" id="selectedVehicleModel">-</span>
+                                                <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded" id="selectedVehicleYear">-</span>
+                                                <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded" id="selectedVehicleMileage">-</span>
+                                            </div>
+                                            <input type="hidden" name="vehicle_id" id="selectedVehicleId" value="">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div class="md:col-span-2">
                                 <label class="form-label">Description / Issue Reported</label>
@@ -413,6 +446,38 @@ let generalServiceCost = 725;
 let currentMaintenanceType = null;
 
 $(document).ready(function() {
+    // Vehicle search (used for maintenance job order creation)
+    let searchTimeout = null;
+
+    $('#registrationSearch').on('input', function() {
+        let query = $(this).val().trim();
+
+        clearTimeout(searchTimeout);
+
+        if (query.length < 2) {
+            $('#searchResults').addClass('hidden').html('');
+            return;
+        }
+
+        $('#loadingIndicator').removeClass('hidden');
+
+        searchTimeout = setTimeout(function() {
+            $.ajax({
+                url: "{{ route('maintenance.search-vehicle') }}",
+                type: 'GET',
+                data: { registration: query },
+                success: function(response) {
+                    $('#loadingIndicator').addClass('hidden');
+                    displaySearchResults(response);
+                },
+                error: function(xhr) {
+                    $('#loadingIndicator').addClass('hidden');
+                    console.error('Search error:', xhr);
+                }
+            });
+        }, 300);
+    });
+
     // Maintenance type selection
     $('.maintenance-card').click(function() {
         let type = $(this).data('type');

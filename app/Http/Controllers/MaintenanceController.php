@@ -4,13 +4,53 @@ namespace App\Http\Controllers;
 
 use App\Models\Maintenance;
 use App\Models\Vehicle;
+use App\Models\Driver;
 use Illuminate\Http\Request;
 
 class MaintenanceController extends Controller
 {
+
     public function vehiclesNeedingPage()
     {
         return view('maintenance.vehicles-needing');
+    }
+
+    /**
+     * Search vehicles by registration number.
+     *
+     * Used by AJAX in resources/views/vehicle-maintenance/edit.blade.php
+     */
+    public function searchVehicle(Request $request)
+    {
+        $registration = trim((string) $request->query('registration', ''));
+
+        if ($registration === '') {
+            return response()->json([]);
+        }
+
+        $vehicles = Vehicle::query()
+            ->where('status', 'active')
+            ->where(function ($q) use ($registration) {
+                $q->where('registration_number', 'like', '%' . $registration . '%')
+                    ->orWhere('registration_plate', 'like', '%' . $registration . '%');
+            })
+            ->limit(10)
+            ->get();
+
+        return response()->json(
+            $vehicles->map(function (Vehicle $vehicle) {
+                return [
+                    'id' => $vehicle->id,
+                    'registration_number' => $vehicle->registration_number,
+                    'make' => $vehicle->make,
+                    'model' => $vehicle->model,
+                    'year' => $vehicle->year,
+                    'color' => $vehicle->color,
+'mileage' => $vehicle->mileage,
+                    'status' => $vehicle->status,
+                ];
+            })
+        );
     }
 
     /**
@@ -27,13 +67,13 @@ class MaintenanceController extends Controller
         return view('vehicle-maintenance.index', compact('maintenanceRecords'));
     }
 
+
     /**
      * Show the form for creating a new resource.
      */
-    public function create($vehicleId = null)
+public function create($vehicleId = null)
 {
     $vehicles = Vehicle::query()
-
         ->where('status', 'active')
         ->select('vehicles.*')
         ->selectSub(function ($query) {
@@ -45,45 +85,47 @@ class MaintenanceController extends Controller
         }, 'latest_mileage')
         ->get();
 
-
-    // If a driver is creating this, they should only see their assigned vehicle
     if (auth()->user() && auth()->user()->isDriver()) {
         $driver = auth()->user()->driver;
+
         if ($driver && $driver->vehicle) {
             $vehicles = $vehicles->where('id', $driver->vehicle->id);
             $vehicleId = $driver->vehicle->id;
         }
     }
 
-    $selectedVehicle = $vehicleId ? $vehicles->firstWhere('id', $vehicleId) : null;
+    $selectedVehicle = $vehicleId
+        ? $vehicles->firstWhere('id', $vehicleId)
+        : $vehicles->first();
 
-    // If no vehicleId is provided, default to the first available vehicle.
-    // This prevents GET /maintenance/create from always 404-ing.
-    if (!$selectedVehicle) {
-        $selectedVehicle = $vehicles->first();
-    }
-
-    // Blade expects a single Vehicle model (not a Collection) and cannot render without it.
     $vehicle = $selectedVehicle;
+
     if (!$vehicle) {
         abort(404, 'Vehicle not found for maintenance job order.');
     }
 
+    $drivers = Driver::where('status', 'active')
+        ->with('user')
+        ->get();
 
-    $drivers = \App\Models\Driver::where('status', 'active')->with('user')->get();
-    
     $maintenance = new Maintenance();
 
-    // Pre-fill some common fields for the create form
-    if ($selectedVehicle) {
-        $maintenance->vehicle_id = $selectedVehicle->id;
-        $maintenance->mileage_at_service = $selectedVehicle->latest_mileage ?? null;
-    }
+    $maintenance->vehicle_id = $vehicle->id;
+    $maintenance->mileage_at_service = $vehicle->latest_mileage;
+    $maintenance->status = 'scheduled';
 
-    // Default values expected by the Blade
-    $maintenance->status = $maintenance->status ?? 'scheduled';
+    // IMPORTANT
+    $checklistItems = collect();
 
-    return view('vehicle-maintenance.edit', compact('vehicles', 'vehicle', 'drivers', 'vehicleId', 'selectedVehicle', 'maintenance'));
+    return view('vehicle-maintenance.edit', compact(
+        'vehicles',
+        'vehicle',
+        'drivers',
+        'vehicleId',
+        'selectedVehicle',
+        'maintenance',
+        'checklistItems'
+    ));
 }
 
     /**
