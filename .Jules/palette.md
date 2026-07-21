@@ -18,6 +18,10 @@
 **Learning:** For administrative interfaces handling high-precision data (Chassis numbers, Engine numbers), using `font-mono` significantly reduces character confusion (e.g., 0 vs O). Furthermore, synchronizing `aria-label` with the `title` attribute on interactive elements ensures that both screen reader users and mouse users receive consistent contextual hints (tooltips).
 **Action:** Apply `font-mono` to all alphanumeric identifiers and always pair `aria-label` with `title` on icon-only buttons for consistent accessibility and discovery.
 
+## 2026-07-09 - [Lightweight SweetAlert2 Toast for Detail Views Clipboard Copy]
+**Learning:** For detail pages displaying multiple key alphanumeric identifiers (Staff ID, License Number, Registration Number), implementing a lightweight copy-to-clipboard function leveraging SweetAlert2's built-in toast system (`toast: true, position: 'top-end'`) delivers immediate, delightful user feedback. This avoids writing duplicate custom CSS animations or local toast elements and fits cleanly under 20 lines of code.
+**Action:** Use SweetAlert2's native toast configuration for detail-view copy triggers to minimize code footprint while maintaining visual excellence and accessibility.
+
 ## 2026-06-29 - [Contextual Utility & Robust Clipboard Interactions]
 **Learning:** Adding "Copy to Clipboard" functionality for primary identifiers (like registration numbers) provides immediate value in data-heavy administrative interfaces. Ensuring a fallback mechanism () is critical for maintaining this utility across all browser contexts, including potential insecure origins or older clients. Furthermore, proactive debugging of adjacent UI elements (like fixing malformed event handlers found during inspection) reinforces the "invisible" quality of good UX.
 **Action:** Always include a robust fallback for clipboard operations and perform a "sanity check" on nearby interactive elements when modifying a view to catch legacy bugs.
