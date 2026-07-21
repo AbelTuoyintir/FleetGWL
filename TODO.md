@@ -8,4 +8,8 @@
 
 - [x] Smoke test the page `GET /maintenance/create` to ensure AJAX resolves and renders results
 
+## Missing `photo` column in vehicles table
+- [x] Create migration `2026_07_21_add_photo_to_vehicles_table.php` to add nullable `photo` string column to `vehicles` table
+- [x] Run migration successfully
+
 
