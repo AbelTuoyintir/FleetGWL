@@ -29,3 +29,7 @@
 ## 2026-07-08 - [Monospace Identifiers & Parameterized Copy Utility]
 **Learning:** Using the `font-mono` class for alphanumeric identifiers (Registration, Chassis, Engine, and Document numbers) drastically improves character distinction (e.g., '0' vs 'O'). Additionally, parameterizing the `copyToClipboard(text, label)` function allows for contextualized user feedback, which makes the interface feel more responsive and intelligent than using generic messages.
 **Action:** Default to `font-mono` for all key alphanumeric identifiers and ensure copy utilities support descriptive labels for toast notifications.
+
+## 2026-07-22 - [Contextual Clipboard Copy in AJAX Data Tables]
+**Learning:** Adding interactive elements like copy-to-clipboard buttons within dynamically populated AJAX-rendered tables requires ensuring that the event handlers and clipboard helper logic are globally accessible or scoped to the parent container. Crucially, explicitly setting `type="button"` on these dynamically rendered buttons avoids triggering parent form submissions when the table is nested or adjacent to filtering and creation forms.
+**Action:** Always verify that dynamically generated table action buttons use `type="button"` and have fully resolved clipboard event bindings.
