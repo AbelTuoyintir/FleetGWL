@@ -146,7 +146,13 @@
         
 
                 <!-- Left Column - Main Form -->
-                <div class="lg:col-span-2 space-y-6">
+        <form action="{{ route('maintenance.store') }}" method="POST" class="space-y-6">
+                    @csrf
+                    <input type="hidden" name="vehicle_id" value="{{ $vehicle->id }}">
+                    <input type="hidden" name="mileage_at_service" value="{{ $vehicle->mileage ?? 0 }}">
+                    <input type="hidden" name="status" value="scheduled">
+                    <input type="hidden" name="maintenance_date" id="hiddenMaintenanceDate" value="{{ now()->addDays(3)->format('Y-m-d') }}">
+                    <div class="lg:col-span-2 space-y-6">
                     <!-- Maintenance Type Selection -->
                     <div class="bg-white rounded-xl shadow-sm p-6">
                         <h3 class="font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -376,10 +382,10 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                    </div>
                 
-                <!-- Right Column - Summary -->
-                <div class="space-y-6">
+                    <!-- Right Column - Summary -->
+                    <div class="space-y-6">
                     <!-- Cost Summary Card -->
                     <div class="bg-white rounded-xl shadow-sm p-6 sticky top-6">
                         <h3 class="font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -539,9 +545,66 @@ $(document).ready(function() {
         $(this).after(`<span class="priority-badge priority-${priority} ml-2"><i class="fas ${getPriorityIcon(priority)}"></i> ${priority.toUpperCase()}</span>`);
     });
     
+    // Sync scheduled_date to hidden maintenance_date field
+    $('input[name="scheduled_date"]').on('change input', function() {
+        $('#hiddenMaintenanceDate').val($(this).val());
+    });
+
     // Initialize
     updatePriorityBadge();
 });
+
+function displaySearchResults(vehicles) {
+    const container = $('#searchResults');
+    container.empty().removeClass('hidden');
+
+    if (!vehicles || vehicles.length === 0) {
+        container.html('<div class="p-3 text-sm text-gray-500 text-center bg-gray-50 rounded-lg">No vehicles found matching that registration number.</div>');
+        return;
+    }
+
+    vehicles.forEach(function(v) {
+        const card = `
+            <div class="p-3 border rounded-lg hover:bg-blue-50 cursor-pointer transition flex items-start gap-3 vehicle-search-result" 
+                 data-id="${v.id}"
+                 data-registration="${v.registration_number}"
+                 data-make="${v.make || ''}"
+                 data-model="${v.model || ''}"
+                 data-year="${v.year || ''}"
+                 data-mileage="${v.mileage || 0}">
+                <i class="fas fa-truck text-blue-500 mt-1"></i>
+                <div class="flex-1">
+                    <div class="font-medium text-gray-800">${v.registration_number}</div>
+                    <div class="text-xs text-gray-500">${v.make || ''} ${v.model || ''} ${v.year ? '(' + v.year + ')' : ''}</div>
+                    <div class="text-xs text-gray-400">Mileage: ${(v.mileage || 0).toLocaleString()} km</div>
+                </div>
+                <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full self-center">Select</span>
+            </div>
+        `;
+        container.append(card);
+    });
+
+    // Bind click to select a vehicle
+    $('.vehicle-search-result').click(function() {
+        const id = $(this).data('id');
+        const reg = $(this).data('registration');
+        const make = $(this).data('make');
+        const model = $(this).data('model');
+        const year = $(this).data('year');
+        const mileage = $(this).data('mileage');
+
+        $('#selectedVehicleId').val(id);
+        $('#selectedVehicleReg').text(reg);
+        $('#selectedVehicleDetails').text(`${make} ${model} ${year ? '(' + year + ')' : ''}`);
+        $('#selectedVehicleMake').text(make || '-');
+        $('#selectedVehicleModel').text(model || '-');
+        $('#selectedVehicleYear').text(year || '-');
+        $('#selectedVehicleMileage').text((mileage || 0).toLocaleString() + ' km');
+        $('#selectedVehicleInfo').removeClass('hidden');
+        $('#searchResults').addClass('hidden').empty();
+        $('#registrationSearch').val(reg);
+    });
+}
 
 function toggleCategory(categoryId) {
     $('#category-' + categoryId).toggleClass('hidden');

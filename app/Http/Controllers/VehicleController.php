@@ -106,8 +106,9 @@ class VehicleController extends Controller
         $regions = Region::all();
         $districts = District::all();
         $stations = Station::where('status', 'active')->get();
+        $offices = collect(); // No Office model/table exists yet
 
-        return view('admin.vehicles.edit', compact('vehicle', 'drivers', 'regions', 'districts', 'stations'));
+        return view('admin.vehicles.edit', compact('vehicle', 'drivers', 'regions', 'districts', 'stations', 'offices'));
     }
 
     public function show($id)
