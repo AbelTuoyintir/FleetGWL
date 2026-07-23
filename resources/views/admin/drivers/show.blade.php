@@ -43,7 +43,19 @@
                     <div><label class="text-xs text-gray-500">Email</label><p class="font-medium">{{ $driver->user->email ?? 'N/A' }}</p></div>
                     <div><label class="text-xs text-gray-500">Phone</label><p class="font-medium">{{ $driver->user->phone ?? 'N/A' }}</p></div>
                     <div><label class="text-xs text-gray-500">Gender</label><p class="font-medium">{{ $driver->user->gender ?? 'N/A' }}</p></div>
-                    <div><label class="text-xs text-gray-500">Staff ID</label><p class="font-medium">{{ $driver->user->staffID ?? 'N/A' }}</p></div>
+                    <div>
+                        <label class="text-xs text-gray-500">Staff ID</label>
+                        @if($driver->user && $driver->user->staffID)
+                            <div class="flex items-center gap-2">
+                                <p class="font-mono font-medium text-gray-800">{{ $driver->user->staffID }}</p>
+                                <button type="button" data-copy="{{ $driver->user->staffID }}" onclick="copyToClipboard(this, 'Staff ID')" class="text-gray-400 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5 transition" title="Copy Staff ID" aria-label="Copy Staff ID">
+                                    <i class="far fa-copy text-xs"></i>
+                                </button>
+                            </div>
+                        @else
+                            <p class="font-medium">N/A</p>
+                        @endif
+                    </div>
                     <div><label class="text-xs text-gray-500">Joined Date</label><p class="font-medium">{{ $driver->created_at->format('M d, Y') }}</p></div>
                 </div>
             </div>
@@ -54,7 +66,19 @@
                     <i class="fas fa-id-card text-green-600 mr-2"></i>License Information
                 </h3>
                 <div class="space-y-3">
-                    <div><label class="text-xs text-gray-500">License Number</label><p class="font-medium">{{ $driver->license_number ?? 'N/A' }}</p></div>
+                    <div>
+                        <label class="text-xs text-gray-500">License Number</label>
+                        @if($driver->license_number)
+                            <div class="flex items-center gap-2">
+                                <p class="font-mono font-medium text-gray-800">{{ $driver->license_number }}</p>
+                                <button type="button" data-copy="{{ $driver->license_number }}" onclick="copyToClipboard(this, 'License Number')" class="text-gray-400 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5 transition" title="Copy License Number" aria-label="Copy License Number">
+                                    <i class="far fa-copy text-xs"></i>
+                                </button>
+                            </div>
+                        @else
+                            <p class="font-medium">N/A</p>
+                        @endif
+                    </div>
                     <div><label class="text-xs text-gray-500">License Class</label><p class="font-medium">{{ $driver->license_class ?? 'N/A' }}</p></div>
                     <div><label class="text-xs text-gray-500">Expiry Date</label><p class="font-medium {{ $driver->license_expiry_date && $driver->license_expiry_date->isPast() ? 'text-red-600' : '' }}">{{ $driver->license_expiry_date ? $driver->license_expiry_date->format('M d, Y') : 'N/A' }}</p></div>
                     @if($driver->license_photo)
@@ -76,7 +100,12 @@
                             <i class="fas fa-truck text-blue-600 text-xl"></i>
                         </div>
                         <div>
-                            <p class="font-bold text-gray-800">{{ $driver->vehicle->registration_number }}</p>
+                            <div class="flex items-center gap-2">
+                                <p class="font-mono font-bold text-gray-800">{{ $driver->vehicle->registration_number }}</p>
+                                <button type="button" data-copy="{{ $driver->vehicle->registration_number }}" onclick="copyToClipboard(this, 'Vehicle Registration Number')" class="text-gray-400 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5 transition" title="Copy Vehicle Registration Number" aria-label="Copy Vehicle Registration Number">
+                                    <i class="far fa-copy text-xs"></i>
+                                </button>
+                            </div>
                             <p class="text-sm text-gray-500">{{ $driver->vehicle->make }} {{ $driver->vehicle->model }} ({{ $driver->vehicle->year }})</p>
                         </div>
                     </div>
@@ -125,4 +154,41 @@
     </div>
 </div>
 
+<script>
+/**
+ * Copy text to clipboard with SweetAlert2 notification and fallback
+ */
+function copyToClipboard(btn, label) {
+    const text = btn.getAttribute('data-copy');
+    if (!text) return;
+
+    function showSuccess() {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                toast: true, position: 'top-end', icon: 'success',
+                title: `${label} copied to clipboard!`, showConfirmButton: false, timer: 3000, timerProgressBar: true
+            });
+        }
+    }
+
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(showSuccess).catch(() => fallbackCopy(text));
+    } else {
+        fallbackCopy(text);
+    }
+
+    function fallbackCopy(val) {
+        const el = document.createElement('textarea');
+        el.value = val;
+        el.style.position = 'fixed';
+        el.style.opacity = '0';
+        document.body.appendChild(el);
+        el.select();
+        try {
+            if (document.execCommand('copy')) showSuccess();
+        } catch (err) {}
+        document.body.removeChild(el);
+    }
+}
+</script>
 @endsection
