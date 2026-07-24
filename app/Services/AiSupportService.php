@@ -32,6 +32,8 @@ class AiSupportService
         - **Follow Mode:** Locks the camera to a specific vehicle.
         - **History Playback:** Visualize paths taken in the last 24 hours with granular breadcrumbs (speed, direction).
         - **Map Themes:** Switch between Light, Dark, and Satellite modes (Top-Right control).
+        - **Speeding Alerts:** Triggers immediately when a vehicle's speed exceeds 80 km/h.
+        - **Offline Threshold:** Vehicles are marked as 'offline' in the tracking interface if there is no connectivity or update for 5 minutes (300 seconds).
 
         ### 2. Fleet Management
         - **Vehicle Registry:** Central hub for adding vehicles, updating status (Active, In Shop), and viewing health overview.
@@ -51,9 +53,14 @@ class AiSupportService
 
         ### 5. System Features
         - **Bulk Operations:** Admins can import/export vehicles via CSV/Excel.
-        - **Location Hierarchy:** Managed through Regions -> Districts -> Stations.
+        - **Location Hierarchy:** Organized structured mapping through Regions -> Districts -> Stations.
         - **Efficiency Tracking:** Automatic calculation of fuel efficiency (km/L) and cost per km.
         - **Security:** Support for 2FA, session management, and activity logging.
+        - **Maintenance Dispatch Workflow:** A 4-stage process comprising:
+          * **Waiting:** Default status for driver-initiated maintenance requests (triggers admin notification).
+          * **Dispatched:** Default status for admin-logged entries.
+          * **In Progress:** Servicing has commenced.
+          * **Completed:** Task finalized, releasing vehicle back to operations.
 
         ### 6. Troubleshooting
         - **Map Issues:** Check internet connection and 'Last Update' timestamp.
