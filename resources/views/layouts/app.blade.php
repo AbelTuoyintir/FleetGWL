@@ -251,6 +251,9 @@
 <!-- AI SUPPORT CHAT BOT -->
 @include('components.ai-chat-bot')
 
+<!-- WEBRTC REAL-TIME CALL OVERLAY -->
+@include('components.webrtc-call-overlay')
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     // Keep sidebar controls working even when a page doesn't define its own handlers.

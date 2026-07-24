@@ -18,14 +18,10 @@
 **Learning:** For administrative interfaces handling high-precision data (Chassis numbers, Engine numbers), using `font-mono` significantly reduces character confusion (e.g., 0 vs O). Furthermore, synchronizing `aria-label` with the `title` attribute on interactive elements ensures that both screen reader users and mouse users receive consistent contextual hints (tooltips).
 **Action:** Apply `font-mono` to all alphanumeric identifiers and always pair `aria-label` with `title` on icon-only buttons for consistent accessibility and discovery.
 
-## 2026-06-29 - [Contextual Utility & Robust Clipboard Interactions]
-**Learning:** Adding "Copy to Clipboard" functionality for primary identifiers (like registration numbers) provides immediate value in data-heavy administrative interfaces. Ensuring a fallback mechanism () is critical for maintaining this utility across all browser contexts, including potential insecure origins or older clients. Furthermore, proactive debugging of adjacent UI elements (like fixing malformed event handlers found during inspection) reinforces the "invisible" quality of good UX.
-**Action:** Always include a robust fallback for clipboard operations and perform a "sanity check" on nearby interactive elements when modifying a view to catch legacy bugs.
-
-## 2026-06-29 - [Contextual Utility & Robust Clipboard Interactions]
-**Learning:** Adding "Copy to Clipboard" functionality for primary identifiers (like registration numbers) provides immediate value in data-heavy administrative interfaces. Ensuring a fallback mechanism (`document.execCommand`) is critical for maintaining this utility across all browser contexts, including potential insecure origins or older clients. Furthermore, proactive debugging of adjacent UI elements (like fixing malformed event handlers found during inspection) reinforces the "invisible" quality of good UX.
-**Action:** Always include a robust fallback for clipboard operations and perform a "sanity check" on nearby interactive elements when modifying a view to catch legacy bugs.
-
 ## 2026-07-08 - [Monospace Identifiers & Parameterized Copy Utility]
 **Learning:** Using the `font-mono` class for alphanumeric identifiers (Registration, Chassis, Engine, and Document numbers) drastically improves character distinction (e.g., '0' vs 'O'). Additionally, parameterizing the `copyToClipboard(text, label)` function allows for contextualized user feedback, which makes the interface feel more responsive and intelligent than using generic messages.
 **Action:** Default to `font-mono` for all key alphanumeric identifiers and ensure copy utilities support descriptive labels for toast notifications.
+
+## 2026-07-23 - [Robust HTML-Safe Clipboard Interactions]
+**Learning:** Interpolating PHP variables directly into single-quoted inline `onclick` handler string arguments introduces JS syntax break risks and potential XSS vulnerabilities when the value contains single quotes or special characters. Utilizing double-quoted HTML `data-*` attributes (e.g., `data-copy="{{ ... }}"`) leverages Blade's native HTML entity escaping, preventing syntax breaks and ensuring complete security. Furthermore, pairing the modern `navigator.clipboard` with an extremely lightweight synchronous fallback (`document.execCommand('copy')`) ensures reliable functionality across both secure HTTPS production and local HTTP development contexts (such as Playwright headless testing environments).
+**Action:** Always store dynamic clipboard copy values in HTML-escaped `data-copy` attributes, retrieve them using element selectors (e.g. `this.getAttribute('data-copy')`), and support a lightweight fallback copy routine.

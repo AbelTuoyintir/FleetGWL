@@ -145,23 +145,22 @@ class AiSupportTest extends TestCase
         Http::fake(['*' => Http::response([], 500)]);
 
         $response = $this->actingAs($user)
-            ->postJson(route('ai-support.chat'), ['message' => 'tell me about speeding alerts']);
+            ->postJson(route('ai-support.chat'), ['message' => 'What is the speeding limit?']);
 
         $response->assertStatus(200);
-        $this->assertStringContainsString('80 km/h', $response->json('ai_message'));
+        $this->assertStringContainsString('exceeds 80 km/h', $response->json('ai_message'));
     }
 
-    public function test_user_can_ask_about_offline_in_fallback()
+    public function test_user_can_ask_about_offline_status_in_fallback()
     {
         $user = User::factory()->create();
         Http::fake(['*' => Http::response([], 500)]);
 
         $response = $this->actingAs($user)
-            ->postJson(route('ai-support.chat'), ['message' => 'why is my vehicle offline?']);
+            ->postJson(route('ai-support.chat'), ['message' => 'Why is my vehicle offline?']);
 
         $response->assertStatus(200);
-        $this->assertStringContainsString('5 minutes', $response->json('ai_message'));
-        $this->assertStringContainsString('300 seconds', $response->json('ai_message'));
+        $this->assertStringContainsString('5 minutes (300 seconds)', $response->json('ai_message'));
     }
 
     public function test_user_can_ask_about_maintenance_workflow_in_fallback()
@@ -170,7 +169,7 @@ class AiSupportTest extends TestCase
         Http::fake(['*' => Http::response([], 500)]);
 
         $response = $this->actingAs($user)
-            ->postJson(route('ai-support.chat'), ['message' => 'what is the maintenance dispatch workflow?']);
+            ->postJson(route('ai-support.chat'), ['message' => 'How does maintenance dispatch work?']);
 
         $response->assertStatus(200);
         $this->assertStringContainsString('Waiting', $response->json('ai_message'));
