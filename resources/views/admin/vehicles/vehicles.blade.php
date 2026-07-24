@@ -740,7 +740,14 @@ function renderVehiclesTable(vehicles) {
         
         html += `
             <tr>
-                <td class="font-medium font-mono">${vehicle.registration_number}</td>
+                <td class="font-medium font-mono">
+                    <div class="flex items-center gap-2">
+                        <span>${vehicle.registration_number}</span>
+                        <button type="button" onclick="copyToClipboard('${vehicle.registration_number}', 'Registration Number')" class="text-gray-400 hover:text-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded p-0.5 transition" title="Copy Registration Number" aria-label="Copy Registration Number">
+                            <i class="far fa-copy text-xs"></i>
+                        </button>
+                    </div>
+                </td>
                 <td>${vehicle.make} ${vehicle.model}<br><span class="text-xs text-gray-500">${vehicle.year || 'N/A'}</span></td>
                 <td>${vehicle.vehicle_type}</td>
                 <td><span class="status-badge ${statusClass}">${vehicle.status}</span></td>
@@ -758,7 +765,7 @@ function renderVehiclesTable(vehicles) {
                         <a href="/vehicles/${vehicle.id}/edit" class="text-blue-600 hover:text-blue-800" aria-label="Edit Vehicle" title="Edit Vehicle">
                             <i class="fas fa-edit"></i>
                         </a>
-                        <button onclick="deleteVehicle(${vehicle.id})" class="text-red-600 hover:text-red-800" aria-label="Delete Vehicle" title="Delete Vehicle">
+                        <button type="button" onclick="deleteVehicle(${vehicle.id})" class="text-red-600 hover:text-red-800" aria-label="Delete Vehicle" title="Delete Vehicle">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -959,6 +966,78 @@ function renderAlerts(stats) {
         maintenanceHtml = `<div class="text-center text-gray-500 py-4"><i class="fas fa-check-circle text-green-500 text-2xl mb-2"></i><p>All vehicles are in good condition</p></div>`;
     }
     $('#maintenance-alerts').html(maintenanceHtml);
+}
+
+/**
+ * Copy text to clipboard with fallback and notification
+ */
+function copyToClipboard(text, label = 'Registration Number') {
+    if (!navigator.clipboard) {
+        fallbackCopyToClipboard(text, label);
+        return;
+    }
+    navigator.clipboard.writeText(text).then(function() {
+        showNotification('success', `${label} copied to clipboard!`);
+    }, function(err) {
+        console.error('Could not copy text: ', err);
+        fallbackCopyToClipboard(text, label);
+    });
+}
+
+function fallbackCopyToClipboard(text, label = 'Registration Number') {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showNotification('success', `${label} copied to clipboard!`);
+        } else {
+            showNotification('error', `Failed to copy ${label.toLowerCase()}.`);
+        }
+    } catch (err) {
+        console.error('Fallback copy failed', err);
+        showNotification('error', `Failed to copy ${label.toLowerCase()}.`);
+    }
+    document.body.removeChild(textArea);
+}
+
+function showNotification(type, message) {
+    let notification = $(`
+        <div class="fixed top-4 right-4 z-50 animate-slide-in">
+            <div class="px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+                <span class="text-sm">${message}</span>
+                <button type="button" onclick="$(this).closest('.fixed').remove()" class="ml-4 text-white hover:text-gray-200" aria-label="Dismiss notification" title="Dismiss">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    `);
+    $('body').append(notification);
+    setTimeout(() => {
+        notification.fadeOut(300, function() { $(this).remove(); });
+    }, 3000);
+}
+
+if (!document.getElementById('slide-in-style')) {
+    $('<style>')
+        .attr('id', 'slide-in-style')
+        .prop('type', 'text/css')
+        .html(`
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            .animate-slide-in { animation: slideIn 0.3s ease-out; }
+        `)
+        .appendTo('head');
 }
 
 // Redundant sidebar functions removed - handled by app layout
