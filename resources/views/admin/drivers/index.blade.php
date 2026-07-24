@@ -177,6 +177,14 @@
                                     <div>{{ $driver->fuel_logs_count }} fuel logs</div>
                                 </td>
                                 <td class="text-right whitespace-nowrap">
+                                    @if($driver->user_id)
+                                        <button type="button" onclick="if (typeof window.startCall === 'function') window.startCall({{ $driver->user_id }}, 'audio')" class="text-blue-600 hover:text-blue-800 text-sm mr-3" title="Call Driver (Audio)" aria-label="Call Driver (Audio)">
+                                            <i class="fas fa-phone-alt"></i>
+                                        </button>
+                                        <button type="button" onclick="if (typeof window.startCall === 'function') window.startCall({{ $driver->user_id }}, 'video')" class="text-green-600 hover:text-green-800 text-sm mr-3" title="Call Driver (Video)" aria-label="Call Driver (Video)">
+                                            <i class="fas fa-video"></i>
+                                        </button>
+                                    @endif
                                     <a href="{{ route('drivers.show', $driver) }}" class="text-blue-600 hover:text-blue-800 text-sm mr-3">View</a>
                                     <a href="{{ route('drivers.edit', $driver) }}" class="text-gray-600 hover:text-gray-800 text-sm mr-3">Edit</a>
                                     <form method="POST" action="{{ route('drivers.destroy', $driver) }}" class="inline" onsubmit="return confirm('Remove this driver from the fleet?');">
