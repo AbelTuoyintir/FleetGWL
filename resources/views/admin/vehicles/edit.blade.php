@@ -314,8 +314,9 @@
                         </div>
                         <div class="p-6">
                             <div class="text-center">
-                                @if($vehicle->photo && Storage::disk('public')->exists($vehicle->photo))
-                                    <img src="{{ Storage::url($vehicle->photo) }}" alt="{{ $vehicle->registration_number }}" class="image-preview mb-4" id="imagePreview">
+                                @php $photoUrl = $vehicle->photo ? asset('storage/' . $vehicle->photo) : ''; @endphp
+                                @if($vehicle->photo)
+                                    <img src="{{ $photoUrl }}" alt="{{ $vehicle->registration_number }}" class="image-preview mb-4" id="imagePreview" onerror="this.classList.add('hidden');document.getElementById('imagePreviewContainer')?.classList.remove('hidden');">
                                 @else
                                     <div class="bg-gray-100 rounded-lg p-8 mb-4 text-center" id="imagePreviewContainer">
                                         <i class="fas fa-truck text-gray-400 text-5xl mb-2"></i>

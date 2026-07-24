@@ -137,9 +137,9 @@
                 <a href="{{ route('maintenance.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition">
                         <i class="fas fa-plus"></i> Add Maintenance
                 </a>
-                <button onclick="window.print()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition">
-                    <i class="fas fa-print"></i> Print
-                </button>
+                <a href="{{ route('maintenance.print.batch', request()->only(['region_id', 'district_id', 'station_id', 'status', 'date_from', 'date_to'])) }}" target="_blank" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition">
+                    <i class="fas fa-print"></i> Print Notice
+                </a>
                 <button id="refreshBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition">
                     <i class="fas fa-sync-alt"></i> Refresh
                 </button>
@@ -290,6 +290,9 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-center">
                                 <div class="flex gap-2 justify-center">
+                                    <a href="{{ route('maintenance.print', $record->id) }}" target="_blank" class="text-gray-600 hover:text-gray-800" title="Print Notice">
+                                        <i class="fas fa-print"></i>
+                                    </a>
                                     <button onclick="viewMaintenance({{ $record->id }})" class="text-blue-600 hover:text-blue-800" title="View Details">
                                         <i class="fas fa-eye"></i>
                                     </button>

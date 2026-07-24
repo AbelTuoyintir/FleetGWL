@@ -222,6 +222,10 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('maintenance')->na
     Route::put('/{id}', [MaintenanceController::class, 'update'])->name('update');
     Route::delete('/{id}', [MaintenanceController::class, 'destroy'])->name('destroy');
     Route::get('/statistics', [MaintenanceController::class, 'statistics'])->name('statistics');
+
+    // Print routes for maintenance notices
+    Route::get('/{maintenance}/print', [MaintenanceController::class, 'printNotice'])->name('print');
+    Route::get('/print/batch', [MaintenanceController::class, 'printBatchNotice'])->name('print.batch');
 });
 
 
