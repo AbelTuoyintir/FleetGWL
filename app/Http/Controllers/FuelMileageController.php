@@ -62,11 +62,12 @@ class FuelMileageController extends Controller
                 ->where('driver_id', $driver->id)
                 ->where('status', 'waiting')
                 ->count(),
-            'monthly_distance' => MileageLog::where('vehicle_id', $vehicle->id)
+            'monthly_distance' => (int) MileageLog::where('vehicle_id', $vehicle->id)
                 ->where('driver_id', $driver->id)
                 ->whereYear('created_at', $currentYear)
                 ->whereMonth('created_at', $currentMonth)
-                ->sum('distance_covered'),
+                ->selectRaw('COALESCE(SUM(end_mileage - start_mileage), 0) as total_distance')
+                ->value('total_distance'),
             'total_maintenance_expenditure' => VehicleMaintenance::where('vehicle_id', $vehicle->id)
                 ->where('driver_id', $driver->id)
                 ->sum('cost'),
@@ -74,10 +75,9 @@ class FuelMileageController extends Controller
         ];
 
         // Get maintenance trend (last 6 months)
-        // SQLite doesn't support YEAR()/MONTH(), so we use strftime for driver-agnostic grouping.
         $maintenanceTrend = VehicleMaintenance::select(
-            DB::raw("cast(strftime('%Y', maintenance_date) as integer) as year"),
-            DB::raw("cast(strftime('%m', maintenance_date) as integer) as month"),
+            DB::raw(SqlDate::year('maintenance_date') . ' as year'),
+            DB::raw(SqlDate::month('maintenance_date') . ' as month'),
             DB::raw('SUM(cost) as total_cost'),
             DB::raw('COUNT(*) as request_count')
         )
@@ -561,8 +561,10 @@ class FuelMileageController extends Controller
         $weeklyMileage = MileageLog::select(
             'week_label',
             'week_start_date',
-            'distance_covered',
-            'service_alert'
+            'start_mileage',
+            'end_mileage',
+            'service_alert',
+            DB::raw('(end_mileage - start_mileage) as distance_covered')
         )
         ->where('vehicle_id', $vehicle->id)
         ->where('driver_id', $driver->id)
