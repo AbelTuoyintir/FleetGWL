@@ -325,9 +325,19 @@
                                 <div class="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-400">
                                     <i class="fas fa-user-tie"></i>
                                 </div>
-                                <div class="flex-1">
-                                    <p class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Assigned Driver</p>
-                                    <p id="cardDriver" class="text-sm font-bold text-gray-900 leading-none">---</p>
+                                <div class="flex-1 flex justify-between items-center">
+                                    <div>
+                                        <p class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Assigned Driver</p>
+                                        <p id="cardDriver" class="text-sm font-bold text-gray-900 leading-none">---</p>
+                                    </div>
+                                    <div id="driverCallActions" class="flex gap-1.5 hidden">
+                                        <button type="button" id="cardCallAudioBtn" class="w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition focus:outline-none" title="Call Driver (Audio)" aria-label="Call Driver (Audio)">
+                                            <i class="fas fa-phone-alt text-[10px]"></i>
+                                        </button>
+                                        <button type="button" id="cardCallVideoBtn" class="w-7 h-7 rounded-full bg-green-100 text-green-600 flex items-center justify-center hover:bg-green-600 hover:text-white transition focus:outline-none" title="Call Driver (Video)" aria-label="Call Driver (Video)">
+                                            <i class="fas fa-video text-[10px]"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="flex items-center gap-3">
@@ -877,6 +887,20 @@
         document.getElementById('cardBattery').innerText = `${Number(v.battery).toFixed(1)}V`;
 
         document.getElementById('cardDriver').innerText = v.assigned_driver ? v.assigned_driver.name : 'Unassigned';
+
+        const callActions = document.getElementById('driverCallActions');
+        if (v.assigned_driver && v.assigned_driver.user_id) {
+            callActions.classList.remove('hidden');
+            document.getElementById('cardCallAudioBtn').onclick = () => {
+                if (typeof window.startCall === 'function') window.startCall(v.assigned_driver.user_id, 'audio');
+            };
+            document.getElementById('cardCallVideoBtn').onclick = () => {
+                if (typeof window.startCall === 'function') window.startCall(v.assigned_driver.user_id, 'video');
+            };
+        } else {
+            callActions.classList.add('hidden');
+        }
+
         document.getElementById('cardLastSeen').innerText = `${getTimeAgo(v.last_seen_at)} • ETA: ${v.eta}m`;
         document.getElementById('detailsLink').href = `/vehicles/${v.id}`;
 

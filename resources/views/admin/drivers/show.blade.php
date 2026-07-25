@@ -22,6 +22,14 @@
                 <p class="text-gray-500 text-sm mt-1">{{ $driver->user->first_name ?? '' }} {{ $driver->user->last_name ?? '' }}</p>
             </div>
             <div class="flex gap-3">
+                @if($driver->user_id)
+                    <button type="button" onclick="if (typeof window.startCall === 'function') window.startCall({{ $driver->user_id }}, 'audio')" class="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm hover:bg-blue-100 transition focus:outline-none" title="Call Driver (Audio)" aria-label="Call Driver (Audio)">
+                        <i class="fas fa-phone-alt mr-1"></i> Audio Call
+                    </button>
+                    <button type="button" onclick="if (typeof window.startCall === 'function') window.startCall({{ $driver->user_id }}, 'video')" class="px-4 py-2 bg-green-50 text-green-700 rounded-lg text-sm hover:bg-green-100 transition focus:outline-none" title="Call Driver (Video)" aria-label="Call Driver (Video)">
+                        <i class="fas fa-video mr-1"></i> Video Call
+                    </button>
+                @endif
                 <a href="{{ route('drivers.edit', $driver) }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition">
                     <i class="fas fa-edit mr-1"></i> Edit Driver
                 </a>
