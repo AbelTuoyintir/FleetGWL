@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('vehicles', function (Blueprint $table) {
-            $table->decimal('speed', 5, 2)->nullable()->after('last_seen_at');
-            $table->integer('heading')->nullable()->after('speed');
+            $table->decimal('speed', 6, 2)->nullable()->after('last_seen_at')->comment('Current GPS speed in km/h');
+            $table->integer('heading')->nullable()->after('speed')->comment('Current GPS heading in degrees (0-360)');
         });
     }
 

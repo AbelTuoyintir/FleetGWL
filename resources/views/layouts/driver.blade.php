@@ -556,5 +556,155 @@
         })();
     });
 </script>
+
+<!-- ============================================================ -->
+<!-- DRIVER GPS REAL-TIME LOCATION TRACKING                        -->
+<!-- ============================================================ -->
+<script>
+(function() {
+    'use strict';
+
+    // ── Configuration ───────────────────────────────────────────
+    const UPDATE_INTERVAL_MS  = 10000;  // Send GPS every 10 seconds
+    const WATCH_OPTIONS       = {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 15000,
+    };
+
+    let watchId         = null;
+    let lastPosition    = null;
+    let sendInterval    = null;
+    let failedAttempts  = 0;
+    const MAX_FAILURES  = 5;
+
+    // ── Initialise tracking ─────────────────────────────────────
+    function initTracking() {
+        if (!navigator.geolocation) {
+            console.warn('[GPS] Geolocation API not available in this browser.');
+            return;
+        }
+
+        console.log('[GPS] Starting live location tracking...');
+
+        // Step 1: Request permission & start watching position
+        watchId = navigator.geolocation.watchPosition(
+            onPositionSuccess,
+            onPositionError,
+            WATCH_OPTIONS
+        );
+
+        // Step 2: Set up periodic send (every 10 seconds)
+        sendInterval = setInterval(sendPositionToServer, UPDATE_INTERVAL_MS);
+
+        // Step 3: Also send immediately when the page loads
+        setTimeout(sendPositionToServer, 1000);
+    }
+
+    // ── Success callback from watchPosition ─────────────────────
+    function onPositionSuccess(position) {
+        const coords = position.coords;
+
+        console.log('[GPS] Position acquired:', {
+            lat: coords.latitude.toFixed(6),
+            lng: coords.longitude.toFixed(6),
+            speed: coords.speed,
+            heading: coords.heading,
+            accuracy: coords.accuracy,
+        });
+
+        lastPosition = {
+            latitude:  coords.latitude,
+            longitude: coords.longitude,
+            speed:     coords.speed != null && coords.speed >= 0 ? coords.speed : 0,
+            heading:   coords.heading != null ? coords.heading : 0,
+            accuracy:  coords.accuracy != null ? coords.accuracy : 0,
+        };
+
+        failedAttempts = 0; // Reset failure counter on success
+    }
+
+    // ── Error callback from watchPosition ───────────────────────
+    function onPositionError(error) {
+        console.warn('[GPS] Position error:', error.message || error);
+
+        if (error.code === error.PERMISSION_DENIED) {
+            console.error('[GPS] ❌ PERMISSION DENIED. The user blocked location access.');
+            stopTracking();
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+            console.warn('[GPS] Position unavailable (GPS signal lost). Retrying...');
+        } else if (error.code === error.TIMEOUT) {
+            console.warn('[GPS] GPS timeout. Retrying...');
+        }
+    }
+
+    // ── Send latest position to Laravel server ──────────────────
+    function sendPositionToServer() {
+        if (!lastPosition) {
+            console.log('[GPS] No position yet, skipping send.');
+            return;
+        }
+
+        $.ajax({
+            url: '/driver/location',
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+            },
+            data: {
+                latitude:  lastPosition.latitude,
+                longitude: lastPosition.longitude,
+                speed:     lastPosition.speed,
+                heading:   lastPosition.heading,
+                accuracy:  lastPosition.accuracy,
+            },
+            success: function(response) {
+                if (response.success) {
+                    console.log('[GPS] ✅ Location sent to server:', response.data);
+                } else {
+                    console.warn('[GPS] Server returned error:', response.message);
+                }
+            },
+            error: function(xhr) {
+                failedAttempts++;
+                console.error('[GPS] ❌ Failed to send location (attempt ' + failedAttempts + '/' + MAX_FAILURES + '):', xhr.status, xhr.statusText);
+
+                if (failedAttempts >= MAX_FAILURES) {
+                    console.error('[GPS] Too many failures. Stopping GPS tracking.');
+                    stopTracking();
+                }
+            },
+        });
+    }
+
+    // ── Stop tracking (cleanup) ─────────────────────────────────
+    function stopTracking() {
+        console.log('[GPS] Stopping location tracking...');
+
+        if (watchId !== null) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+        }
+
+        if (sendInterval !== null) {
+            clearInterval(sendInterval);
+            sendInterval = null;
+        }
+
+        lastPosition = null;
+    }
+
+    // ── Start tracking when DOM is ready ────────────────────────
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initTracking);
+    } else {
+        initTracking();
+    }
+})();
+</script>
+<!-- ============================================================ -->
+<!-- END GPS TRACKING                                              -->
+<!-- ============================================================ -->
+
 </body>
 </html>
