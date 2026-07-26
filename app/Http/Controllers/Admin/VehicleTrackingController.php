@@ -38,6 +38,8 @@ class VehicleTrackingController extends Controller
                 'model',
                 'current_latitude',
                 'current_longitude',
+                'speed',
+                'heading',
                 'last_seen_at',
                 'status',
                 'vehicle_type',
@@ -49,37 +51,45 @@ class VehicleTrackingController extends Controller
 
         // Add transient properties for the live dashboard
         $vehicles->transform(function ($vehicle) {
-            // If no location exists, provide a default for demo
-            if (is_null($vehicle->current_latitude) || is_null($vehicle->current_longitude)) {
-                $vehicle->current_latitude = 5.6037;
-                $vehicle->current_longitude = -0.1870;
-            }
+            $hasRecentGps = !is_null($vehicle->last_seen_at) && Carbon::parse($vehicle->last_seen_at)->gt(now()->subMinutes(5));
 
-            // SIMULATED DRIFT: For the "live feel" without saving to DB on every GET
-            // Consistent heading-based drift based on vehicle ID and current time bucket (every 10s)
-            // Use hash-based deterministic simulation to avoid global mt_srand side effects
-            $timeBucket = floor(time() / 10);
-            $seedHash = crc32($vehicle->id . '_' . $timeBucket);
+            if ($hasRecentGps) {
+                // Use real coordinates, speed, and heading from the DB
+                $vehicle->speed = $vehicle->speed ?? 0;
+                $vehicle->heading = $vehicle->heading ?? 0;
+            } else {
+                // If no location exists, provide a default for demo
+                if (is_null($vehicle->current_latitude) || is_null($vehicle->current_longitude)) {
+                    $vehicle->current_latitude = 5.6037;
+                    $vehicle->current_longitude = -0.1870;
+                }
 
-            // Speed ranges based on vehicle type
-            $maxSpeed = match(strtolower($vehicle->vehicle_type)) {
-                'truck' => 50,
-                'bus' => 60,
-                'suv' => 85,
-                'pickup' => 80,
-                default => 70
-            };
+                // SIMULATED DRIFT: For the "live feel" without saving to DB on every GET
+                // Consistent heading-based drift based on vehicle ID and current time bucket (every 10s)
+                // Use hash-based deterministic simulation to avoid global mt_srand side effects
+                $timeBucket = floor(time() / 10);
+                $seedHash = crc32($vehicle->id . '_' . $timeBucket);
 
-            $vehicle->speed = $seedHash % ($maxSpeed + 1);
-            $vehicle->heading = ($seedHash >> 8) % 361; // 0-360
+                // Speed ranges based on vehicle type
+                $maxSpeed = match(strtolower($vehicle->vehicle_type)) {
+                    'truck' => 50,
+                    'bus' => 60,
+                    'suv' => 85,
+                    'pickup' => 80,
+                    default => 70
+                };
 
-            if ($vehicle->speed > 0) {
-                $angleRad = deg2rad($vehicle->heading);
-                // Drift by ~5-25 meters per 10s depending on speed
-                $driftDist = (($seedHash >> 16) % 11 + 5) * ($vehicle->speed / 30);
-                $dist = $driftDist / 111111;
-                $vehicle->current_latitude += cos($angleRad) * $dist;
-                $vehicle->current_longitude += sin($angleRad) * $dist;
+                $vehicle->speed = $seedHash % ($maxSpeed + 1);
+                $vehicle->heading = ($seedHash >> 8) % 361; // 0-360
+
+                if ($vehicle->speed > 0) {
+                    $angleRad = deg2rad($vehicle->heading);
+                    // Drift by ~5-25 meters per 10s depending on speed
+                    $driftDist = (($seedHash >> 16) % 11 + 5) * ($vehicle->speed / 30);
+                    $dist = $driftDist / 111111;
+                    $vehicle->current_latitude += cos($angleRad) * $dist;
+                    $vehicle->current_longitude += sin($angleRad) * $dist;
+                }
             }
 
             // Dynamic properties for UI

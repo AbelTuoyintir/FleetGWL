@@ -99,6 +99,11 @@ return [
                 'capacity' => null,
                 'enable_client_messages' => false,
                 'enable_statistics' => true,
+                'ping_interval' => env('REVERB_APP_PING_INTERVAL', 60),
+                'ping_timeout' => env('REVERB_APP_PING_TIMEOUT', 30),
+                'activity_timeout' => env('REVERB_APP_ACTIVITY_TIMEOUT', 30),
+                'allowed_origins' => ['*'],
+                'max_message_size' => env('REVERB_APP_MAX_MESSAGE_SIZE', 10000),
             ],
         ],
 

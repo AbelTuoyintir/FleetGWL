@@ -211,13 +211,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 // === STEP 2: Verify Subscription ===
                 // If you never see "Subscribed!" in console, the subscription is failing.
                 .subscribed(() => {
-                    console.log("✅ Subscribed to private-${channelName} successfully!");
+                    console.log(`✅ Subscribed to private-${channelName} successfully!`);
                 })
                 // === STEP 3: Catch Auth Errors ===
                 // If you see 403 Forbidden or "Channel authorization failed" in console,
                 // the routes/channels.php authorization is rejecting the subscription.
                 .error((error) => {
-                    console.error("❌ Channel subscription error for private-${channelName}:", error);
+                    console.error(`❌ Channel subscription error for private-${channelName}:`, error);
                     console.error("This usually means:");
                     console.error("  1. The user is not authenticated (no valid session)");
                     console.error("  2. routes/channels.php authorization returned false");

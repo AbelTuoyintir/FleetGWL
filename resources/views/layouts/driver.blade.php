@@ -462,6 +462,98 @@
                 window.location.href = target;
             });
         });
+
+        // GPS Real-Time Driver Tracking
+        (function() {
+            let latestPosition = null;
+            let failedAttempts = 0;
+            let intervalId = null;
+            let watchId = null;
+
+            if ("geolocation" in navigator) {
+                console.log("GPS Tracking: Geolocation is supported by this browser.");
+
+                watchId = navigator.geolocation.watchPosition(
+                    (position) => {
+                        latestPosition = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            speed: position.coords.speed,
+                            heading: position.coords.heading
+                        };
+                        console.log("GPS Tracking: Location watched successfully:", latestPosition);
+                    },
+                    (error) => {
+                        console.error("GPS Tracking Error:", error);
+                        switch (error.code) {
+                            case error.PERMISSION_DENIED:
+                                console.error("GPS Tracking: User denied the request for Geolocation.");
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                console.error("GPS Tracking: Location information is unavailable.");
+                                break;
+                            case error.TIMEOUT:
+                                console.error("GPS Tracking: The request to get user location timed out.");
+                                break;
+                            default:
+                                console.error("GPS Tracking: An unknown error occurred.");
+                                break;
+                        }
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 0
+                    }
+                );
+
+                // Start sending GPS data every 10 seconds
+                intervalId = setInterval(() => {
+                    if (!latestPosition) {
+                        console.log("GPS Tracking: No GPS position acquired yet.");
+                        return;
+                    }
+
+                    if (failedAttempts >= 5) {
+                        console.warn("GPS Tracking: Stopped tracking due to 5 consecutive communication failures.");
+                        clearInterval(intervalId);
+                        if (watchId !== null) {
+                            navigator.geolocation.clearWatch(watchId);
+                        }
+                        return;
+                    }
+
+                    $.ajax({
+                        url: '/driver/location',
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                        },
+                        data: {
+                            latitude: latestPosition.latitude,
+                            longitude: latestPosition.longitude,
+                            speed: latestPosition.speed,
+                            heading: latestPosition.heading
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                console.log("GPS Tracking: Location updated successfully on server.");
+                                failedAttempts = 0; // reset failures on success
+                            } else {
+                                console.error("GPS Tracking: Server returned error status:", response);
+                                failedAttempts++;
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error("GPS Tracking: Ajax post failure:", error);
+                            failedAttempts++;
+                        }
+                    });
+                }, 10000);
+            } else {
+                console.error("GPS Tracking: Geolocation is not supported by this browser.");
+            }
+        })();
     });
 </script>
 </body>

@@ -105,4 +105,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/calls/history', [CallHistoryController::class, 'index'])->name('calls.history');
     Route::get('/calls/missed-history', [CallHistoryController::class, 'missed'])->name('calls.missed-history');
     Route::get('/calls/contacts', [CallHistoryController::class, 'contacts'])->name('calls.contacts');
+
+    // Driver GPS Location Tracking
+    Route::post('/driver/location', [\App\Http\Controllers\DriverTrackingController::class, 'updateLocation'])->name('driver.location.update');
 });
