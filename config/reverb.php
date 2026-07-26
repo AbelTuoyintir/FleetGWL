@@ -34,6 +34,8 @@ return [
             'hostname' => env('REVERB_SERVER_HOSTNAME', 'localhost'),
             'options' => [
                 'tls' => [],
+                'ping_interval' => env('REVERB_SERVER_PING_INTERVAL', 25),
+                'ping_timeout' => env('REVERB_SERVER_PING_TIMEOUT', 10),
             ],
             'max_request_size' => env('REVERB_MAX_REQUEST_SIZE', 10000),
             'scaling' => [

@@ -37,6 +37,8 @@ class Vehicle extends Model
         'current_latitude',
         'current_longitude',
         'last_seen_at',
+        'speed',
+        'heading',
         'photo',
         'purchase_price',
         'purchase_date',
