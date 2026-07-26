@@ -15,7 +15,14 @@ return [
     |
     */
 
-    'default' => env('BROADCAST_CONNECTION', 'null'),
+    /*
+    |--------------------------------------------------------------------------
+    | IMPORTANT: The default broadcaster MUST be 'reverb' for WebRTC calls to work.
+    | If this is set to 'null' or 'log', signals will NEVER reach the receiver.
+    | Ensure your .env file has: BROADCAST_CONNECTION=reverb
+    |--------------------------------------------------------------------------
+    */
+    'default' => env('BROADCAST_CONNECTION', 'reverb'),
 
     /*
     |--------------------------------------------------------------------------

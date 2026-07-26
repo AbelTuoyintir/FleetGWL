@@ -189,18 +189,40 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize Laravel Echo Connection
     try {
         const echoConfig = {
-            key: "{{ env('REVERB_APP_KEY') }}",
-            wsHost: "{{ env('REVERB_HOST', '127.0.0.1') }}",
-            wsPort: "{{ env('REVERB_PORT', '8080') }}",
-            forceTLS: "{{ env('REVERB_SCHEME', 'http') }}" === 'https'
+            key: "{{ config('reverb.apps.apps.0.key') }}",
+            wsHost: "{{ config('reverb.servers.reverb.hostname', '127.0.0.1') }}",
+            wsPort: "{{ config('reverb.servers.reverb.port', '8080') }}",
+            forceTLS: "{{ config('broadcasting.connections.reverb.options.scheme', 'http') }}" === 'https'
         };
         const echoInstance = window.initializeEcho ? window.initializeEcho(echoConfig) : null;
 
         if (echoInstance && currentUserId) {
             const channelName = `user.${currentUserId}`;
+
+            // === STEP 1: Check Echo Connection State ===
+            // Open DevTools Console and run:
+            //   window.Echo.connector.pusher.connection.state
+            // It should return "connected". If "connecting" or "disconnected",
+            // the receiver will never get events.
+            console.log("Echo connection state:", echoInstance.connector.pusher.connection.state);
             console.log(`Subscribing to private-${channelName} channel...`);
 
             echoInstance.private(channelName)
+                // === STEP 2: Verify Subscription ===
+                // If you never see "Subscribed!" in console, the subscription is failing.
+                .subscribed(() => {
+                    console.log("✅ Subscribed to private-${channelName} successfully!");
+                })
+                // === STEP 3: Catch Auth Errors ===
+                // If you see 403 Forbidden or "Channel authorization failed" in console,
+                // the routes/channels.php authorization is rejecting the subscription.
+                .error((error) => {
+                    console.error("❌ Channel subscription error for private-${channelName}:", error);
+                    console.error("This usually means:");
+                    console.error("  1. The user is not authenticated (no valid session)");
+                    console.error("  2. routes/channels.php authorization returned false");
+                    console.error("  3. The broadcasting.auth endpoint is misconfigured");
+                })
                 .listen('.IncomingCall', (e) => {
                     console.log("Echo: IncomingCall received:", e);
                     handleIncomingCallEvent(e);
@@ -233,6 +255,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log("Echo: UserBusy received:", e);
                     handleUserBusyEvent(e);
                 });
+        } else {
+            console.warn("Echo not initialized or currentUserId is null. Echo:", !!echoInstance, "UserID:", currentUserId);
         }
     } catch (err) {
         console.error("Failed to initialize Laravel Echo:", err);
@@ -533,34 +557,61 @@ document.addEventListener('DOMContentLoaded', () => {
         // Prepare local media before creating call for smoother setup
         await getLocalStream(type);
 
-        $.post('/calls/start', {
-            receiver_id: receiverId,
-            call_type: type
-        }, (response) => {
-            if (response.success) {
-                currentCall = response.call;
-                callUserName.innerText = response.call.receiver ? response.call.receiver.name : 'Recipient';
-                callUserRole.innerText = 'Driver';
-                callStatusLabel.innerText = 'Ringing...';
+        $.ajax({
+            url: '/calls/start',
+            method: 'POST',
+            data: {
+                receiver_id: receiverId,
+                call_type: type
+            },
+            success: function(response) {
+                if (response.success) {
+                    currentCall = response.call;
+                    // Fetch the receiver name from the contacts list or set a fallback
+                    const contact = allContacts.find(c => c.id === receiverId);
+                    callUserName.innerText = contact ? contact.name : 'Recipient';
+                    callUserRole.innerText = contact ? contact.role : 'User';
+                    callStatusLabel.innerText = 'Ringing...';
 
-                // Setup outgoing missed call timeout (30 seconds)
-                if (callTimeout) clearTimeout(callTimeout);
-                callTimeout = setTimeout(() => {
-                    if (currentCall && currentCall.status === 'calling') {
-                        console.log("No answer, marking call as missed.");
-                        $.post('/calls/missed', { call_id: currentCall.id }, () => {
-                            closeCallOverlay();
-                            Swal.fire('No Answer', 'The subscriber did not answer.', 'info');
-                        });
-                    }
-                }, 30000);
-            } else {
-                Swal.fire('Error', response.message || 'Failed to start call.', 'error');
+                    // Setup outgoing missed call timeout (30 seconds)
+                    if (callTimeout) clearTimeout(callTimeout);
+                    callTimeout = setTimeout(() => {
+                        if (currentCall && currentCall.status === 'calling') {
+                            console.log("No answer, marking call as missed.");
+                            $.post('/calls/missed', { call_id: currentCall.id }, () => {
+                                closeCallOverlay();
+                                Swal.fire('No Answer', 'The subscriber did not answer.', 'info');
+                            });
+                        }
+                    }, 30000);
+                } else {
+                    Swal.fire('Error', response.message || 'Failed to start call.', 'error');
+                    closeCallOverlay();
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("POST /calls/start failed:", {
+                    status: xhr.status,
+                    statusText: xhr.statusText,
+                    responseText: xhr.responseText,
+                    error: error
+                });
+                let errorMsg = 'Could not initiate calling stream.';
+                try {
+                    const json = JSON.parse(xhr.responseText);
+                    if (json.message) errorMsg = json.message;
+                    else if (json.error) errorMsg = json.error;
+                } catch(e) {
+                    if (xhr.responseText) errorMsg = xhr.responseText.substring(0, 200);
+                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Call Failed',
+                    text: errorMsg,
+                    footer: 'Check console (F12) for full error details'
+                });
                 closeCallOverlay();
             }
-        }).fail(() => {
-            Swal.fire('Error', 'Could not initiate calling stream.', 'error');
-            closeCallOverlay();
         });
     }
 
