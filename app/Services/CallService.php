@@ -15,6 +15,21 @@ class CallService
     /**
      * Create a new call signaling record and broadcast IncomingCall.
      */
+    /**
+     * Helper to safely execute a real-time broadcast and handle connection errors gracefully.
+     */
+    protected function safeBroadcast($event)
+    {
+        try {
+            broadcast($event);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('[Broadcasting] Failed to dispatch real-time broadcast. Ensure Reverb/WebSocket server is running.', [
+                'event' => get_class($event),
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
     public function createCall($callerId, $receiverId, $callType)
     {
         // If the receiver is already in an active call, we can check that, but for now we just create the call
@@ -29,7 +44,7 @@ class CallService
         $call->load('caller');
 
         // Broadcast IncomingCall to receiver
-        broadcast(new IncomingCall($call));
+        $this->safeBroadcast(new IncomingCall($call));
 
         return $call;
     }
@@ -45,7 +60,7 @@ class CallService
             'started_at' => Carbon::now(),
         ]);
 
-        broadcast(new CallAccepted($call));
+        $this->safeBroadcast(new CallAccepted($call));
 
         return $call;
     }
@@ -61,7 +76,7 @@ class CallService
             'ended_at' => Carbon::now(),
         ]);
 
-        broadcast(new CallRejected($call));
+        $this->safeBroadcast(new CallRejected($call));
 
         return $call;
     }
@@ -77,7 +92,7 @@ class CallService
             'ended_at' => Carbon::now(),
         ]);
 
-        broadcast(new UserBusy($call));
+        $this->safeBroadcast(new UserBusy($call));
 
         return $call;
     }
@@ -103,8 +118,8 @@ class CallService
         ]);
 
         // Broadcast CallEnded to both caller and receiver
-        broadcast(new CallEnded($call, $call->caller_id));
-        broadcast(new CallEnded($call, $call->receiver_id));
+        $this->safeBroadcast(new CallEnded($call, $call->caller_id));
+        $this->safeBroadcast(new CallEnded($call, $call->receiver_id));
 
         return $call;
     }
@@ -120,8 +135,8 @@ class CallService
             'ended_at' => Carbon::now(),
         ]);
 
-        broadcast(new CallEnded($call, $call->caller_id));
-        broadcast(new CallEnded($call, $call->receiver_id));
+        $this->safeBroadcast(new CallEnded($call, $call->caller_id));
+        $this->safeBroadcast(new CallEnded($call, $call->receiver_id));
 
         return $call;
     }
