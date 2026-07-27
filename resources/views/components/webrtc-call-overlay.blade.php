@@ -122,7 +122,7 @@
 <audio id="ringtoneAudio" loop src="https://assets.mixkit.co/active_storage/sfx/1359/1359-84.wav" class="hidden" preload="auto"></audio>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', () => {
     // Global AJAX Setup for CSRF Token
     $.ajaxSetup({
         headers: {
