@@ -81,7 +81,6 @@ use App\Http\Controllers\AiSupportController;
 use App\Http\Controllers\CallController;
 use App\Http\Controllers\SignalController;
 use App\Http\Controllers\CallHistoryController;
-use App\Http\Controllers\DriverTrackingController;
 
 Route::prefix('ai-support')->name('ai-support.')->group(function () {
     Route::post('/chat', [AiSupportController::class, 'sendMessage'])->name('chat');
@@ -89,9 +88,6 @@ Route::prefix('ai-support')->name('ai-support.')->group(function () {
 });
 
 Route::middleware(['auth'])->group(function () {
-    // Driver GPS Location Tracking
-    Route::post('/driver/location', [DriverTrackingController::class, 'updateLocation'])->name('driver.location.update');
-
     // Calls
     Route::post('/calls/start', [CallController::class, 'start'])->name('calls.start');
     Route::post('/calls/accept', [CallController::class, 'accept'])->name('calls.accept');
@@ -109,4 +105,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/calls/history', [CallHistoryController::class, 'index'])->name('calls.history');
     Route::get('/calls/missed-history', [CallHistoryController::class, 'missed'])->name('calls.missed-history');
     Route::get('/calls/contacts', [CallHistoryController::class, 'contacts'])->name('calls.contacts');
+
+    // Driver GPS Location Tracking
+    Route::post('/driver/location', [\App\Http\Controllers\DriverTrackingController::class, 'updateLocation'])->name('driver.location.update');
 });
