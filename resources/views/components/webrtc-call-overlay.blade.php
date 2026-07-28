@@ -118,8 +118,8 @@
     </div>
 </div>
 
-<!-- Audio element for calling sounds -->
-<audio id="ringtoneAudio" loop src="https://assets.mixkit.co/active_storage/sfx/1359/1359-84.wav" class="hidden" preload="auto"></audio>
+<!-- Audio element for calling sounds (replaced broken external URL with programmatic tone) -->
+<audio id="ringtoneAudio" loop class="hidden" preload="auto"></audio>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -891,13 +891,91 @@
     });
 
     // Ringtone Play/Stop
+    let ringtoneUnlocked = false;
+    let ringtoneInterval = null;
+
+    // Unlock audio context on first user interaction (click anywhere)
+    function unlockRingtone() {
+        if (ringtoneUnlocked) return;
+        ringtoneUnlocked = true;
+        // Fallback: try using AudioContext to unlock
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            ctx.resume();
+        } catch(e) {}
+        document.removeEventListener('click', unlockRingtone);
+        document.removeEventListener('touchstart', unlockRingtone);
+    }
+    document.addEventListener('click', unlockRingtone);
+    document.addEventListener('touchstart', unlockRingtone);
+
+    // Generate ringtone tone using Web Audio API (no external source needed)
+    function startRingtoneTone() {
+        stopRingtoneTone();
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const gainNode = audioCtx.createGain();
+            gainNode.gain.value = 0.3;
+            gainNode.connect(audioCtx.destination);
+
+            let isOn = true;
+            ringtoneInterval = setInterval(() => {
+                if (isOn) {
+                    const osc = audioCtx.createOscillator();
+                    osc.type = 'sine';
+                    osc.frequency.value = 440;
+                    osc.connect(gainNode);
+                    osc.start();
+                    // Store oscillator so we can stop it
+                    if (!window._ringtoneOscs) window._ringtoneOscs = [];
+                    window._ringtoneOscs.push(osc);
+                    setTimeout(() => {
+                        try { osc.stop(); } catch(e) {}
+                        // Remove from list
+                        if (window._ringtoneOscs) {
+                            const idx = window._ringtoneOscs.indexOf(osc);
+                            if (idx > -1) window._ringtoneOscs.splice(idx, 1);
+                        }
+                    }, 500);
+                }
+                isOn = !isOn;
+            }, 600);
+        } catch(e) {
+            console.log('Web Audio ringtone not available:', e);
+        }
+    }
+
+    function stopRingtoneTone() {
+        if (ringtoneInterval) {
+            clearInterval(ringtoneInterval);
+            ringtoneInterval = null;
+        }
+        if (window._ringtoneOscs) {
+            window._ringtoneOscs.forEach(osc => {
+                try { osc.stop(); } catch(e) {}
+            });
+            window._ringtoneOscs = [];
+        }
+    }
+
     function playRingtone() {
+        // First try the <audio> element (if a valid src was set)
         ringtoneAudio.currentTime = 0;
-        ringtoneAudio.play().catch(() => console.log('Autoplay audio interaction blocked by browser security.'));
+        const playPromise = ringtoneAudio.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(() => {
+                // If audio element fails (no supported source), use Web Audio API
+                startRingtoneTone();
+            });
+        } else {
+            startRingtoneTone();
+        }
     }
 
     function stopRingtone() {
         ringtoneAudio.pause();
+        ringtoneAudio.currentTime = 0;
+        stopRingtoneTone();
     }
 
     // Call Duration Tracking Timer
