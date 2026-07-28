@@ -1,6 +1,14 @@
 <?php
 
+use App\Http\Controllers\DriverNotificationController;
 use App\Http\Controllers\FuelMileageController;
+
+// Driver Notification Routes
+Route::middleware(['auth', 'role:driver'])->prefix('driver')->name('driver.notifications.')->group(function () {
+    Route::get('/notifications', [DriverNotificationController::class, 'index'])->name('index');
+    Route::post('/notifications/{id}/read', [DriverNotificationController::class, 'markAsRead'])->name('read');
+    Route::post('/notifications/mark-all-read', [DriverNotificationController::class, 'markAllAsRead'])->name('mark-all-read');
+});
 
 // Driver Fuel & Mileage Routes
 Route::middleware(['auth', 'role:driver'])->prefix('driver/fuel-mileage')->name('driver.fuel-mileage.')->group(function () {
