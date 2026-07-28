@@ -9,11 +9,11 @@ window.Echo = new Echo({
 
     key: import.meta.env.VITE_REVERB_APP_KEY,
 
-    wsHost: import.meta.env.VITE_REVERB_HOST,
+    wsHost: window.location.hostname,
 
-    wsPort: import.meta.env.VITE_REVERB_PORT,
+    wsPort: import.meta.env.VITE_REVERB_PORT || 8080,
 
-    wssPort: import.meta.env.VITE_REVERB_PORT,
+    wssPort: import.meta.env.VITE_REVERB_PORT || 8080,
 
     forceTLS: false,
 

@@ -269,6 +269,33 @@
     }
     window.toggleSubMenu = window.toggleSubMenu || toggleSubMenu;
 
+    // Fallback: Initialize Echo directly if Vite didn't load app.js
+    (function() {
+        if (typeof window.Echo === 'undefined') {
+            console.log('Echo not found via Vite assets. Initializing inline fallback...');
+            // Load Pusher from CDN if not already loaded
+            if (typeof window.Pusher === 'undefined') {
+                var script = document.createElement('script');
+                script.src = 'https://js.pusher.com/8.6.0/pusher.min.js';
+                script.onload = function() {
+                    window.Pusher = Pusher;
+                    initEchoFallback();
+                };
+                document.head.appendChild(script);
+            } else {
+                initEchoFallback();
+            }
+
+            function initEchoFallback() {
+                // Echo is typically loaded from Vite, so this is a fallback
+                // If laravel-echo is not globally available, define a minimal stub
+                if (typeof window.Echo === 'undefined' && typeof Echo !== 'undefined') {
+                    window.Echo = Echo;
+                }
+            }
+        }
+    })();
+
     document.addEventListener('DOMContentLoaded', () => {
         const sidebar = document.getElementById('fleetSidebar');
         const overlay = document.getElementById('mobileOverlay');

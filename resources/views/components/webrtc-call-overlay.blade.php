@@ -186,42 +186,79 @@
         ]
     };
 
-    // Initialize Laravel Echo Connection
-    try {
-        const echoConfig = {
-            key: "{{ config('reverb.apps.apps.0.key') }}",
-            wsHost: "{{ config('reverb.servers.reverb.hostname', '127.0.0.1') }}",
-            wsPort: "{{ config('reverb.servers.reverb.port', '8080') }}",
-            forceTLS: "{{ config('broadcasting.connections.reverb.options.scheme', 'http') }}" === 'https'
-        };
-        const echoInstance = window.initializeEcho ? window.initializeEcho(echoConfig) : null;
+    // Initialize Laravel Echo Connection with CDN fallbacks
+    async function initializeEcho() {
+        if (window.Echo) {
+            return window.Echo;
+        }
 
+        console.log("window.Echo not found. Attempting inline fallback initialization...");
+        
+        // Load Pusher CDN if not available
+        if (typeof window.Pusher === 'undefined') {
+            await new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://js.pusher.com/8.6.0/pusher.min.js';
+                script.onload = () => {
+                    window.Pusher = Pusher;
+                    resolve();
+                };
+                script.onerror = () => reject(new Error('Failed to load Pusher CDN'));
+                document.head.appendChild(script);
+            });
+        }
+
+        // Load Laravel Echo CDN if not available
+        if (typeof window.Echo === 'undefined') {
+            await new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/laravel-echo@1.16.1/dist/echo.iife.js';
+                script.onload = () => {
+                    resolve();
+                };
+                script.onerror = () => reject(new Error('Failed to load Laravel Echo CDN'));
+                document.head.appendChild(script);
+            });
+        }
+
+        if (typeof Echo !== 'undefined') {
+            window.Echo = new Echo({
+                broadcaster: 'reverb',
+                key: '{{ env('VITE_REVERB_APP_KEY', env('REVERB_APP_KEY')) }}',
+                wsHost: window.location.hostname,
+                wsPort: {{ env('VITE_REVERB_PORT', env('REVERB_PORT', 8080)) }},
+                wssPort: {{ env('VITE_REVERB_PORT', env('REVERB_PORT', 8080)) }},
+                forceTLS: false,
+                enabledTransports: ['ws'],
+                auth: {
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    }
+                }
+            });
+            console.log("✅ Echo fallback initialized successfully on wsHost:", window.location.hostname);
+            return window.Echo;
+        }
+        
+        throw new Error('Echo class not found after CDN load');
+    }
+
+    // Initialize and Subscribe
+    initializeEcho().then((echoInstance) => {
         if (echoInstance && currentUserId) {
             const channelName = `user.${currentUserId}`;
 
-            // === STEP 1: Check Echo Connection State ===
-            // Open DevTools Console and run:
-            //   window.Echo.connector.pusher.connection.state
-            // It should return "connected". If "connecting" or "disconnected",
-            // the receiver will never get events.
             console.log("Echo connection state:", echoInstance.connector.pusher.connection.state);
             console.log(`Subscribing to private-${channelName} channel...`);
 
             echoInstance.private(channelName)
                 // === STEP 2: Verify Subscription ===
-                // If you never see "Subscribed!" in console, the subscription is failing.
                 .subscribed(() => {
                     console.log(`✅ Subscribed to private-${channelName} successfully!`);
                 })
                 // === STEP 3: Catch Auth Errors ===
-                // If you see 403 Forbidden or "Channel authorization failed" in console,
-                // the routes/channels.php authorization is rejecting the subscription.
                 .error((error) => {
                     console.error(`❌ Channel subscription error for private-${channelName}:`, error);
-                    console.error("This usually means:");
-                    console.error("  1. The user is not authenticated (no valid session)");
-                    console.error("  2. routes/channels.php authorization returned false");
-                    console.error("  3. The broadcasting.auth endpoint is misconfigured");
                 })
                 .listen('.IncomingCall', (e) => {
                     console.log("Echo: IncomingCall received:", e);
@@ -256,11 +293,11 @@
                     handleUserBusyEvent(e);
                 });
         } else {
-            console.warn("Echo not initialized or currentUserId is null. Echo:", !!echoInstance, "UserID:", currentUserId);
+            console.warn("Echo initialized, but currentUserId is null. UserID:", currentUserId);
         }
-    } catch (err) {
+    }).catch((err) => {
         console.error("Failed to initialize Laravel Echo:", err);
-    }
+    });
 
     // Directory Buttons and Filters
     callDirectoryBtn?.addEventListener('click', () => {
