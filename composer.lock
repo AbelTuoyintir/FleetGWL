@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "cec56bc0f132fddfa57ba8615e64627c",
+    "content-hash": "5f6435018d213c465eb57f38c9cb0094",
     "packages": [
         {
             "name": "barryvdh/laravel-dompdf",
@@ -5093,6 +5093,58 @@
                 }
             ],
             "time": "2024-06-11T12:45:25+00:00"
+        },
+        {
+            "name": "ripple/ripple-laravel",
+            "version": "v0.5.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/madisoheib/ripple-laravel.git",
+                "reference": "93d8e0c3261cbbb6db2d2d5375451b61af1d0f74"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/madisoheib/ripple-laravel/zipball/93d8e0c3261cbbb6db2d2d5375451b61af1d0f74",
+                "reference": "93d8e0c3261cbbb6db2d2d5375451b61af1d0f74",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/broadcasting": "^6.0|^7.0|^8.0|^9.0|^10.0|^11.0|^12.0|^13.0",
+                "illuminate/console": "^6.0|^7.0|^8.0|^9.0|^10.0|^11.0|^12.0|^13.0",
+                "illuminate/support": "^6.0|^7.0|^8.0|^9.0|^10.0|^11.0|^12.0|^13.0",
+                "php": ">=7.4",
+                "pusher/pusher-php-server": "^3.0|^4.0|^5.0|^6.0|^7.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Ripple\\Laravel\\RippleServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Ripple\\Laravel\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Laravel broadcasting driver + CLI for the ripple WebSocket server (Pusher-compatible).",
+            "keywords": [
+                "Broadcasting",
+                "WebSockets",
+                "laravel",
+                "pusher",
+                "realtime"
+            ],
+            "support": {
+                "issues": "https://github.com/madisoheib/ripple-laravel/issues",
+                "source": "https://github.com/madisoheib/ripple-laravel/tree/v0.5.0"
+            },
+            "time": "2026-07-12T19:49:11+00:00"
         },
         {
             "name": "sabberworm/php-css-parser",
