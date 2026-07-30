@@ -222,14 +222,20 @@
         }
 
         if (typeof Echo !== 'undefined') {
+            const isRipple = '{{ config('broadcasting.default') }}' === 'ripple';
+            const key = isRipple ? '{{ config('ripple.key') }}' : '{{ config('broadcasting.connections.reverb.key') }}';
+            const port = isRipple ? {{ config('ripple.port', 8080) }} : {{ config('broadcasting.connections.reverb.options.port', 8080) }};
+            const scheme = isRipple ? '{{ config('ripple.scheme', 'http') }}' : '{{ config('broadcasting.connections.reverb.options.scheme', 'http') }}';
+            const broadcaster = isRipple ? 'pusher' : 'reverb';
+
             window.Echo = new Echo({
-                broadcaster: 'reverb',
-                key: '{{ env('VITE_REVERB_APP_KEY', env('REVERB_APP_KEY')) }}',
+                broadcaster: broadcaster,
+                key: key,
                 wsHost: window.location.hostname,
-                wsPort: {{ env('VITE_REVERB_PORT', env('REVERB_PORT', 8080)) }},
-                wssPort: {{ env('VITE_REVERB_PORT', env('REVERB_PORT', 8080)) }},
-                forceTLS: false,
-                enabledTransports: ['ws'],
+                wsPort: port,
+                wssPort: port,
+                forceTLS: scheme === 'https',
+                enabledTransports: ['ws', 'wss'],
                 auth: {
                     headers: {
                         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

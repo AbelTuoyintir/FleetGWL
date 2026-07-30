@@ -11,7 +11,8 @@
         "laravel/framework": "^13.0",
         "laravel/reverb": "*",
         "laravel/tinker": "^3.0",
-        "maatwebsite/excel": "^3.1"
+        "maatwebsite/excel": "^3.1",
+        "ripple/ripple-laravel": "^0.5.0"
     },
     "require-dev": {
         "symfony/var-dumper": "7.4.8",
