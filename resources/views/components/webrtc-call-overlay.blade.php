@@ -222,20 +222,20 @@
         }
 
         if (typeof Echo !== 'undefined') {
-            const reverbHost = @json(env('REVERB_SERVER_HOSTNAME', config('reverb.servers.reverb.hostname', 'localhost')));
-            const reverbPort = @json(env('REVERB_SERVER_PORT', config('reverb.servers.reverb.port', 8080)));
-            const isSecurePage = window.location.protocol === 'https:';
+            const isRipple = '{{ config('broadcasting.default') }}' === 'ripple';
+            const key = isRipple ? '{{ config('ripple.key') }}' : '{{ config('broadcasting.connections.reverb.key') }}';
+            const port = isRipple ? {{ config('ripple.port', 8080) }} : {{ config('broadcasting.connections.reverb.options.port', 8080) }};
+            const scheme = isRipple ? '{{ config('ripple.scheme', 'http') }}' : '{{ config('broadcasting.connections.reverb.options.scheme', 'http') }}';
+            const broadcaster = isRipple ? 'pusher' : 'reverb';
 
             window.Echo = new Echo({
                 broadcaster: 'reverb',
                 key: '{{ env('VITE_REVERB_APP_KEY', env('REVERB_APP_KEY')) }}',
-                wsHost: reverbHost || window.location.hostname,
-                wsPort: reverbPort,
-                wssPort: reverbPort,
-                // Browsers block plain ws:// from HTTPS pages (mixed content).
-                // Match the page protocol so wss:// is used on production HTTPS.
-                forceTLS: isSecurePage,
-                enabledTransports: ['ws', 'wss'],
+                wsHost: window.location.hostname,
+                wsPort: {{ env('VITE_REVERB_PORT', env('REVERB_PORT', 8080)) }},
+                wssPort: {{ env('VITE_REVERB_PORT', env('REVERB_PORT', 8080)) }},
+                forceTLS: false,
+                enabledTransports: ['ws'],
                 auth: {
                     headers: {
                         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
