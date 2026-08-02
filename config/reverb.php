@@ -33,7 +33,27 @@ return [
             'port' => env('REVERB_SERVER_PORT', 8080),
             'hostname' => env('REVERB_SERVER_HOSTNAME', 'localhost'),
             'options' => [
-                'tls' => [],
+                /*
+                |--------------------------------------------------------------------------
+                | TLS / Secure WebSocket (WSS)
+                |--------------------------------------------------------------------------
+                |
+                | When the site is served over HTTPS, browsers FORCE WebSocket
+                | connections to use wss:// (TLS). They block plain ws:// as
+                | mixed content. Therefore Reverb must speak WSS on this port.
+                |
+                | Set REVERB_TLS_CERT and REVERB_TLS_KEY to the absolute paths
+                | of the SSL certificate (PEM/fullchain) and private key (PEM)
+                | for the site hostname (e.g. from cPanel SSL/TLS).
+                |
+                | When both are empty, Reverb falls back to plain ws://
+                | (useful for local development).
+                |
+                */
+                'tls' => [
+                    'local_cert' => env('REVERB_TLS_CERT'),
+                    'local_pk' => env('REVERB_TLS_KEY'),
+                ],
             ],
             'max_request_size' => env('REVERB_MAX_REQUEST_SIZE', 10000),
             'scaling' => [
