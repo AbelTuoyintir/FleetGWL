@@ -32,7 +32,7 @@ window.Echo = new Echo({
     | Reverb server (which now has TLS enabled) is reached via wss://.
     |
     */
-    forceTLS: window.location.protocol === 'http:',
+forceTLS: window.location.protocol === 'https:',
 
     enabledTransports: ['ws', 'wss'],
 

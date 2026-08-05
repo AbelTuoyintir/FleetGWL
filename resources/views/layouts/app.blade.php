@@ -269,59 +269,12 @@
     }
     window.toggleSubMenu = window.toggleSubMenu || toggleSubMenu;
 
-// Fallback: Initialize Echo directly if Vite didn't load app.js
-    // The Vite module (app.js) sets window.Echo asynchronously when the bundle
-    // executes. We wait for it to appear before falling back, so we don't
-    // spuriously trigger the fallback during HTML parsing (before app.js runs).
-    (function() {
-        var fallbackDone = false;
-
-        function initEchoFallback() {
-            if (fallbackDone) return;
-            fallbackDone = true;
-
-            // Echo was loaded by the Vite bundle in the meantime — nothing to do.
-            if (typeof window.Echo !== 'undefined') {
-                return;
-            }
-
-            console.log('Echo not found via Vite assets. Initializing inline fallback...');
-
-            function activateFallback() {
-                // If laravel-echo is now globally available, use it.
-                if (typeof window.Echo === 'undefined' && typeof Echo !== 'undefined') {
-window.Echo = Echo;
-                }
-            }
-
-            // Load Pusher from CDN if not already loaded
-            if (typeof window.Pusher === 'undefined') {
-                var script = document.createElement('script');
-                script.src = 'https://js.pusher.com/8.6.0/pusher.min.js';
-                script.onload = function() {
-                    window.Pusher = Pusher;
-                    activateFallback();
-                };
-                document.head.appendChild(script);
-            } else {
-                activateFallback();
-            }
-        }
-
-        // Give the Vite bundle a chance to set window.Echo first.
-        var attempts = 0;
-        var timer = setInterval(function() {
-            if (typeof window.Echo !== 'undefined') {
-                clearInterval(timer);
-                return;
-            }
-            attempts++;
-            if (attempts >= 10) { // ~1 second
-                clearInterval(timer);
-                initEchoFallback();
-            }
-        }, 100);
-    })();
+// NOTE: Laravel Echo is initialized by the Vite bundle (resources/js/app.js),
+    // which assigns the working Echo *instance* to window.Echo. We intentionally
+    // do NOT set up an inline Echo fallback here, because a bare CDN namespace
+    // object (Echo.default vs Echo) is NOT a constructor and would break calls
+    // that do `new Echo(...)`. The WebRTC overlay component owns its own robust
+    // fallback if the Vite bundle is unavailable.
 
     document.addEventListener('DOMContentLoaded', () => {
         const sidebar = document.getElementById('fleetSidebar');

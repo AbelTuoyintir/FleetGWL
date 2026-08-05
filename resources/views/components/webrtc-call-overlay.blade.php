@@ -186,9 +186,12 @@
         ]
     };
 
-    // Initialize Laravel Echo Connection with CDN fallbacks
+// Initialize Laravel Echo Connection with CDN fallbacks
     async function initializeEcho() {
-        if (window.Echo) {
+        // If window.Echo is already a working Echo *instance* (set by the Vite
+        // bundle in app.js), use it directly. IMPORTANT: we must NOT treat a
+        // bare constructor/namespace here — only the already-built instance.
+        if (window.Echo && typeof window.Echo.private === 'function') {
             return window.Echo;
         }
 
@@ -208,22 +211,34 @@
             });
         }
 
-// Load Laravel Echo CDN if not available
+        // Load Laravel Echo CDN if the constructor is not yet available.
         // NOTE: Must be Echo 2.x — the Reverb broadcaster is only supported in 2.x.
-        if (typeof window.Echo === 'undefined') {
+        // The IIFE build exposes a namespace object; the real constructor is
+        // exposed as `Echo.default` (with `Echo` as a fallback alias).
+        let EchoCtor = (typeof Echo !== 'undefined') ? Echo : (window.Echo ? window.Echo : null);
+        if (EchoCtor && typeof EchoCtor.default === 'function') {
+            EchoCtor = EchoCtor.default;
+        }
+
+        if (typeof EchoCtor !== 'function' || typeof window.Pusher === 'undefined') {
             await new Promise((resolve, reject) => {
                 const script = document.createElement('script');
                 script.src = 'https://cdn.jsdelivr.net/npm/laravel-echo@2.4.0/dist/echo.iife.js';
                 script.onload = () => {
-                    window.Echo = (typeof Echo !== 'undefined') ? Echo : window.Echo;
+                    let ctor = (typeof Echo !== 'undefined') ? Echo : null;
+                    if (ctor && typeof ctor.default === 'function') {
+                        ctor = ctor.default;
+                    }
+                    window.__EchoCtor = ctor;
                     resolve();
                 };
                 script.onerror = () => reject(new Error('Failed to load Laravel Echo CDN'));
                 document.head.appendChild(script);
             });
+            EchoCtor = window.__EchoCtor;
         }
 
-        if (typeof Echo !== 'undefined') {
+        if (typeof EchoCtor === 'function' && typeof window.Pusher !== 'undefined') {
             const isRipple = '{{ config('broadcasting.default') }}' === 'ripple';
             const isSecurePage = window.location.protocol === 'https:';
 
@@ -233,7 +248,9 @@
             const reverbPort = {{ env('VITE_REVERB_PORT', env('REVERB_PORT', 8080)) }};
             const ripplePort = {{ env('RIPPLE_PORT', 8080) }};
 
-            window.Echo = new Echo({
+// IMPORTANT: `EchoCtor` is the resolved constructor (Echo.default || Echo).
+            // The instance is stored on window.Echo so other scripts can use it.
+            window.Echo = new EchoCtor({
                 broadcaster: isRipple ? 'pusher' : 'reverb',
                 key: isRipple
                     ? '{{ env('RIPPLE_KEY') }}'
