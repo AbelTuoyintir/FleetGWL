@@ -208,8 +208,8 @@
             });
         }
 
-        // Load Laravel Echo CDN if not available
-        if (typeof window.Echo === 'undefined') {
+// Load Laravel Echo CDN if not available
+if (typeof window.Echo === 'undefined') {
             await new Promise((resolve, reject) => {
                 const script = document.createElement('script');
                 script.src = 'https://cdn.jsdelivr.net/npm/laravel-echo@1.16.1/dist/echo.iife.js';
@@ -223,26 +223,24 @@
 
         if (typeof Echo !== 'undefined') {
             const isRipple = '{{ config('broadcasting.default') }}' === 'ripple';
-            const key = isRipple ? '{{ config('ripple.key') }}' : '{{ config('broadcasting.connections.reverb.key') }}';
-            const port = isRipple ? {{ config('ripple.port', 8080) }} : {{ config('broadcasting.connections.reverb.options.port', 8080) }};
-            const scheme = isRipple ? '{{ config('ripple.scheme', 'http') }}' : '{{ config('broadcasting.connections.reverb.options.scheme', 'http') }}';
-            const broadcaster = isRipple ? 'pusher' : 'reverb';
+            const reverbPort = {{ env('VITE_REVERB_PORT', env('REVERB_PORT', 8080)) }};
+            const isSecurePage = window.location.protocol === 'https:';
 
             window.Echo = new Echo({
                 broadcaster: 'reverb',
                 key: '{{ env('VITE_REVERB_APP_KEY', env('REVERB_APP_KEY')) }}',
-                wsHost: window.location.hostname,
-                wsPort: {{ env('VITE_REVERB_PORT', env('REVERB_PORT', 8080)) }},
-                wssPort: {{ env('VITE_REVERB_PORT', env('REVERB_PORT', 8080)) }},
-                forceTLS: false,
-                enabledTransports: ['ws'],
+                wsHost: '{{ env('VITE_REVERB_HOST', env('REVERB_HOST')) }}' || window.location.hostname,
+                wsPort: reverbPort,
+                wssPort: reverbPort,
+                forceTLS: isSecurePage,
+                enabledTransports: ['ws', 'wss'],
                 auth: {
                     headers: {
                         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                     }
                 }
             });
-            console.log("✅ Echo fallback initialized successfully on wsHost:", reverbHost || window.location.hostname, "| secure:", isSecurePage);
+            console.log("✅ Echo fallback initialized successfully on wsHost:", window.Echo.config.wsHost, "| secure:", isSecurePage);
             return window.Echo;
         }
         

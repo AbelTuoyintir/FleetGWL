@@ -421,8 +421,8 @@
                                         {{ ucfirst($maintenance->status) }}
                                     </span>
                                 </td>
-                               <td class="px-6 py-4 text-sm text-center">
-                                    <a href="{{ route('vehicles.maintenance.details.page', $maintenance->id) }}" 
+                                <td class="px-6 py-4 text-sm text-center">
+                                    <a href="{{ Route::has('vehicles.maintenance.details.page') ? route('vehicles.maintenance.details.page', $maintenance->id) : '#' }}"
                                     class="text-blue-600 hover:text-blue-800" target="_blank">
                                         <i class="fas fa-eye"></i>
                                     </a>
