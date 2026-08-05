@@ -209,11 +209,13 @@
         }
 
 // Load Laravel Echo CDN if not available
-if (typeof window.Echo === 'undefined') {
+        // NOTE: Must be Echo 2.x — the Reverb broadcaster is only supported in 2.x.
+        if (typeof window.Echo === 'undefined') {
             await new Promise((resolve, reject) => {
                 const script = document.createElement('script');
-                script.src = 'https://cdn.jsdelivr.net/npm/laravel-echo@1.16.1/dist/echo.iife.js';
+                script.src = 'https://cdn.jsdelivr.net/npm/laravel-echo@2.4.0/dist/echo.iife.js';
                 script.onload = () => {
+                    window.Echo = (typeof Echo !== 'undefined') ? Echo : window.Echo;
                     resolve();
                 };
                 script.onerror = () => reject(new Error('Failed to load Laravel Echo CDN'));
@@ -223,16 +225,23 @@ if (typeof window.Echo === 'undefined') {
 
         if (typeof Echo !== 'undefined') {
             const isRipple = '{{ config('broadcasting.default') }}' === 'ripple';
-            const reverbPort = {{ env('VITE_REVERB_PORT', env('REVERB_PORT', 8080)) }};
             const isSecurePage = window.location.protocol === 'https:';
 
+            // Resolve host/key/port consistently for both Reverb and Ripple.
+            const reverbHost = '{{ env('VITE_REVERB_HOST', env('REVERB_HOST')) }}'.trim() || window.location.hostname;
+            const rippleHost = '{{ env('RIPPLE_HOST', '127.0.0.1') }}'.trim() || window.location.hostname;
+            const reverbPort = {{ env('VITE_REVERB_PORT', env('REVERB_PORT', 8080)) }};
+            const ripplePort = {{ env('RIPPLE_PORT', 8080) }};
+
             window.Echo = new Echo({
-                broadcaster: 'reverb',
-                key: '{{ env('VITE_REVERB_APP_KEY', env('REVERB_APP_KEY')) }}',
-                wsHost: '{{ env('VITE_REVERB_HOST', env('REVERB_HOST')) }}' || window.location.hostname,
-                wsPort: reverbPort,
-                wssPort: reverbPort,
-                forceTLS: isSecurePage,
+                broadcaster: isRipple ? 'pusher' : 'reverb',
+                key: isRipple
+                    ? '{{ env('RIPPLE_KEY') }}'
+                    : '{{ env('VITE_REVERB_APP_KEY', env('REVERB_APP_KEY')) }}',
+                wsHost: isRipple ? rippleHost : reverbHost,
+                wsPort: isRipple ? ripplePort : reverbPort,
+                wssPort: isRipple ? ripplePort : reverbPort,
+                forceTLS: isSecurePage, // browsers force wss:// on HTTPS pages
                 enabledTransports: ['ws', 'wss'],
                 auth: {
                     headers: {
@@ -240,7 +249,7 @@ if (typeof window.Echo === 'undefined') {
                     }
                 }
             });
-            console.log("✅ Echo fallback initialized successfully on wsHost:", window.Echo.config.wsHost, "| secure:", isSecurePage);
+            console.log("✅ Echo fallback initialized successfully on wsHost:", window.Echo.config?.wsHost, "| secure:", isSecurePage, "| broadcaster:", isRipple ? 'pusher(ripple)' : 'reverb');
             return window.Echo;
         }
         
