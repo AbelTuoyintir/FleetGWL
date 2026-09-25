@@ -1,4 +1,5 @@
 {{-- resources/views/components/webrtc-call-overlay.blade.php --}}
+@if(auth()->check() && (auth()->user()->isAdmin() || auth()->user()->isDriver()))
 <div id="webrtcCallWidget" class="fixed bottom-6 right-24 z-40">
     <!-- Floating Directory Toggle Button -->
     <button id="callDirectoryBtn" type="button" class="w-12 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-lg transition-all transform hover:scale-105 outline-none focus-visible:ring-4 focus-visible:ring-blue-300" aria-label="Open Call Directory" title="Call Contacts">
@@ -1088,3 +1089,4 @@
     }
 });
 </script>
+@endif

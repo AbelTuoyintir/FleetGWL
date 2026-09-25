@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Call;
 use App\Models\User;
+use App\Services\CallService;
 use Illuminate\Support\Facades\Auth;
 
 class CallHistoryController extends Controller
@@ -22,7 +23,11 @@ class CallHistoryController extends Controller
                       ->orWhere('receiver_id', $userId);
             })
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get()
+            ->filter(function ($call) {
+                return CallService::isCallAllowed($call->caller, $call->receiver);
+            })
+            ->values();
 
         return response()->json([
             'success' => true,
@@ -41,7 +46,11 @@ class CallHistoryController extends Controller
             ->where('receiver_id', $userId)
             ->where('status', 'missed')
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get()
+            ->filter(function ($call) {
+                return CallService::isCallAllowed($call->caller, $call->receiver);
+            })
+            ->values();
 
         return response()->json([
             'success' => true,
@@ -51,7 +60,9 @@ class CallHistoryController extends Controller
 
     /**
      * Get contacts for click-to-call.
-     * Admins can call drivers, Drivers can call admins/super_admins.
+     * Admin -> Drivers
+     * Driver -> Admins & Drivers
+     * Other roles -> Empty list
      */
     public function contacts()
     {
@@ -61,11 +72,20 @@ class CallHistoryController extends Controller
         }
 
         if ($user->isAdmin()) {
-            // Get all drivers
+            // Admin can call Drivers
             $contacts = User::where('role', 'driver')->get();
+        } elseif ($user->isDriver()) {
+            // Driver can call Admins and other Drivers
+            $contacts = User::where(function ($query) use ($user) {
+                $query->whereIn('role', ['admin', 'super_admin'])
+                      ->orWhere(function ($q) use ($user) {
+                          $q->where('role', 'driver')
+                            ->where('id', '!=', $user->id);
+                      });
+            })->get();
         } else {
-            // Get all admins
-            $contacts = User::whereIn('role', ['admin', 'super_admin'])->get();
+            // All other application roles are excluded from calling
+            $contacts = collect([]);
         }
 
         return response()->json([
