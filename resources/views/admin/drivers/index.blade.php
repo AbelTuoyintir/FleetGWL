@@ -177,7 +177,7 @@
                                     <div>{{ $driver->fuel_logs_count }} fuel logs</div>
                                 </td>
                                 <td class="text-right whitespace-nowrap">
-                                    @if($driver->user_id)
+                                    @if($driver->user_id && auth()->check() && (auth()->user()->isAdmin() || auth()->user()->isDriver()))
                                         <button type="button" onclick="if (typeof window.startCall === 'function') window.startCall({{ $driver->user_id }}, 'audio')" class="text-blue-600 hover:text-blue-800 text-sm mr-3" title="Call Driver (Audio)" aria-label="Call Driver (Audio)">
                                             <i class="fas fa-phone-alt"></i>
                                         </button>

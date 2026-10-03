@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Services\CallService;
 use App\Services\NotificationService;
 use App\Models\Call;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
 class CallController extends Controller
@@ -20,6 +21,34 @@ class CallController extends Controller
     }
 
     /**
+     * Validate call authorization for existing call.
+     */
+    protected function authorizeCallAccess(Call $call, bool $mustBeReceiver = false): ?\Illuminate\Http\JsonResponse
+    {
+        $authUser = Auth::user();
+        if (!$authUser) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        if ((int) $authUser->id !== (int) $call->caller_id && (int) $authUser->id !== (int) $call->receiver_id) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized call access.'], 403);
+        }
+
+        if ($mustBeReceiver && (int) $authUser->id !== (int) $call->receiver_id) {
+            return response()->json(['success' => false, 'message' => 'Only the call receiver can perform this action.'], 403);
+        }
+
+        $caller = User::find($call->caller_id);
+        $receiver = User::find($call->receiver_id);
+
+        if (!CallService::isCallAllowed($caller, $receiver)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized call relationship.'], 403);
+        }
+
+        return null;
+    }
+
+    /**
      * Start/Create a call.
      */
     public function start(Request $request)
@@ -29,14 +58,24 @@ class CallController extends Controller
             'call_type' => 'required|in:audio,video',
         ]);
 
-        $callerId = Auth::id();
-        $receiverId = $request->receiver_id;
-
-        if ($callerId === (int) $receiverId) {
-            return response()->json(['success' => false, 'message' => 'You cannot call yourself.'], 400);
+        $caller = Auth::user();
+        if (!$caller) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
         }
 
-        $call = $this->callService->createCall($callerId, $receiverId, $request->call_type);
+        $receiver = User::find($request->receiver_id);
+        if (!$receiver) {
+            return response()->json(['success' => false, 'message' => 'Receiver not found.'], 404);
+        }
+
+        if (!CallService::isCallAllowed($caller, $receiver)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized call relationship.',
+            ], 403);
+        }
+
+        $call = $this->callService->createCall($caller->id, $receiver->id, $request->call_type);
 
         return response()->json([
             'success' => true,
@@ -53,7 +92,12 @@ class CallController extends Controller
             'call_id' => 'required|exists:calls,id',
         ]);
 
-        $call = $this->callService->acceptCall($request->call_id);
+        $call = Call::findOrFail($request->call_id);
+        if ($authError = $this->authorizeCallAccess($call, true)) {
+            return $authError;
+        }
+
+        $call = $this->callService->acceptCall($call->id);
 
         return response()->json([
             'success' => true,
@@ -70,7 +114,12 @@ class CallController extends Controller
             'call_id' => 'required|exists:calls,id',
         ]);
 
-        $call = $this->callService->rejectCall($request->call_id);
+        $call = Call::findOrFail($request->call_id);
+        if ($authError = $this->authorizeCallAccess($call)) {
+            return $authError;
+        }
+
+        $call = $this->callService->rejectCall($call->id);
 
         return response()->json([
             'success' => true,
@@ -87,7 +136,12 @@ class CallController extends Controller
             'call_id' => 'required|exists:calls,id',
         ]);
 
-        $call = $this->callService->busyCall($request->call_id);
+        $call = Call::findOrFail($request->call_id);
+        if ($authError = $this->authorizeCallAccess($call)) {
+            return $authError;
+        }
+
+        $call = $this->callService->busyCall($call->id);
 
         return response()->json([
             'success' => true,
@@ -104,7 +158,12 @@ class CallController extends Controller
             'call_id' => 'required|exists:calls,id',
         ]);
 
-        $call = $this->callService->endCall($request->call_id);
+        $call = Call::findOrFail($request->call_id);
+        if ($authError = $this->authorizeCallAccess($call)) {
+            return $authError;
+        }
+
+        $call = $this->callService->endCall($call->id);
 
         return response()->json([
             'success' => true,
@@ -121,7 +180,12 @@ class CallController extends Controller
             'call_id' => 'required|exists:calls,id',
         ]);
 
-        $call = $this->callService->missedCall($request->call_id);
+        $call = Call::findOrFail($request->call_id);
+        if ($authError = $this->authorizeCallAccess($call)) {
+            return $authError;
+        }
+
+        $call = $this->callService->missedCall($call->id);
 
         // Send a missed call notification to the receiver
         $this->notificationService->sendCallNotification(

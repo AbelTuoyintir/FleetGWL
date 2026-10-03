@@ -330,6 +330,7 @@
                                         <p class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Assigned Driver</p>
                                         <p id="cardDriver" class="text-sm font-bold text-gray-900 leading-none">---</p>
                                     </div>
+                                    @if(auth()->check() && (auth()->user()->isAdmin() || auth()->user()->isDriver()))
                                     <div id="driverCallActions" class="flex gap-1.5 hidden">
                                         <button type="button" id="cardCallAudioBtn" class="w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition focus:outline-none" title="Call Driver (Audio)" aria-label="Call Driver (Audio)">
                                             <i class="fas fa-phone-alt text-[10px]"></i>
@@ -338,6 +339,7 @@
                                             <i class="fas fa-video text-[10px]"></i>
                                         </button>
                                     </div>
+                                    @endif
                                 </div>
                             </div>
                             <div class="flex items-center gap-3">

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Call;
+use App\Models\User;
 use App\Events\IncomingCall;
 use App\Events\CallAccepted;
 use App\Events\CallRejected;
@@ -12,6 +13,56 @@ use Carbon\Carbon;
 
 class CallService
 {
+    /**
+     * Determine if a call relationship between caller and receiver is authorized.
+     * Allowed relationships:
+     * - Admin -> Driver
+     * - Driver -> Admin
+     * - Driver -> Driver
+     *
+     * All other combinations (e.g. Admin -> Admin, Dispatcher/Finance/Technician/Auditor -> Any) are rejected.
+     */
+    public static function isCallAllowed(?User $caller, ?User $receiver): bool
+    {
+        if (!$caller || !$receiver) {
+            return false;
+        }
+
+        if ((int) $caller->id === (int) $receiver->id) {
+            return false;
+        }
+
+        // Company/tenant isolation where applicable
+        if (isset($caller->company_id, $receiver->company_id) && $caller->company_id !== null && $receiver->company_id !== null) {
+            if ($caller->company_id !== $receiver->company_id) {
+                return false;
+            }
+        }
+
+        $callerIsAdmin = $caller->isAdmin();
+        $callerIsDriver = $caller->isDriver();
+
+        $receiverIsAdmin = $receiver->isAdmin();
+        $receiverIsDriver = $receiver->isDriver();
+
+        // 1. Admin -> Driver
+        if ($callerIsAdmin && $receiverIsDriver) {
+            return true;
+        }
+
+        // 2. Driver -> Admin
+        if ($callerIsDriver && $receiverIsAdmin) {
+            return true;
+        }
+
+        // 3. Driver -> Driver
+        if ($callerIsDriver && $receiverIsDriver) {
+            return true;
+        }
+
+        return false;
+    }
+
     /**
      * Create a new call signaling record and broadcast IncomingCall.
      */

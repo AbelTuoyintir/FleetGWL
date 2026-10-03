@@ -22,7 +22,7 @@
                 <p class="text-gray-500 text-sm mt-1">{{ $driver->user->first_name ?? '' }} {{ $driver->user->last_name ?? '' }}</p>
             </div>
             <div class="flex gap-3">
-                @if($driver->user_id)
+                @if($driver->user_id && auth()->check() && (auth()->user()->isAdmin() || auth()->user()->isDriver()))
                     <button type="button" onclick="if (typeof window.startCall === 'function') window.startCall({{ $driver->user_id }}, 'audio')" class="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm hover:bg-blue-100 transition focus:outline-none" title="Call Driver (Audio)" aria-label="Call Driver (Audio)">
                         <i class="fas fa-phone-alt mr-1"></i> Audio Call
                     </button>
