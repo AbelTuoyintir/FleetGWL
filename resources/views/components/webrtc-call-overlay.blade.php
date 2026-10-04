@@ -119,7 +119,7 @@
     </div>
 </div>
 
-<!-- Audio element for calling sounds (replaced broken external URL with programmatic tone) -->
+<!-- Audio element for calling sounds -->
 <audio id="ringtoneAudio" loop class="hidden" preload="auto"></audio>
 
 <script>
@@ -175,160 +175,60 @@
     let currentUserId = {{ Auth::id() ?? 'null' }};
     let currentCallType = 'audio';
     let isCaller = false;
+    let socket = null;
 
     // Directory list data cached
     let allContacts = [];
 
-    // WebRTC Configuration - STUN servers
+    // WebRTC STUN/TURN Configuration loaded dynamically from Laravel config
     const rtcConfig = {
-        iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' }
-        ]
+        iceServers: @js(config('webrtc.ice_servers'))
     };
 
-// Initialize Laravel Echo Connection with CDN fallbacks
-    async function initializeEcho() {
-        // If window.Echo is already a working Echo *instance* (set by the Vite
-        // bundle in app.js), use it directly. IMPORTANT: we must NOT treat a
-        // bare constructor/namespace here — only the already-built instance.
-        if (window.Echo && typeof window.Echo.private === 'function') {
-            return window.Echo;
-        }
+    // Initialize Socket.IO Connection
+    if (typeof window.initializeSocket === 'function' && currentUserId) {
+        socket = window.initializeSocket(currentUserId);
 
-        console.log("window.Echo not found. Attempting inline fallback initialization...");
-        
-        // Load Pusher CDN if not available
-        if (typeof window.Pusher === 'undefined') {
-            await new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = 'https://js.pusher.com/8.6.0/pusher.min.js';
-                script.onload = () => {
-                    window.Pusher = Pusher;
-                    resolve();
-                };
-                script.onerror = () => reject(new Error('Failed to load Pusher CDN'));
-                document.head.appendChild(script);
-            });
-        }
+        socket.on('incoming-call', (data) => {
+            console.log('[Socket.IO] Incoming call:', data);
+            handleIncomingCallEvent(data);
+        });
 
-        // Load Laravel Echo CDN if the constructor is not yet available.
-        // NOTE: Must be Echo 2.x — the Reverb broadcaster is only supported in 2.x.
-        // The IIFE build exposes a namespace object; the real constructor is
-        // exposed as `Echo.default` (with `Echo` as a fallback alias).
-        let EchoCtor = (typeof Echo !== 'undefined') ? Echo : (window.Echo ? window.Echo : null);
-        if (EchoCtor && typeof EchoCtor.default === 'function') {
-            EchoCtor = EchoCtor.default;
-        }
+        socket.on('call-accepted', (data) => {
+            console.log('[Socket.IO] Call accepted:', data);
+            handleCallAcceptedEvent(data);
+        });
 
-        if (typeof EchoCtor !== 'function' || typeof window.Pusher === 'undefined') {
-            await new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = 'https://cdn.jsdelivr.net/npm/laravel-echo@2.4.0/dist/echo.iife.js';
-                script.onload = () => {
-                    let ctor = (typeof Echo !== 'undefined') ? Echo : null;
-                    if (ctor && typeof ctor.default === 'function') {
-                        ctor = ctor.default;
-                    }
-                    window.__EchoCtor = ctor;
-                    resolve();
-                };
-                script.onerror = () => reject(new Error('Failed to load Laravel Echo CDN'));
-                document.head.appendChild(script);
-            });
-            EchoCtor = window.__EchoCtor;
-        }
+        socket.on('call-rejected', (data) => {
+            console.log('[Socket.IO] Call rejected:', data);
+            handleCallRejectedEvent(data);
+        });
 
-        if (typeof EchoCtor === 'function' && typeof window.Pusher !== 'undefined') {
-            const isRipple = '{{ config('broadcasting.default') }}' === 'ripple';
-            const isSecurePage = window.location.protocol === 'https:';
+        socket.on('user-busy', (data) => {
+            console.log('[Socket.IO] User busy:', data);
+            handleUserBusyEvent(data);
+        });
 
-            // Resolve host/key/port consistently for both Reverb and Ripple.
-            const reverbHost = '{{ env('VITE_REVERB_HOST', env('REVERB_HOST')) }}'.trim() || window.location.hostname;
-            const rippleHost = '{{ env('RIPPLE_HOST', '127.0.0.1') }}'.trim() || window.location.hostname;
-            const reverbPort = {{ env('VITE_REVERB_PORT', env('REVERB_PORT', 8080)) }};
-            const ripplePort = {{ env('RIPPLE_PORT', 8080) }};
+        socket.on('call-ended', (data) => {
+            console.log('[Socket.IO] Call ended:', data);
+            handleCallEndedEvent(data);
+        });
 
-// IMPORTANT: `EchoCtor` is the resolved constructor (Echo.default || Echo).
-            // The instance is stored on window.Echo so other scripts can use it.
-            window.Echo = new EchoCtor({
-                broadcaster: isRipple ? 'pusher' : 'reverb',
-                key: isRipple
-                    ? '{{ env('RIPPLE_KEY') }}'
-                    : '{{ env('VITE_REVERB_APP_KEY', env('REVERB_APP_KEY')) }}',
-                wsHost: isRipple ? rippleHost : reverbHost,
-                wsPort: isRipple ? ripplePort : reverbPort,
-                wssPort: isRipple ? ripplePort : reverbPort,
-                forceTLS: isSecurePage, // browsers force wss:// on HTTPS pages
-                enabledTransports: ['ws', 'wss'],
-                auth: {
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                    }
-                }
-            });
-            console.log("✅ Echo fallback initialized successfully on wsHost:", window.Echo.config?.wsHost, "| secure:", isSecurePage, "| broadcaster:", isRipple ? 'pusher(ripple)' : 'reverb');
-            return window.Echo;
-        }
-        
-        throw new Error('Echo class not found after CDN load');
+        socket.on('offer-created', (data) => {
+            console.log('[Socket.IO] Offer created:', data);
+            handleOfferCreatedEvent(data);
+        });
+
+        socket.on('answer-created', (data) => {
+            console.log('[Socket.IO] Answer created:', data);
+            handleAnswerCreatedEvent(data);
+        });
+
+        socket.on('ice-candidate', (data) => {
+            console.log('[Socket.IO] ICE candidate:', data);
+            handleIceCandidateEvent(data);
+        });
     }
-
-    // Initialize and Subscribe
-    initializeEcho().then((echoInstance) => {
-        if (echoInstance && currentUserId) {
-            const channelName = `user.${currentUserId}`;
-
-            console.log("Echo connection state:", echoInstance.connector.pusher.connection.state);
-            console.log(`Subscribing to private-${channelName} channel...`);
-
-            echoInstance.private(channelName)
-                // === STEP 2: Verify Subscription ===
-                .subscribed(() => {
-                    console.log(`✅ Subscribed to private-${channelName} successfully!`);
-                })
-                // === STEP 3: Catch Auth Errors ===
-                .error((error) => {
-                    console.error(`❌ Channel subscription error for private-${channelName}:`, error);
-                })
-                .listen('.IncomingCall', (e) => {
-                    console.log("Echo: IncomingCall received:", e);
-                    handleIncomingCallEvent(e);
-                })
-                .listen('.CallAccepted', (e) => {
-                    console.log("Echo: CallAccepted received:", e);
-                    handleCallAcceptedEvent(e);
-                })
-                .listen('.CallRejected', (e) => {
-                    console.log("Echo: CallRejected received:", e);
-                    handleCallRejectedEvent(e);
-                })
-                .listen('.CallEnded', (e) => {
-                    console.log("Echo: CallEnded received:", e);
-                    handleCallEndedEvent(e);
-                })
-                .listen('.OfferCreated', (e) => {
-                    console.log("Echo: OfferCreated received:", e);
-                    handleOfferCreatedEvent(e);
-                })
-                .listen('.AnswerCreated', (e) => {
-                    console.log("Echo: AnswerCreated received:", e);
-                    handleAnswerCreatedEvent(e);
-                })
-                .listen('.IceCandidate', (e) => {
-                    console.log("Echo: IceCandidate received:", e);
-                    handleIceCandidateEvent(e);
-                })
-                .listen('.UserBusy', (e) => {
-                    console.log("Echo: UserBusy received:", e);
-                    handleUserBusyEvent(e);
-                });
-        } else {
-            console.warn("Echo initialized, but currentUserId is null. UserID:", currentUserId);
-        }
-    }).catch((err) => {
-        console.error("Failed to initialize Laravel Echo:", err);
-    });
 
     // Directory Buttons and Filters
     callDirectoryBtn?.addEventListener('click', () => {
@@ -450,13 +350,21 @@
         peerConnection.onicecandidate = (event) => {
             if (event.candidate && currentCall) {
                 console.log("Transmitting ICE candidate to other user:", otherId);
+                // Send via REST API for persistence
                 $.post('/signals/ice-candidate', {
                     call_id: currentCall.id,
                     candidate: JSON.stringify(event.candidate),
                     recipient_id: otherId
-                }).fail((err) => {
-                    console.error("Failed to post ICE Candidate:", err);
                 });
+
+                // Socket.IO real-time relay
+                if (socket) {
+                    socket.emit('ice-candidate', {
+                        callId: currentCall.id,
+                        candidate: JSON.stringify(event.candidate),
+                        recipientId: otherId
+                    });
+                }
             }
         };
 
@@ -495,8 +403,6 @@
             localStream.getTracks().forEach(track => {
                 peerConnection.addTrack(track, localStream);
             });
-        } else {
-            console.warn("No local tracks to stream.");
         }
     }
 
@@ -538,11 +444,10 @@
         }
     }
 
-    // Creates canvas fallback stream to survive environments without micro/camera
+    // Creates canvas fallback stream to survive environments without microphone/camera
     function createFallbackStream(type) {
         const tracks = [];
 
-        // Try getting silence
         try {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
             const oscillator = ctx.createOscillator();
@@ -558,7 +463,6 @@
             console.error("Audio fallback failure:", e);
         }
 
-        // Try getting black frame animation
         if (type === 'video') {
             try {
                 const canvas = document.createElement('canvas');
@@ -622,7 +526,6 @@
 
         playRingtone();
 
-        // Prepare local media before creating call for smoother setup
         await getLocalStream(type);
 
         $.ajax({
@@ -635,11 +538,20 @@
             success: function(response) {
                 if (response.success) {
                     currentCall = response.call;
-                    // Fetch the receiver name from the contacts list or set a fallback
                     const contact = allContacts.find(c => c.id === receiverId);
                     callUserName.innerText = contact ? contact.name : 'Recipient';
                     callUserRole.innerText = contact ? contact.role : 'User';
                     callStatusLabel.innerText = 'Ringing...';
+
+                    // Emit call-user event via Socket.IO
+                    if (socket) {
+                        socket.emit('call-user', {
+                            receiverId: receiverId,
+                            call: currentCall,
+                            callerName: "{{ Auth::user()->name ?? 'User' }}",
+                            callerRole: "{{ Auth::user()->role ?? 'User' }}"
+                        });
+                    }
 
                     // Setup outgoing missed call timeout (30 seconds)
                     if (callTimeout) clearTimeout(callTimeout);
@@ -658,47 +570,36 @@
                 }
             },
             error: function(xhr, status, error) {
-                console.error("POST /calls/start failed:", {
-                    status: xhr.status,
-                    statusText: xhr.statusText,
-                    responseText: xhr.responseText,
-                    error: error
-                });
                 let errorMsg = 'Could not initiate calling stream.';
                 try {
                     const json = JSON.parse(xhr.responseText);
                     if (json.message) errorMsg = json.message;
-                    else if (json.error) errorMsg = json.error;
-                } catch(e) {
-                    if (xhr.responseText) errorMsg = xhr.responseText.substring(0, 200);
-                }
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Call Failed',
-                    text: errorMsg,
-                    footer: 'Check console (F12) for full error details'
-                });
+                } catch(e) {}
+                Swal.fire('Call Failed', errorMsg, 'error');
                 closeCallOverlay();
             }
         });
     }
 
-    // Event Handlers for WebSocket Signalling Events
-    function handleIncomingCallEvent(e) {
+    // Signaling Handlers
+    function handleIncomingCallEvent(data) {
         if (currentCall) {
             console.log("Already on another call. Signalling busy status.");
-            $.post('/calls/busy', { call_id: e.call.id });
+            $.post('/calls/busy', { call_id: data.call.id });
+            if (socket) {
+                socket.emit('busy-call', { callerId: data.call.caller_id, call: data.call });
+            }
             return;
         }
 
-        currentCall = e.call;
-        currentCallType = e.call.call_type;
+        currentCall = data.call;
+        currentCallType = data.call.call_type;
         isCaller = false;
 
         activeCallOverlay?.classList.remove('hidden');
-        callUserName.innerText = e.callerName;
+        callUserName.innerText = data.callerName || 'Caller';
         callUserRole.innerText = 'Call Request';
-        callStatusLabel.innerText = `Incoming ${e.call.call_type} Call...`;
+        callStatusLabel.innerText = `Incoming ${data.call.call_type} Call...`;
 
         ringingControls.classList.remove('hidden');
         activeControls.classList.add('hidden');
@@ -706,7 +607,7 @@
         playRingtone();
     }
 
-    async function handleCallAcceptedEvent(e) {
+    async function handleCallAcceptedEvent(data) {
         console.log("Outgoing Call Accepted! Preparing SDP Offer.");
         if (callTimeout) clearTimeout(callTimeout);
         stopRingtone();
@@ -724,13 +625,21 @@
                     offer: JSON.stringify(offer),
                     recipient_id: currentCall.receiver_id
                 });
+
+                if (socket) {
+                    socket.emit('offer', {
+                        recipientId: currentCall.receiver_id,
+                        offer: JSON.stringify(offer),
+                        callId: currentCall.id
+                    });
+                }
             } catch (err) {
                 console.error("Failed to construct/send SDP offer:", err);
             }
         }
     }
 
-    function handleCallRejectedEvent(e) {
+    function handleCallRejectedEvent(data) {
         console.log("Call Rejected.");
         stopRingtone();
         if (callTimeout) clearTimeout(callTimeout);
@@ -738,7 +647,7 @@
         setTimeout(() => closeCallOverlay(), 2500);
     }
 
-    function handleUserBusyEvent(e) {
+    function handleUserBusyEvent(data) {
         console.log("User Busy.");
         stopRingtone();
         if (callTimeout) clearTimeout(callTimeout);
@@ -746,17 +655,15 @@
         setTimeout(() => closeCallOverlay(), 2500);
     }
 
-    async function handleOfferCreatedEvent(e) {
+    async function handleOfferCreatedEvent(data) {
         console.log("SDP Offer Received from caller. Preparing SDP Answer.");
         if (!currentCall) return;
 
-        // Prepare local media before responding to SDP Offer
         await getLocalStream(currentCallType);
-
         initiatePeerConnection(currentCall.caller_id);
 
         try {
-            const offerDesc = JSON.parse(e.offer);
+            const offerDesc = JSON.parse(data.offer);
             await peerConnection.setRemoteDescription(new RTCSessionDescription(offerDesc));
 
             const answer = await peerConnection.createAnswer();
@@ -767,16 +674,24 @@
                 answer: JSON.stringify(answer),
                 recipient_id: currentCall.caller_id
             });
+
+            if (socket) {
+                socket.emit('answer', {
+                    recipientId: currentCall.caller_id,
+                    answer: JSON.stringify(answer),
+                    callId: currentCall.id
+                });
+            }
         } catch (err) {
             console.error("Failed to construct/send SDP answer:", err);
         }
     }
 
-    async function handleAnswerCreatedEvent(e) {
+    async function handleAnswerCreatedEvent(data) {
         console.log("SDP Answer Received from receiver.");
         if (peerConnection) {
             try {
-                const answerDesc = JSON.parse(e.answer);
+                const answerDesc = JSON.parse(data.answer);
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(answerDesc));
             } catch (err) {
                 console.error("Failed to set Remote Description:", err);
@@ -784,11 +699,11 @@
         }
     }
 
-    async function handleIceCandidateEvent(e) {
+    async function handleIceCandidateEvent(data) {
         console.log("Remote ICE Candidate Received.");
         if (peerConnection) {
             try {
-                const candidateObj = JSON.parse(e.candidate);
+                const candidateObj = JSON.parse(data.candidate);
                 await peerConnection.addIceCandidate(new RTCIceCandidate(candidateObj));
             } catch (err) {
                 console.error("Failed to add remote ICE Candidate:", err);
@@ -796,13 +711,13 @@
         }
     }
 
-    function handleCallEndedEvent(e) {
+    function handleCallEndedEvent(data) {
         console.log("Call hung up by remote user.");
         callStatusLabel.innerText = 'Call Ended';
         setTimeout(() => closeCallOverlay(), 1500);
     }
 
-    // Interactive Media Controls (Audio, Video, Screen Share, FullScreen, PIP)
+    // Media Controls
     toggleAudioBtn?.addEventListener('click', () => {
         isMuted = !isMuted;
         if (localStream) {
@@ -826,7 +741,6 @@
     switchCameraBtn?.addEventListener('click', async () => {
         if (!localStream) return;
         currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-        console.log("Toggling camera facing mode:", currentFacingMode);
 
         localStream.getVideoTracks().forEach(track => track.stop());
 
@@ -934,6 +848,10 @@
                     callStatusLabel.innerText = 'Connected';
                     callTimerLabel.classList.remove('hidden');
                     startCallTimer();
+
+                    if (socket) {
+                        socket.emit('accept-call', { callerId: currentCall.caller_id, call: currentCall });
+                    }
                 }
             });
         }
@@ -943,6 +861,9 @@
         if (currentCall) {
             stopRingtone();
             $.post('/calls/reject', { call_id: currentCall.id }, () => {
+                if (socket) {
+                    socket.emit('reject-call', { callerId: currentCall.caller_id, call: currentCall });
+                }
                 closeCallOverlay();
             });
         }
@@ -950,7 +871,11 @@
 
     endCallBtn?.addEventListener('click', () => {
         if (currentCall) {
+            const otherUser = (currentUserId === currentCall.caller_id) ? currentCall.receiver_id : currentCall.caller_id;
             $.post('/calls/end', { call_id: currentCall.id }, () => {
+                if (socket) {
+                    socket.emit('end-call', { recipientId: otherUser, call: currentCall });
+                }
                 closeCallOverlay();
             });
         } else {
@@ -962,11 +887,9 @@
     let ringtoneUnlocked = false;
     let ringtoneInterval = null;
 
-    // Unlock audio context on first user interaction (click anywhere)
     function unlockRingtone() {
         if (ringtoneUnlocked) return;
         ringtoneUnlocked = true;
-        // Fallback: try using AudioContext to unlock
         try {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
             ctx.resume();
@@ -977,7 +900,6 @@
     document.addEventListener('click', unlockRingtone);
     document.addEventListener('touchstart', unlockRingtone);
 
-    // Generate ringtone tone using Web Audio API (no external source needed)
     function startRingtoneTone() {
         stopRingtoneTone();
         try {
@@ -994,12 +916,10 @@
                     osc.frequency.value = 440;
                     osc.connect(gainNode);
                     osc.start();
-                    // Store oscillator so we can stop it
                     if (!window._ringtoneOscs) window._ringtoneOscs = [];
                     window._ringtoneOscs.push(osc);
                     setTimeout(() => {
                         try { osc.stop(); } catch(e) {}
-                        // Remove from list
                         if (window._ringtoneOscs) {
                             const idx = window._ringtoneOscs.indexOf(osc);
                             if (idx > -1) window._ringtoneOscs.splice(idx, 1);
@@ -1027,12 +947,10 @@
     }
 
     function playRingtone() {
-        // First try the <audio> element (if a valid src was set)
         ringtoneAudio.currentTime = 0;
         const playPromise = ringtoneAudio.play();
         if (playPromise !== undefined) {
             playPromise.catch(() => {
-                // If audio element fails (no supported source), use Web Audio API
                 startRingtoneTone();
             });
         } else {
@@ -1046,7 +964,6 @@
         stopRingtoneTone();
     }
 
-    // Call Duration Tracking Timer
     function startCallTimer() {
         secondsElapsed = 0;
         callTimerLabel.innerText = '00:00';
@@ -1068,7 +985,6 @@
         }
     }
 
-    // Closes and cleans up streams
     function closeCallOverlay() {
         stopRingtone();
         stopCallTimer();
