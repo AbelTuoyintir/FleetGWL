@@ -27,6 +27,18 @@ class AdminUserSeeder extends Seeder
                 'password' => Hash::make('password'),
             ],
         );
+
+        User::updateOrCreate(
+            ['email' => 'driver@gwc.com'],
+            [
+                'name' => 'Kwame Mensah',
+                'email' => 'driver@gwc.com',
+                'phone' => '0240000002',
+                'role' => 'driver',
+                'photo' => null,
+                'password' => Hash::make('password'),
+            ],
+        );
     }
 }
 
