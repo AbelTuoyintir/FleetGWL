@@ -1,11 +1,26 @@
 import express from 'express';
-import { createServer } from 'http';
+import { createServer } from 'https';
+import { readFileSync, existsSync } from 'fs';
 import { Server } from 'socket.io';
 
 const app = express();
-const httpServer = createServer(app);
 
 const PORT = process.env.SOCKET_PORT || 6001;
+
+// Prefer HTTPS (WSS) when a TLS cert/key is available so the signaling
+// server can be reached from an HTTPS page without mixed-content blocking.
+const certPath = process.env.SOCKET_TLS_CERT || 'C:/Users/ABEL JNR/.config/herd/config/valet/Certificates/fleetgwl.test.crt';
+const keyPath = process.env.SOCKET_TLS_KEY || 'C:/Users/ABEL JNR/.config/herd/config/valet/Certificates/fleetgwl.test.key';
+
+let httpServer;
+if (existsSync(certPath) && existsSync(keyPath)) {
+    httpServer = createServer({ key: readFileSync(keyPath), cert: readFileSync(certPath) }, app);
+    console.log('[Socket.IO] TLS enabled - serving over HTTPS/WSS');
+} else {
+    const { createServer: createHttpServer } = await import('http');
+    httpServer = createHttpServer(app);
+    console.log('[Socket.IO] No TLS cert found - serving over HTTP/WS');
+}
 
 const io = new Server(httpServer, {
     cors: {

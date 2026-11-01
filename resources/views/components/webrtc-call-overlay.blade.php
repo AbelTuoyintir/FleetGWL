@@ -52,7 +52,7 @@
         <!-- Video Containers -->
         <div class="relative flex-1 bg-slate-950 flex items-center justify-center overflow-hidden">
             <!-- Remote Video (Full Screen) -->
-            <video id="remoteVideo" class="w-full h-full object-cover hidden" autoplay playsinline></video>
+            <video id="remoteVideo" class="w-full h-full object-cover hidden pointer-events-none" autoplay playsinline></video>
 
             <!-- Local Video Preview (Floating PIP) -->
             <div id="localVideoContainer" class="absolute bottom-4 right-4 w-40 h-52 bg-slate-900 rounded-xl overflow-hidden border-2 border-white/20 shadow-2xl z-10 hidden">
@@ -872,12 +872,21 @@
     endCallBtn?.addEventListener('click', () => {
         if (currentCall) {
             const otherUser = (currentUserId === currentCall.caller_id) ? currentCall.receiver_id : currentCall.caller_id;
-            $.post('/calls/end', { call_id: currentCall.id }, () => {
-                if (socket) {
-                    socket.emit('end-call', { recipientId: otherUser, call: currentCall });
-                }
-                closeCallOverlay();
-            });
+            const callToEnd = currentCall;
+            // End locally immediately so the UI never gets stuck
+            closeCallOverlay();
+            $.post('/calls/end', { call_id: callToEnd.id })
+                .done(() => {
+                    if (socket) {
+                        socket.emit('end-call', { recipientId: otherUser, call: callToEnd });
+                    }
+                })
+                .fail((xhr) => {
+                    console.error('Failed to end call on server:', xhr.status, xhr.responseText);
+                    if (socket) {
+                        socket.emit('end-call', { recipientId: otherUser, call: callToEnd });
+                    }
+                });
         } else {
             closeCallOverlay();
         }
