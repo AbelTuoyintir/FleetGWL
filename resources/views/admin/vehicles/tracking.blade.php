@@ -10,9 +10,10 @@
     .vehicle-list-item:hover { background-color: #f8fafc; }
     .vehicle-list-item.active { background-color: #eff6ff; border-left-color: #3b82f6; }
 
-    .leaflet-marker-icon {
-        transition: transform 0.8s linear;
-    }
+    /* Dark map theme without needing a keyed tile provider */
+    .dark-tiles { filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9); }
+
+    /* NOTE: no transition on .leaflet-marker-icon, it makes markers lag while zooming/panning */
     .car-marker {
         transition: transform 0.4s ease-in-out;
     }
@@ -91,25 +92,14 @@
     }
 
     .on-trip-badge {
-        background: #2563eb;
-        color: white;
+        background: #ede9fe;
+        color: #6d28d9;
         font-size: 9px;
         font-weight: 800;
         padding: 1px 6px;
         border-radius: 4px;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-    }
-
-    .speeding-marker {
-        border: 2px solid #ef4444 !important;
-        animation: speeding-pulse 1s infinite;
-    }
-
-    @keyframes speeding-pulse {
-        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-        70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
     }
 
     .live-dot {
@@ -159,11 +149,6 @@
         background: #ef4444 !important;
         color: white !important;
         border-color: #b91c1c !important;
-    }
-
-    .on-trip-badge {
-        background: #ede9fe;
-        color: #6d28d9;
     }
 </style>
 
@@ -383,7 +368,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
     let map;
-    let tileLayers = {};
     let markers = {};
     let vehiclesData = [];
     let historyPolyline = null;
@@ -392,10 +376,30 @@
     let following = false;
     let activeTileLayer;
 
+    // Key-free tile sources.
+    // (Carto's basemaps.cartocdn.com URLs now return an "API KEY REQUIRED" watermark.)
+    // Dark mode reuses the OSM tiles and applies a CSS filter (see .dark-tiles).
+    // For heavy production traffic, switch to a provider with a free keyed tier
+    // (MapTiler, Stadia Maps, Thunderforest) and keep the key in .env.
     const mapThemes = {
-        light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-        dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-        satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+        light: {
+            url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19,
+            className: ''
+        },
+        dark: {
+            url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19,
+            className: 'dark-tiles'
+        },
+        satellite: {
+            url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+            maxZoom: 19,
+            className: ''
+        }
     };
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -435,7 +439,8 @@
                         select.appendChild(opt);
                     });
                 }
-            });
+            })
+            .catch(err => console.error('Failed to load regions', err));
     }
 
     function loadDistricts(regionId) {
@@ -456,7 +461,8 @@
                         select.appendChild(opt);
                     });
                 }
-            });
+            })
+            .catch(err => console.error('Failed to load districts', err));
     }
 
     function initMap() {
@@ -471,11 +477,14 @@
     }
 
     function setMapTheme(theme) {
+        const cfg = mapThemes[theme] || mapThemes.light;
+
         if (activeTileLayer) map.removeLayer(activeTileLayer);
 
-        activeTileLayer = L.tileLayer(mapThemes[theme], {
-            attribution: '&copy; OpenStreetMap contributors',
-            maxZoom: 20
+        activeTileLayer = L.tileLayer(cfg.url, {
+            attribution: cfg.attribution,
+            maxZoom: cfg.maxZoom,
+            className: cfg.className
         }).addTo(map);
 
         // Update UI buttons
@@ -606,7 +615,7 @@
             const selected = vehiclesData.find(v => v.id === selectedVehicleId);
             if (selected) {
                 updateDetailCard(selected);
-                if (following) {
+                if (following && selected.current_latitude) {
                     map.panTo([selected.current_latitude, selected.current_longitude]);
                 }
             }
@@ -634,6 +643,7 @@
             const movingPulseClass = isMoving ? 'sidebar-moving-pulse' : '';
             const speedingClass = v.speed > 80 ? 'border-l-red-500 bg-red-50' : '';
             const tripBadge = v.is_on_trip ? '<span class="on-trip-badge ml-2">On Trip</span>' : '<span class="text-[9px] font-bold text-emerald-600 ml-2 uppercase tracking-tighter">Available</span>';
+            const driverName = v.assigned_driver ? escapeHtml(v.assigned_driver.name) : 'Unassigned';
 
             return `
                 <div class="vehicle-list-item p-3 ${selectedVehicleId === v.id ? 'active' : ''} ${movingPulseClass} ${speedingClass}" onclick="focusVehicle(${v.id})">
@@ -641,13 +651,12 @@
                         <div class="flex flex-col">
                             <div class="flex items-center gap-2">
                                 ${statusIndicator}
-                                <span class="font-bold text-gray-900 leading-tight">${v.registration_number}</span>
+                                <span class="font-bold text-gray-900 leading-tight">${escapeHtml(v.registration_number)}</span>
                                 ${isMoving ? '<span class="live-dot"></span>' : ''}
                                 ${tripBadge}
                             </div>
                             <div class="flex items-center gap-2 ml-4">
-                                <span class="text-[10px] text-gray-500 uppercase font-medium">${v.make} ${v.model}</span>
-                                ${v.is_on_trip ? '<span class="px-1 py-0.5 rounded text-[8px] font-bold on-trip-badge uppercase">On Trip</span>' : ''}
+                                <span class="text-[10px] text-gray-500 uppercase font-medium">${escapeHtml(v.make)} ${escapeHtml(v.model)}</span>
                             </div>
                         </div>
                         <div class="flex flex-col items-end">
@@ -662,7 +671,7 @@
                         <div class="flex flex-col">
                             <div class="flex items-center text-[10px]">
                                 <i class="fas fa-user-circle mr-1 ${v.assigned_driver && v.assigned_driver.user && v.assigned_driver.user.online_status === 'online' ? 'text-green-500' : 'text-gray-400'}"></i>
-                                <span class="text-gray-600 truncate max-w-[100px] font-medium">${v.assigned_driver ? v.assigned_driver.name : 'Unassigned'}</span>
+                                <span class="text-gray-600 truncate max-w-[100px] font-medium">${driverName}</span>
                                 ${v.is_on_trip ? `<span class="ml-2 text-blue-600 font-bold">ETA ${v.eta}m</span>` : ''}
                             </div>
                             <span class="text-[9px] text-gray-400 ml-4">${getTimeAgo(v.last_seen_at)}</span>
@@ -680,7 +689,7 @@
     }
 
     function escapeHtml(unsafe) {
-        return unsafe
+        return String(unsafe ?? '')
              .replace(/&/g, "&amp;")
              .replace(/</g, "&lt;")
              .replace(/>/g, "&gt;")
@@ -751,6 +760,15 @@
     }
 
     function updateMarkers(vehicles) {
+        // Remove markers for vehicles that no longer match the current filters
+        const visibleIds = new Set(vehicles.map(v => v.id));
+        Object.keys(markers).forEach(id => {
+            if (!visibleIds.has(parseInt(id))) {
+                map.removeLayer(markers[id]);
+                delete markers[id];
+            }
+        });
+
         vehicles.forEach(v => {
             if (!v.current_latitude) return;
 
@@ -797,7 +815,7 @@
                             <div class="car-marker ${isSpeeding ? 'speeding-marker' : ''}" style="transform: rotate(${v.heading}deg)">
                                 ${getVehicleSvg(v.vehicle_type, markerColor)}
                             </div>
-                            <div class="absolute -top-8 left-1/2 -translate-x-1/2 marker-label ${isSpeeding ? 'speeding' : ''}" title="Driver: ${driverName}">${escapeHtml(v.registration_number)}</div>
+                            <div class="absolute -top-8 left-1/2 -translate-x-1/2 marker-label ${isSpeeding ? 'speeding' : ''}" title="Driver: ${escapeHtml(driverName)}">${escapeHtml(v.registration_number)}</div>
                         </div>
                     `,
                     iconSize: [40, 40],
@@ -816,9 +834,11 @@
         const vehicle = vehiclesData.find(v => v.id === id);
         if (!vehicle) return;
 
-        map.flyTo([vehicle.current_latitude, vehicle.current_longitude], 17, {
-            duration: 1.5
-        });
+        if (vehicle.current_latitude) {
+            map.flyTo([vehicle.current_latitude, vehicle.current_longitude], 17, {
+                duration: 1.5
+            });
+        }
 
         updateDetailCard(vehicle);
         updateUI();
@@ -891,16 +911,18 @@
         document.getElementById('cardDriver').innerText = v.assigned_driver ? v.assigned_driver.name : 'Unassigned';
 
         const callActions = document.getElementById('driverCallActions');
-        if (v.assigned_driver && v.assigned_driver.user_id) {
-            callActions.classList.remove('hidden');
-            document.getElementById('cardCallAudioBtn').onclick = () => {
-                if (typeof window.startCall === 'function') window.startCall(v.assigned_driver.user_id, 'audio');
-            };
-            document.getElementById('cardCallVideoBtn').onclick = () => {
-                if (typeof window.startCall === 'function') window.startCall(v.assigned_driver.user_id, 'video');
-            };
-        } else {
-            callActions.classList.add('hidden');
+        if (callActions) {
+            if (v.assigned_driver && v.assigned_driver.user_id) {
+                callActions.classList.remove('hidden');
+                document.getElementById('cardCallAudioBtn').onclick = () => {
+                    if (typeof window.startCall === 'function') window.startCall(v.assigned_driver.user_id, 'audio');
+                };
+                document.getElementById('cardCallVideoBtn').onclick = () => {
+                    if (typeof window.startCall === 'function') window.startCall(v.assigned_driver.user_id, 'video');
+                };
+            } else {
+                callActions.classList.add('hidden');
+            }
         }
 
         document.getElementById('cardLastSeen').innerText = `${getTimeAgo(v.last_seen_at)} • ETA: ${v.eta}m`;
@@ -938,8 +960,8 @@
         item.className = `bg-white/90 backdrop-blur shadow-lg border-l-4 ${borderClass} p-3 rounded-r-lg transform transition-all duration-500 translate-x-full opacity-0`;
         item.innerHTML = `
             <div class="flex items-center gap-2">
-                <span class="font-black text-gray-900 text-xs">${reg}</span>
-                <span class="text-[10px] text-gray-500 font-medium">${action}</span>
+                <span class="font-black text-gray-900 text-xs">${escapeHtml(reg)}</span>
+                <span class="text-[10px] text-gray-500 font-medium">${escapeHtml(action)}</span>
             </div>
         `;
         ticker.prepend(item);
@@ -983,6 +1005,10 @@
                 } else {
                     alert("No historical data found for this period.");
                 }
+            })
+            .catch(err => {
+                console.error('Failed to load history', err);
+                alert("Could not load route history.");
             });
     }
 
