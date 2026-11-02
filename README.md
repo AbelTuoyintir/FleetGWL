@@ -623,6 +623,22 @@ AI Support chat
 
 Reports & analytics
 
+1-to-1 WebRTC Voice & Video Calling (Socket.IO + STUN/TURN)
+
+6. WebRTC Voice & Video Calling System (Socket.IO + WebRTC)
+Complete 1-to-1 voice and video calling architecture:
+
+- **Signaling Layer:** Node.js + Socket.IO server (`socket-server.js`) providing bidirectional event relay (`register-user`, `call-user`, `accept-call`, `reject-call`, `busy-call`, `offer`, `answer`, `ice-candidate`, `end-call`).
+- **Media & Peer Connection:** WebRTC peer connection handling peer-to-peer audio and video transmission.
+- **NAT Traversal:** Public Google STUN servers for standard NAT traversal (`stun:stun.l.google.com:19302`, `stun:stun1.l.google.com:19302`) with TURN server authentication support configured via `.env` (`TURN_SERVER_URL`, `TURN_SERVER_USERNAME`, `TURN_SERVER_PASSWORD`).
+- **Call Records & History:** Laravel 12 REST API endpoints (`/calls/start`, `/calls/accept`, `/calls/reject`, `/calls/busy`, `/calls/end`, `/calls/missed`, `/calls/history`, `/calls/contacts`) with MySQL persistence in the `calls` table.
+- **Calling Interface:** Blade + JavaScript overlay component (`resources/views/components/webrtc-call-overlay.blade.php`) integrated into Admin and Driver layouts, complete with contact search directory, calling sounds, call timer, camera toggle, screen sharing, picture-in-picture, full screen, and fallbacks.
+
+Run the Socket.IO signaling server:
+```bash
+pnpm run signal-server
+```
+
 🏗️ Future Roadmap
 Mobile application (React Native)
 
