@@ -29,6 +29,7 @@ class Driver extends Model
         'created_by',
         'modified_by',
         'deleted_by',
+        'deleted_at',
     ];
 
     protected $appends = ['name'];

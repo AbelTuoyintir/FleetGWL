@@ -268,7 +268,6 @@ class FuelMileageController extends Controller
                 \Illuminate\Support\Facades\DB::table('notifications')->insert([
                     'user_id' => $admin->id,
                     'type' => 'maintenance_request',
-                    'title' => 'New Maintenance Request',
                     'message' => 'Driver ' . auth()->user()->name . ' has requested ' . $typeMessage . ' for ' . $vehicle->registration_number . ' (Mileage: ' . number_format($validated['mileage_at_service']) . ' km)',
                     'is_read' => false,
                     'created_at' => now(),

@@ -604,7 +604,7 @@
         ringingControls.classList.remove('hidden');
         activeControls.classList.add('hidden');
 
-        playRingtone();
+        
     }
 
     async function handleCallAcceptedEvent(data) {
@@ -963,7 +963,7 @@
                 startRingtoneTone();
             });
         } else {
-            startRingtoneTone();
+            stopRingtoneTone();
         }
     }
 

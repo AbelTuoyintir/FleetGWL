@@ -1134,7 +1134,7 @@
                                 <button type="button" onclick="closeMaintenanceModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">
                                     Cancel
                                 </button>
-                                <button type="submit" class="px-4 py-2 bg[#3160ED] text-white rounded-lg hover:bg-orange-700 transition flex items-center gap-2">
+                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
                                     <i class="fas fa-paper-plane"></i> Create Job Order
                                 </button>
                             </div>

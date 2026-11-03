@@ -68,6 +68,14 @@ class DriverController extends Controller
     public function store(Request $request)
     {
         try {
+            // Normalize empty strings to null for optional user fields so validation rules
+            // (nullable/required_if) behave consistently regardless of submission.
+            foreach (['name', 'email', 'password', 'password_confirmation', 'phone'] as $field) {
+                if ($request->input($field) === '') {
+                    $request->merge([$field => null]);
+                }
+            }
+
             // Debug: Log incoming request
             \Log::info('Driver store request received', $request->except(['password', 'password_confirmation']));
 
@@ -77,16 +85,17 @@ class DriverController extends Controller
 
                 // For existing user
                 'user_id' => [
+                    'required_if:registration_mode,existing',
                     'nullable',
                     'exists:users,id',
                     Rule::unique('drivers', 'user_id')->whereNull('deleted_at'),
                 ],
 
                 // For new user
-                'name' => 'required_if:registration_mode,new|string|max:255',
-                'email' => 'required_if:registration_mode,new|email|unique:users,email',
+                'name' => 'nullable|required_if:registration_mode,new|string|max:255',
+                'email' => 'nullable|required_if:registration_mode,new|email|unique:users,email',
                 'phone' => 'nullable|string|max:20',
-                'password' => 'required_if:registration_mode,new|string|min:8|confirmed',
+                'password' => 'nullable|required_if:registration_mode,new|string|min:8|confirmed',
 
                 // Driver specific fields
                 'license_number' => 'required|string|max:50|unique:drivers,license_number',

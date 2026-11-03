@@ -18,7 +18,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             AdminUserSeeder::class,
             MaintenanceChecklistSeeder::class,
-            GwlMasterDataSeeder::class,
+            
         ]);
 
     }

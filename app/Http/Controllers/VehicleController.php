@@ -1275,6 +1275,47 @@ class VehicleController extends Controller
         return redirect()->back()->with('success', 'Job order status updated successfully.');
     }
 
+    /** 
+     * Get maintenance data for a vehicle via AJAX 
+     */
+    public function getMaintenanceData($id)
+    {
+        try {
+            \Log::info('Fetching maintenance data for ID: ' . $id);
+            $maintenance = Maintenance::with(['vehicle', 'driver'])
+                ->findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'data' => $maintenance
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching maintenance data', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load maintenance data.'
+            ], 500);
+        }
+    }
+
+    /** 
+     * Show maintenance details page for a vehicle 
+     */
+    public function maintenanceDetailsPage($id)
+    {
+        try {
+            $maintenance = Maintenance::with(['vehicle', 'driver'])
+                ->findOrFail($id);
+
+            return view('admin.vehicles.maintenance-details', compact('maintenance'));
+        } catch (\Exception $e) {
+            \Log::error('Error loading maintenance details page', ['error' => $e->getMessage()]);
+
+            return abort(404);
+        }
+    }
+
     // ---------------------------------------------------------------------
     // Admin mileage / fuel log handlers (routes/web.php -> routes/admin.php)
     // ---------------------------------------------------------------------
