@@ -1320,9 +1320,34 @@ class VehicleController extends Controller
     // Admin mileage / fuel log handlers (routes/web.php -> routes/admin.php)
     // ---------------------------------------------------------------------
 
-    public function getMileageLog($id)
+    public function getMileageLog($id, $page = 1)
     {
-        return redirect()->route('mileage-logs.index');
+        try {
+            $vehicle = Vehicle::findOrFail($id);
+            
+            // Get mileage logs for this vehicle with pagination
+            $query = MileageLog::where('vehicle_id', $id)
+                ->latest('date');
+            
+            $mileageLogs = $query->paginate(10, ['*'], 'page', $page);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $mileageLogs->items(),
+                'pagination' => [
+                    'current_page' => $mileageLogs->currentPage(),
+                    'last_page' => $mileageLogs->lastPage(),
+                    'per_page' => $mileageLogs->perPage(),
+                    'total' => $mileageLogs->total(),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching mileage log: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch mileage log data',
+            ], 500);
+        }
     }
 
     public function storeMileage(Request $request)
@@ -1349,7 +1374,26 @@ class VehicleController extends Controller
 
     public function getPreviousOdometer($id)
     {
-        return response()->json(['previous_odometer' => null]);
+        try {
+            $vehicle = Vehicle::findOrFail($id);
+            
+            // Get the latest fuel log for this vehicle (excluding the most recent one 
+            // since that would be the current odometer)
+            $previousLog = FuelLog::where('vehicle_id', $id)
+                ->where('odometer', '<', $vehicle->current_odometer ?? $vehicle->mileage ?? 0)
+                ->latest('date')
+                ->first();
+            
+            $previousOdometer = $previousLog ? $previousLog->odometer : 0;
+            $previousDate = $previousLog ? $previousLog->date->format('M d, Y') : null;
+            
+            return response()->json([
+                'previous_odometer' => $previousOdometer,
+                'previous_date' => $previousDate,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['previous_odometer' => 0, 'previous_date' => null], 500);
+        }
     }
 }
 

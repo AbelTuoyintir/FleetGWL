@@ -210,7 +210,6 @@ public function create($vehicleId = null)
         }
     }
 
-       // Add to your MaintenanceController
 
     public function statistics(Request $request)
     {
@@ -551,5 +550,35 @@ public function create($vehicleId = null)
             'regionName',
             'isBatch'
         ));
+    }
+
+     public function show(Maintenance $maintenance): View
+    {
+        $maintenance->load(['vehicle', 'driver']);
+
+        return view('admin.vehicles.show', compact('maintenance'));
+    }
+
+    public function detailsPage(Maintenance $maintenance): View
+    {
+        $maintenance->load(['vehicle', 'driver']);
+
+        return view('admin.vehicles.view-job-order', compact('maintenance'));
+    }
+
+    public function printPage(Maintenance $maintenance): View
+    {
+        $maintenance->load(['vehicle', 'driver']);
+
+        return view('admin.vehicles.print-job-order', compact('maintenance'));
+    }
+
+    public function pdf(Maintenance $maintenance)
+    {
+        $maintenance->load(['vehicle', 'driver']);
+
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('maintenance.print', compact('maintenance'))
+            ->setPaper('a4')
+            ->download('job-order-' . $maintenance->job_order_number . '.pdf');
     }
 }

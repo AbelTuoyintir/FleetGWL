@@ -43,7 +43,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('vehicles')->name(
         Route::post('/{id}/restore', [\App\Http\Controllers\DocumentController::class, 'restore'])->name('restore');
         Route::delete('/{id}/force', [\App\Http\Controllers\DocumentController::class, 'forceDestroy'])->name('force-destroy');
     });
-    Route::resource('documents', \App\Http\Controllers\DocumentController::class)->except(['destroy']);
+    Route::resource('documents',\App\Http\Controllers\DocumentController::class)->except(['destroy']);
     Route::delete('/documents/{document}', [\App\Http\Controllers\DocumentController::class, 'destroy'])->name('documents.destroy');
 
     Route::get('/{id}/edit', [VehicleController::class, 'edit'])->name('edit');
@@ -226,6 +226,20 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('maintenance')->na
     // Print routes for maintenance notices
     Route::get('/{maintenance}/print', [MaintenanceController::class, 'printNotice'])->name('print');
     Route::get('/print/batch', [MaintenanceController::class, 'printBatchNotice'])->name('print.batch');
+
+    Route::get('/{maintenance}/job-order/print', [MaintenanceController::class, 'printJobOrder'])->name('job-order.print');
+
+     Route::get('/{maintenance}', [VehicleMaintenanceController::class, 'detailsPage'])
+        ->name('vehicles.maintenance.detail.page');
+
+    Route::get('/{maintenance}/print', [VehicleMaintenanceController::class, 'printPage'])
+        ->name('vehicles.maintenance.print');
+
+    // optional PDF
+    Route::get('/{maintenance}/pdf', [VehicleMaintenanceController::class, 'pdf'])
+        ->name('vehicles.maintenance.pdf');
+    
+    
 });
 
 
