@@ -151,7 +151,12 @@ class MileageLogController extends Controller
     public function store(Request $request)
     {
         try {
-            $validator = Validator::make($request->all(), [
+            // Ensure date field is always populated
+            $requestData = $request->all();
+            if (!isset($requestData['date']) || empty($requestData['date'])) {
+                $requestData['date'] = now()->format('Y-m-d');
+            }
+            $validator = Validator::make($requestData, [
                 'vehicle_id' => 'required|exists:vehicles,id',
                 'driver_id' => 'nullable|exists:drivers,id',
                 'start_mileage' => 'required|numeric|min:0',

@@ -1037,14 +1037,40 @@ public function index(Request $request)
         ];
     }
 
-    public function editData(FuelLog $fuelManagement)
+    public function getEditData(FuelLog $fuelManagement)
     {
+        $log      = $fuelManagement;
+        $driver   = $log->driver_id ? Driver::find($log->driver_id) : null;
+        $recorder = $log->recorded_by ? User::find($log->recorded_by) : null;
+
         return response()->json([
             'success' => true,
-            'data' => $fuelManagement,
+            'data'    => [
+                'id'                  => $log->id,
+                'vehicle_id'          => $log->vehicle_id,
+                'driver_id'           => $log->driver_id,
+                'driver_name'         => $driver->name ?? null,
+                'date'                => Carbon::parse($log->date)->toDateString(),
+                'odometer'            => $log->odometer !== null ? (int) $log->odometer : null,
+                'previous_odometer'   => $log->previous_odometer !== null ? (int) $log->previous_odometer : null,
+                'distance_traveled'   => $log->distance_traveled !== null ? (float) $log->distance_traveled : null,
+                'fuel_quantity'       => $log->fuel_quantity !== null ? (float) $log->fuel_quantity : null,
+                'fuel_cost'           => (float) $log->fuel_cost,
+                'fuel_price_per_unit' => $log->fuel_price_per_unit !== null ? (float) $log->fuel_price_per_unit : null,
+                'fuel_efficiency'     => $log->fuel_efficiency !== null ? (float) $log->fuel_efficiency : null,
+                'fuel_type'           => $log->fuel_type,
+                'payment_method'      => $log->payment_method,
+                'fuel_station'        => $log->fuel_station,
+                'location'            => $log->location,
+                'receipt_number'      => $log->receipt_number,
+                'notes'               => $log->notes,
+                'is_full_tank'        => (bool) $log->is_full_tank,
+                'is_maintenance_fuel' => (bool) $log->is_maintenance_fuel,
+                'recorded_by'         => $recorder->name ?? 'System',
+                'created_at'          => optional($log->created_at)->format('M j, Y g:i A'),
+            ],
         ]);
     }
-
         /**
      * Display fuel cost analysis page
      */

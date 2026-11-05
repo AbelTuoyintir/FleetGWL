@@ -56,21 +56,25 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('vehicles')->name(
     Route::post('/{vehicle}/store-job-order', [VehicleController::class, 'storeJobOrder'])->name('maintenance.job-order.store');
     Route::get('/{vehicle}/job-orders', [VehicleController::class, 'jobOrders'])->name('maintenance.job-orders');
     Route::put('/{vehicle}/job-orders/{maintenance}/status', [VehicleController::class, 'updateJobOrderStatus'])->name('maintenance.job-order.status');
-    Route::get('/vehicles/maintenance/{id}/data', [VehicleController::class, 'getMaintenanceData'])->name('vehicles.maintenance.data');
-    Route::get('/vehicles/maintenance/{id}/details', [VehicleController::class, 'maintenanceDetailsPage'])->name('vehicles.maintenance.details.page');
+    Route::get('/maintenance/{id}/data', [VehicleController::class, 'getMaintenanceData'])->name('vehicles.maintenance.data');
+    Route::get('/maintenance/{id}/details', [VehicleController::class, 'maintenanceDetailsPage'])->name('vehicles.maintenance.details.page');
 
 
-    // Mileage Log Routes
+    // Mileage
     Route::get('/{id}/mileage-log', [VehicleController::class, 'getMileageLog'])->name('mileage.log');
-    Route::post('/mileage/store', [VehicleController::class, 'storeMileage'])->name('mileage.store');
-    Route::delete('/mileage/{id}', [VehicleController::class, 'deleteMileage'])->name('mileage.delete');
+    Route::get('/mileage/{id}',     [VehicleController::class, 'showMileage'])->name('mileage.show');
+    Route::post('/mileage',         [VehicleController::class, 'storeMileage'])->name('mileage.store');
+    Route::put('/mileage/{id}',     [VehicleController::class, 'updateMileage'])->name('mileage.update');
+    Route::delete('/mileage/{id}',  [VehicleController::class, 'deleteMileage'])->name('mileage.destroy');
 
-    // Fuel Log Routes
-    Route::get('/{id}/fuel-log', [VehicleController::class, 'getFuelLog'])->name('fuel.log');
-    Route::post('/fuel/store', [VehicleController::class, 'storeFuel'])->name('fuel.store');
-    Route::delete('/fuel/{id}', [VehicleController::class, 'deleteFuel'])->name('fuel.delete');
-    Route::get('/{id}/fuel/previous-odometer', [VehicleController::class, 'getPreviousOdometer'])->name('fuel.previous');
-   
+    // Fuel
+    // Route::get()
+    Route::get('/{id}/fuel-log',      [VehicleController::class, 'getFuelLog'])->name('fuel.log');
+    Route::get('/{id}/fuel-previous', [VehicleController::class, 'previousFuelOdometer'])->name('fuel.previous');
+    Route::get('/fuel/{id}',          [VehicleController::class, 'showFuel'])->name('fuel.show');
+    Route::post('/fuel',              [VehicleController::class, 'storeFuel'])->name('fuel.store');
+    Route::put('/fuel/{id}',          [VehicleController::class, 'updateFuel'])->name('fuel.update');
+    Route::delete('/fuel/{id}',       [VehicleController::class, 'deleteFuel'])->name('fuel.destroy');   
 });
 
 // SECURITY: Restrict administrative fuel management to authorized personnel only to prevent unauthorized data access/modification.
@@ -217,7 +221,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('maintenance')->na
 
     Route::get('/', [MaintenanceController::class, 'index'])->name('index');
     Route::post('/store', [MaintenanceController::class, 'store'])->name('store');
-    Route::get('/{id}', [MaintenanceController::class, 'show'])->name('show');
+    Route::get('/{id}', [MaintenanceController::class, 'showMaintenanceJson'])->name('show');
     Route::get('/{id}/edit', [MaintenanceController::class, 'edit'])->name('edit');
     Route::put('/{id}', [MaintenanceController::class, 'update'])->name('update');
     Route::delete('/{id}', [MaintenanceController::class, 'destroy'])->name('destroy');
@@ -227,16 +231,16 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('maintenance')->na
     Route::get('/{maintenance}/print', [MaintenanceController::class, 'printNotice'])->name('print');
     Route::get('/print/batch', [MaintenanceController::class, 'printBatchNotice'])->name('print.batch');
 
-    Route::get('/{maintenance}/job-order/print', [MaintenanceController::class, 'printJobOrder'])->name('job-order.print');
+    Route::get('/{maintenance}/job-order/print', [MaintenanceController::class, 'printPage'])->name('job-order.print');
 
-     Route::get('/{maintenance}', [VehicleMaintenanceController::class, 'detailsPage'])
+     Route::get('/job-orders/{maintenance}', [MaintenanceController::class, 'detailsPage'])
         ->name('vehicles.maintenance.detail.page');
 
-    Route::get('/{maintenance}/print', [VehicleMaintenanceController::class, 'printPage'])
+    Route::get('/job-orders/{maintenance}/print', [MaintenanceController::class, 'printPage'])
         ->name('vehicles.maintenance.print');
 
     // optional PDF
-    Route::get('/{maintenance}/pdf', [VehicleMaintenanceController::class, 'pdf'])
+    Route::get('/job-orders/{maintenance}/pdf', [MaintenanceController::class, 'pdf'])
         ->name('vehicles.maintenance.pdf');
     
     

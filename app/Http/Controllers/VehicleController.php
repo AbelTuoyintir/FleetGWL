@@ -11,6 +11,7 @@ use App\Models\MileageLog;
 use App\Models\Region;
 use App\Models\Station;
 use App\Models\Vehicle;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -1320,80 +1321,471 @@ class VehicleController extends Controller
     // Admin mileage / fuel log handlers (routes/web.php -> routes/admin.php)
     // ---------------------------------------------------------------------
 
-    public function getMileageLog($id, $page = 1)
+     public function getMileageLog($id)
     {
-        try {
-            $vehicle = Vehicle::findOrFail($id);
-            
-            // Get mileage logs for this vehicle with pagination
-            $query = MileageLog::where('vehicle_id', $id)
-                ->latest('date');
-            
-            $mileageLogs = $query->paginate(10, ['*'], 'page', $page);
-            
-            return response()->json([
-                'success' => true,
-                'data' => $mileageLogs->items(),
-                'pagination' => [
-                    'current_page' => $mileageLogs->currentPage(),
-                    'last_page' => $mileageLogs->lastPage(),
-                    'per_page' => $mileageLogs->perPage(),
-                    'total' => $mileageLogs->total(),
-                ],
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Error fetching mileage log: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch mileage log data',
-            ], 500);
-        }
+        $vehicle = Vehicle::findOrFail($id);
+ 
+        $paginator = MileageLog::where('vehicle_id', $vehicle->id)
+            ->orderByDesc('date')
+            ->orderByDesc('id')
+            ->paginate(10);
+ 
+        $userNames = User::whereIn('id', $paginator->pluck('recorded_by')->filter()->unique())
+            ->pluck('name', 'id');
+ 
+        $data = $paginator->getCollection()->map(function ($log) use ($userNames) {
+            return [
+                'id'          => $log->id,
+                'date'        => Carbon::parse($log->date)->toDateString(),
+                'recorded_by' => $userNames[$log->recorded_by] ?? 'System',
+                'odometer'    => (int) $log->end_mileage,
+                'distance'    => max(0, (int) $log->end_mileage - (int) $log->start_mileage),
+                'notes'       => $log->notes,
+            ];
+        })->values();
+ 
+        return response()->json([
+            'success'    => true,
+            'data'       => $data,
+            'pagination' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page'    => $paginator->lastPage(),
+                'total'        => $paginator->total(),
+            ],
+        ]);
     }
-
+ 
+    /** GET /vehicles/mileage/{id}   (View + Edit modals) */
+    public function showMileage($id)
+    {
+        $log      = MileageLog::findOrFail($id);
+        $driver   = $log->driver_id ? Driver::find($log->driver_id) : null;
+        $recorder = $log->recorded_by ? User::find($log->recorded_by) : null;
+ 
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'id'            => $log->id,
+                'vehicle_id'    => $log->vehicle_id,
+                'driver_id'     => $log->driver_id,
+                'driver_name'   => $driver->name ?? null,
+                'date'          => Carbon::parse($log->date)->toDateString(),
+                'start_mileage' => (int) $log->start_mileage,
+                'end_mileage'   => (int) $log->end_mileage,
+                'distance'      => max(0, (int) $log->end_mileage - (int) $log->start_mileage),
+                'notes'         => $log->notes,
+                'recorded_by'   => $recorder->name ?? 'System',
+                'created_at'    => optional($log->created_at)->format('M j, Y g:i A'),
+            ],
+        ]);
+    }
+ 
+    /** POST /vehicles/mileage */
     public function storeMileage(Request $request)
     {
-        return redirect()->route('mileage-logs.index');
+        // The form's date defaults to today, but guard against it being blank.
+        $request->merge(['date' => $request->input('date') ?: now()->toDateString()]);
+ 
+        // Validation stays OUTSIDE the try/catch so 422 errors reach the page intact.
+        $validated = $request->validate([
+            'vehicle_id'    => 'required|exists:vehicles,id',
+            'driver_id'     => 'nullable|exists:drivers,id',
+            'start_mileage' => 'required|integer|min:0',
+            'end_mileage'   => 'required|integer|min:0|gte:start_mileage',
+            'date'          => 'required|date',
+            'notes'         => 'nullable|string|max:1000',
+            'service_alert' => 'nullable|boolean',
+        ]);
+ 
+        $validated['recorded_by'] = auth()->id();
+ 
+        try {
+            $log = DB::transaction(function () use ($validated) {
+                $log = MileageLog::create($validated);
+ 
+                // Keep the vehicle's current odometer in sync (never move it backwards).
+                Vehicle::whereKey($validated['vehicle_id'])
+                    ->where('mileage', '<', $validated['end_mileage'])
+                    ->update(['mileage' => $validated['end_mileage']]);
+ 
+                return $log;
+            });
+ 
+            return response()->json([
+                'success' => true,
+                'message' => 'Mileage recorded successfully',
+                'data'    => $log,
+            ], 201);
+        } catch (\Throwable $e) {
+            Log::error('Error storing mileage log: ' . $e->getMessage());
+ 
+            return response()->json(['success' => false, 'message' => 'Failed to store mileage log.'], 500);
+        }
     }
-
+ 
+    /** PUT /vehicles/mileage/{id} */
+    public function updateMileage(Request $request, $id)
+    {
+        $log = MileageLog::findOrFail($id);
+ 
+        $request->merge(['date' => $request->input('date') ?: Carbon::parse($log->date)->toDateString()]);
+ 
+        $validated = $request->validate([
+            'driver_id'     => 'nullable|exists:drivers,id',
+            'start_mileage' => 'required|integer|min:0',
+            'end_mileage'   => 'required|integer|min:0|gte:start_mileage',
+            'date'          => 'required|date',
+            'notes'         => 'nullable|string|max:1000',
+            'service_alert' => 'nullable|boolean',
+        ]);
+ 
+        try {
+            DB::transaction(function () use ($log, $validated) {
+                $log->update($validated);
+ 
+                Vehicle::whereKey($log->vehicle_id)
+                    ->where('mileage', '<', $validated['end_mileage'])
+                    ->update(['mileage' => $validated['end_mileage']]);
+            });
+ 
+            return response()->json([
+                'success' => true,
+                'message' => 'Mileage record updated successfully',
+                'data'    => $log->fresh(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error updating mileage log: ' . $e->getMessage());
+ 
+            return response()->json(['success' => false, 'message' => 'Failed to update mileage record.'], 500);
+        }
+    }
+ 
+    /** DELETE /vehicles/mileage/{id} */
     public function deleteMileage($id)
     {
-        return redirect()->route('mileage-logs.index');
+        try {
+            MileageLog::findOrFail($id)->delete();
+ 
+            return response()->json(['success' => true, 'message' => 'Mileage record deleted.']);
+        } catch (\Throwable $e) {
+            Log::error('Error deleting mileage log: ' . $e->getMessage());
+ 
+            return response()->json(['success' => false, 'message' => 'Failed to delete mileage record.'], 500);
+        }
     }
-
+ 
+    // =====================================================================
+    // FUEL
+    // =====================================================================
+ 
+    /** GET /vehicles/{id}/fuel-log?page=1 */
     public function getFuelLog($id)
     {
-        return redirect()->route('fuel.store');
+        $vehicle = Vehicle::findOrFail($id);
+ 
+        $paginator = FuelLog::where('vehicle_id', $vehicle->id)
+            ->orderByDesc('date')
+            ->orderByDesc('id')
+            ->paginate(10);
+ 
+        $data = $paginator->getCollection()->map(function ($log) {
+            return [
+                'id'                => $log->id,
+                'date'              => Carbon::parse($log->date)->toDateString(),
+                'fuel_type'         => $log->fuel_type,
+                'fuel_quantity'     => (float) $log->fuel_quantity,
+                'fuel_cost'         => (float) $log->fuel_cost,
+                'odometer'          => (int) $log->odometer,
+                'distance_traveled' => (float) ($log->distance_traveled ?? 0),
+                'fuel_station'      => $log->fuel_station,
+            ];
+        })->values();
+ 
+        // Stats across ALL of this vehicle's fuel records (not just the current page)
+        $base        = FuelLog::where('vehicle_id', $vehicle->id);
+        $totalFuel   = (float) (clone $base)->sum('fuel_quantity');
+        $totalCost   = (float) (clone $base)->sum('fuel_cost');
+ 
+        $withDistance  = (clone $base)->where('distance_traveled', '>', 0);
+        $totalDistance = (float) (clone $withDistance)->sum('distance_traveled');
+        $fuelForDist   = (float) (clone $withDistance)->sum('fuel_quantity');
+        $costForDist   = (float) (clone $withDistance)->sum('fuel_cost');
+ 
+        return response()->json([
+            'success'    => true,
+            'data'       => $data,
+            'pagination' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page'    => $paginator->lastPage(),
+                'total'        => $paginator->total(),
+            ],
+            'stats'      => [
+                'total_fuel'      => round($totalFuel, 2),
+                'total_cost'      => round($totalCost, 2),
+                'avg_efficiency'  => $fuelForDist > 0 ? round($totalDistance / $fuelForDist, 2) : 0,
+                'avg_cost_per_km' => $totalDistance > 0 ? round($costForDist / $totalDistance, 2) : 0,
+            ],
+        ]);
     }
-
+ 
+    /** GET /vehicles/fuel/{id}   (View + Edit modals) */
+    public function showFuel($id)
+    {
+        $log      = FuelLog::findOrFail($id);
+        $driver   = $log->driver_id ? Driver::find($log->driver_id) : null;
+        $recorder = $log->recorded_by ? User::find($log->recorded_by) : null;
+ 
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'id'                  => $log->id,
+                'vehicle_id'          => $log->vehicle_id,
+                'driver_id'           => $log->driver_id,
+                'driver_name'         => $driver->name ?? null,
+                'date'                => Carbon::parse($log->date)->toDateString(),
+                'odometer'            => $log->odometer !== null ? (int) $log->odometer : null,
+                'previous_odometer'   => $log->previous_odometer !== null ? (int) $log->previous_odometer : null,
+                'distance_traveled'   => $log->distance_traveled !== null ? (float) $log->distance_traveled : null,
+                'fuel_quantity'       => $log->fuel_quantity !== null ? (float) $log->fuel_quantity : null,
+                'fuel_cost'           => (float) $log->fuel_cost,
+                'fuel_price_per_unit' => $log->fuel_price_per_unit !== null ? (float) $log->fuel_price_per_unit : null,
+                'fuel_efficiency'     => $log->fuel_efficiency !== null ? (float) $log->fuel_efficiency : null,
+                'fuel_type'           => $log->fuel_type,
+                'payment_method'      => $log->payment_method,
+                'fuel_station'        => $log->fuel_station,
+                'location'            => $log->location,
+                'receipt_number'      => $log->receipt_number,
+                'notes'               => $log->notes,
+                'is_full_tank'        => (bool) $log->is_full_tank,
+                'is_maintenance_fuel' => (bool) $log->is_maintenance_fuel,
+                'recorded_by'         => $recorder->name ?? 'System',
+                'created_at'          => optional($log->created_at)->format('M j, Y g:i A'),
+            ],
+        ]);
+    }
+ 
+    /**
+     * GET /vehicles/{id}/fuel-previous?exclude={fuelLogId}&date=YYYY-MM-DD
+     * exclude/date are used by the edit form so a record is compared with the one before it.
+     */
+    public function previousFuelOdometer(Request $request, $id)
+    {
+        $previous = FuelLog::where('vehicle_id', $id)
+            ->whereNotNull('odometer')
+            ->when($request->filled('exclude'), fn ($q) => $q->where('id', '!=', $request->input('exclude')))
+            ->when($request->filled('date'), fn ($q) => $q->whereDate('date', '<=', $request->input('date')))
+            ->orderByDesc('date')
+            ->orderByDesc('id')
+            ->first();
+ 
+        return response()->json([
+            'previous_odometer' => $previous ? (int) $previous->odometer : null,
+            'previous_date'     => $previous ? Carbon::parse($previous->date)->format('M j, Y') : null,
+        ]);
+    }
+ 
+    /** POST /vehicles/fuel */
     public function storeFuel(Request $request)
     {
-        return redirect()->route('fuel.store');
+        $request->merge(['date' => $request->input('date') ?: now()->toDateString()]);
+ 
+        $validated = $request->validate($this->fuelRules());
+ 
+        $payload = $this->buildFuelPayload($request, $validated);
+        $payload['recorded_by'] = auth()->id();
+ 
+        try {
+            $log = DB::transaction(function () use ($payload) {
+                $log = FuelLog::create($payload);
+ 
+                if (!is_null($payload['odometer'])) {
+                    Vehicle::whereKey($payload['vehicle_id'])
+                        ->where('mileage', '<', $payload['odometer'])
+                        ->update(['mileage' => $payload['odometer']]);
+                }
+ 
+                // A back-dated entry can change the "previous reading" of later records.
+                $this->resyncFuelChain($payload['vehicle_id']);
+ 
+                return $log;
+            });
+ 
+            return response()->json([
+                'success' => true,
+                'message' => 'Fuel record added successfully',
+                'data'    => $log,
+            ], 201);
+        } catch (\Throwable $e) {
+            Log::error('Error storing fuel log: ' . $e->getMessage());
+ 
+            return response()->json(['success' => false, 'message' => 'Failed to add fuel record.'], 500);
+        }
     }
-
-
-
-    public function getPreviousOdometer($id)
+ 
+    /** PUT /vehicles/fuel/{id} */
+    public function updateFuel(Request $request, $id)
+    {
+        $log = FuelLog::findOrFail($id);
+ 
+        // The vehicle can't be changed from this form.
+        $request->merge([
+            'vehicle_id' => $log->vehicle_id,
+            'date'       => $request->input('date') ?: Carbon::parse($log->date)->toDateString(),
+        ]);
+ 
+        $validated = $request->validate($this->fuelRules());
+ 
+        $payload = $this->buildFuelPayload($request, $validated, (int) $log->id);
+ 
+        try {
+            DB::transaction(function () use ($log, $payload) {
+                $log->update($payload);
+ 
+                if (!is_null($payload['odometer'])) {
+                    Vehicle::whereKey($payload['vehicle_id'])
+                        ->where('mileage', '<', $payload['odometer'])
+                        ->update(['mileage' => $payload['odometer']]);
+                }
+ 
+                $this->resyncFuelChain($log->vehicle_id);
+            });
+ 
+            return response()->json([
+                'success' => true,
+                'message' => 'Fuel record updated successfully',
+                'data'    => $log->fresh(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error updating fuel log: ' . $e->getMessage());
+ 
+            return response()->json(['success' => false, 'message' => 'Failed to update fuel record.'], 500);
+        }
+    }
+ 
+    /** DELETE /vehicles/fuel/{id} */
+    public function deleteFuel($id)
     {
         try {
-            $vehicle = Vehicle::findOrFail($id);
-            
-            // Get the latest fuel log for this vehicle (excluding the most recent one 
-            // since that would be the current odometer)
-            $previousLog = FuelLog::where('vehicle_id', $id)
-                ->where('odometer', '<', $vehicle->current_odometer ?? $vehicle->mileage ?? 0)
-                ->latest('date')
-                ->first();
-            
-            $previousOdometer = $previousLog ? $previousLog->odometer : 0;
-            $previousDate = $previousLog ? $previousLog->date->format('M d, Y') : null;
-            
-            return response()->json([
-                'previous_odometer' => $previousOdometer,
-                'previous_date' => $previousDate,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['previous_odometer' => 0, 'previous_date' => null], 500);
+            $log = FuelLog::findOrFail($id);
+            $vehicleId = $log->vehicle_id;
+ 
+            DB::transaction(function () use ($log, $vehicleId) {
+                $log->delete();
+                $this->resyncFuelChain($vehicleId);
+            });
+ 
+            return response()->json(['success' => true, 'message' => 'Fuel record deleted.']);
+        } catch (\Throwable $e) {
+            Log::error('Error deleting fuel log: ' . $e->getMessage());
+ 
+            return response()->json(['success' => false, 'message' => 'Failed to delete fuel record.'], 500);
         }
+    }
+ 
+    // ---------------------------------------------------------------------
+    // Fuel helpers (shared by store + update)
+    // ---------------------------------------------------------------------
+ 
+    private function fuelRules(): array
+    {
+        return [
+            'vehicle_id'      => 'required|exists:vehicles,id',
+            'driver_id'       => 'nullable|exists:drivers,id',
+            'date'            => 'required|date',
+            'odometer'        => 'nullable|integer|min:0',
+            'fuel_quantity'   => 'nullable|numeric|gt:0',
+            'fuel_cost'       => 'required|numeric|min:0',
+            'fuel_type'       => 'required|in:petrol,diesel,electric,hybrid,cng,lpg',
+            'payment_method'  => 'nullable|in:cash,credit_card,debit_card,company_account,fuel_card,mobile_payment',
+            'fuel_station'    => 'nullable|string|max:255',
+            'location'        => 'nullable|string|max:255',
+            'receipt_number'  => 'nullable|string|max:255',
+            'notes'           => 'nullable|string|max:1000',
+        ];
+    }
+ 
+    /**
+     * Turns validated input into the row to save: checkbox booleans, previous odometer,
+     * distance, price per unit and efficiency. $excludeId skips the record being edited
+     * when looking for the previous reading.
+     */
+    private function buildFuelPayload(Request $request, array $validated, ?int $excludeId = null): array
+    {
+        $odometer = isset($validated['odometer']) ? (int) $validated['odometer'] : null;
+        $quantity = isset($validated['fuel_quantity']) ? (float) $validated['fuel_quantity'] : null;
+ 
+        $validated['is_full_tank']        = $request->boolean('is_full_tank');
+        $validated['is_maintenance_fuel'] = $request->boolean('is_maintenance_fuel');
+ 
+        $previousOdometer = null;
+ 
+        if ($odometer !== null) {
+            $previous = FuelLog::where('vehicle_id', $validated['vehicle_id'])
+                ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
+                ->whereNotNull('odometer')
+                ->whereDate('date', '<=', $validated['date'])
+                ->orderByDesc('date')
+                ->orderByDesc('id')
+                ->first();
+ 
+            $previousOdometer = $previous ? (int) $previous->odometer : null;
+ 
+            if ($previousOdometer !== null && $odometer <= $previousOdometer) {
+                throw ValidationException::withMessages([
+                    'odometer' => "Odometer must be greater than the previous reading ({$previousOdometer} km).",
+                ]);
+            }
+        }
+ 
+        $distance = ($odometer !== null && $previousOdometer !== null) ? $odometer - $previousOdometer : null;
+ 
+        $validated['odometer']            = $odometer;
+        $validated['fuel_quantity']       = $quantity;
+        $validated['previous_odometer']   = $previousOdometer;
+        $validated['distance_traveled']   = $distance;
+        $validated['fuel_price_per_unit'] = $quantity ? round($validated['fuel_cost'] / $quantity, 2) : 0;
+        $validated['fuel_efficiency']     = ($distance && $quantity) ? round($distance / $quantity, 2) : null;
+ 
+        if (!Schema::hasColumn('fuel_logs', 'previous_odometer')) {
+            unset($validated['previous_odometer']);
+        }
+ 
+        return $validated;
+    }
+ 
+    /**
+     * Recalculates previous_odometer / distance_traveled / fuel_efficiency for every fuel log of a
+     * vehicle, in date order. Called after create, edit and delete so later records never keep
+     * stale distances.
+     */
+    private function resyncFuelChain($vehicleId): void
+    {
+        $hasPrevColumn = Schema::hasColumn('fuel_logs', 'previous_odometer');
+        $prev = null;
+ 
+        FuelLog::where('vehicle_id', $vehicleId)
+            ->orderBy('date')
+            ->orderBy('id')
+            ->get()
+            ->each(function ($log) use (&$prev, $hasPrevColumn) {
+                $odo      = $log->odometer !== null ? (int) $log->odometer : null;
+                $qty      = (float) $log->fuel_quantity;
+                $distance = ($odo !== null && $prev !== null && $odo > $prev) ? $odo - $prev : null;
+ 
+                if ($hasPrevColumn) {
+                    $log->previous_odometer = $prev;
+                }
+                $log->distance_traveled = $distance;
+                $log->fuel_efficiency   = ($distance && $qty > 0) ? round($distance / $qty, 2) : null;
+ 
+                if ($log->isDirty()) {
+                    $log->save();
+                }
+ 
+                if ($odo !== null) {
+                    $prev = $odo;
+                }
+            });
     }
 }
 

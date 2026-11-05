@@ -470,7 +470,7 @@ function viewMaintenance(id) {
     $('#viewModalContent').html('<div class="text-center py-8"><div class="loading-spinner"></div> Loading...</div>');
     
     $.ajax({
-        url: '/vehicle-maintenance/' + id,
+        url: '/maintenance/' + id,
         method: 'GET',
         success: function(response) {
             if (response.success) {
@@ -571,7 +571,7 @@ function updateMaintenanceStatus() {
     };
     
     $.ajax({
-        url: '/vehicle-maintenance/' + id,
+        url: '/maintenance/' + id,
         method: 'POST',
         data: formData,
         headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
@@ -591,7 +591,7 @@ function updateMaintenanceStatus() {
 }
 
 function editMaintenance(id) {
-    window.location.href = '/vehicle-maintenance/' + id + '/edit';
+    window.location.href = '/maintenance/' + id + '/edit';
 }
 
 function deleteMaintenance(id) {
@@ -605,7 +605,7 @@ function deleteMaintenance(id) {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: '/vehicle-maintenance/' + id,
+                url: '/maintenance/' + id,
                 method: 'DELETE',
                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                 success: function() {

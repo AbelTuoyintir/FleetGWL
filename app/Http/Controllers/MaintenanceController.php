@@ -131,6 +131,58 @@ public function create($vehicleId = null)
 }
 
     /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit($id)
+    {
+        $maintenance = Maintenance::findOrFail($id);
+        $vehicle = $maintenance->vehicle;
+        
+        $vehicles = Vehicle::query()
+            ->where('status', 'active')
+            ->select('vehicles.*')
+            ->selectSub(function ($query) {
+                $query->from('mileage_logs')
+                    ->select('end_mileage')
+                    ->whereColumn('mileage_logs.vehicle_id', 'vehicles.id')
+                    ->orderByDesc('id')
+                    ->limit(1);
+            }, 'latest_mileage')
+            ->get();
+
+        if (auth()->user() && auth()->user()->isDriver()) {
+            $driver = auth()->user()->driver;
+            if ($driver && $driver->vehicle) {
+                $vehicles = $vehicles->where('id', $driver->vehicle->id);
+                $selectedVehicleId = $driver->vehicle->id;
+            }
+        }
+
+        $vehicleId = $vehicle->id;
+
+        $selectedVehicle = $vehicles->firstWhere('id', $vehicle->id) ?? $vehicles->first();
+        $drivers = Driver::where('status', 'active')
+            ->with('user')
+            ->get();
+
+        // Get checklist items for the maintenance record
+        $checklistItems = $maintenance->checklist ? json_decode($maintenance->checklist, true) : collect();
+
+        return view('vehicle-maintenance.edit', compact(
+            'vehicles',
+            'vehicle',
+            'drivers',
+            'vehicleId',
+            'selectedVehicle',
+            'maintenance',
+            'checklistItems'
+        ));
+    }
+
+    /**
+}
+
+    /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
@@ -196,7 +248,7 @@ public function create($vehicleId = null)
      */
  
 
-    public function show($id)
+    public function showMaintenanceJson($id)
     {
         try {
             $maintenance = Maintenance::with(['vehicle', 'driver.user'])->findOrFail($id);

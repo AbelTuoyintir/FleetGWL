@@ -717,7 +717,7 @@
                             </div>
                             <div>
                                 <h3 id="mileage-modal-title" class="text-xl font-bold text-slate-800">Record Mileage</h3>
-                                <p class="text-sm text-slate-500">Log trip mileage for {{ $vehicle->registration_number }}</p>
+                                <p id="mileageModalSubtitle" class="text-sm text-slate-500">Log trip mileage for {{ $vehicle->registration_number }}</p>
                             </div>
                         </div>
 
@@ -735,6 +735,11 @@
                                         <input type="hidden" name="driver_id" class="driver-id-input" value="{{ $vehicle->assigned_driver_id }}">
                                         <div class="driver-details-box mt-2 p-2 bg-blue-50 border border-blue-100 rounded-xl hidden"></div>
                                     </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Date *</label>
+                                    <input type="date" name="date" id="formMileageDate" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm" value="{{ date('Y-m-d') }}">
                                 </div>
 
                                 <div class="grid grid-cols-2 gap-4">
@@ -766,7 +771,7 @@
                                     Cancel
                                 </button>
                                 <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
-                                    <i class="fas fa-save"></i> Save Record
+                                    <i class="fas fa-save"></i> <span id="mileageSubmitLabel">Save Record</span>
                                 </button>
                             </div>
                         </form>
@@ -795,7 +800,7 @@
                             </div>
                             <div>
                                 <h3 id="fuel-modal-title" class="text-xl font-bold text-slate-800">Record Fueling</h3>
-                                <p class="text-sm text-slate-500">Log fuel transaction for {{ $vehicle->registration_number }}</p>
+                                <p id="fuelModalSubtitle" class="text-sm text-slate-500">Log fuel transaction for {{ $vehicle->registration_number }}</p>
                             </div>
                         </div>
 
@@ -948,7 +953,7 @@
                                     Cancel
                                 </button>
                                 <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2">
-                                    <i class="fas fa-save"></i> Save Record
+                                    <i class="fas fa-save"></i> <span id="fuelSubmitLabel">Save Record</span>
                                 </button>
                             </div>
                         </form>
@@ -1127,6 +1132,44 @@
             </div>
         </div>
 
+        <!-- View Record Modal (shared by the mileage and fuel logs) -->
+        <div id="recordViewModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="recordViewTitle" role="dialog" aria-modal="true">
+            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" aria-hidden="true" onclick="closeRecordView()"></div>
+                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+                <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-slate-200 relative">
+                    <div class="absolute top-4 right-4">
+                        <button type="button" onclick="closeRecordView()" class="text-slate-400 hover:text-slate-600 transition" aria-label="Close modal" title="Close">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+
+                    <div class="bg-white px-6 pt-6 pb-4">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div id="recordViewIcon" class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
+                                <i class="fas fa-road text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 id="recordViewTitle" class="text-xl font-bold text-slate-800"></h3>
+                                <p id="recordViewSubtitle" class="text-sm text-slate-500"></p>
+                            </div>
+                        </div>
+                        <div id="recordViewBody" class="max-h-[60vh] overflow-y-auto pr-1"></div>
+                    </div>
+
+                    <div class="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-100">
+                        <button type="button" onclick="closeRecordView()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-white transition">
+                            Close
+                        </button>
+                        <button type="button" id="recordViewEditBtn" class="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition flex items-center gap-2">
+                            <i class="fas fa-pen"></i> Edit
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Upload Document Modal -->
         <div id="uploadDocumentModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="upload-modal-title" role="dialog" aria-modal="true">
             <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
@@ -1244,6 +1287,9 @@ $(document).on('click', '.tab-btn', function () {
     }
     if (tabId === 'mileage') loadMileageLog();
     if (tabId === 'fuel') loadFuelLog();
+
+    // Remember the active tab so a page reload (after saving a record) returns here
+    try { history.replaceState(null, '', '#' + tabId); } catch (e) {}
 });
 
 /* =========================================================
@@ -1261,6 +1307,17 @@ function numberFormat(number) {
     return new Intl.NumberFormat().format(number);
 }
 
+function escapeHtml(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+const VEHICLE_REG = @json($vehicle->registration_number);
 const VEHICLE_ID = {{ $vehicle->id }};
 const VEHICLE_MILEAGE = {{ $vehicle->mileage ?? 0 }};
 const CSRF_TOKEN = '{{ csrf_token() }}';
@@ -1440,14 +1497,22 @@ function renderMileageLog(records) {
         html += `
             <tr>
                 <td class="px-6 py-4 text-sm">${formatDate(record.date)}</td>
-                <td class="px-6 py-4 text-sm">${record.recorded_by || 'System'}</td>
+                <td class="px-6 py-4 text-sm">${escapeHtml(record.recorded_by || 'System')}</td>
                 <td class="px-6 py-4 text-sm text-right font-mono">${numberFormat(record.odometer)}</td>
                 <td class="px-6 py-4 text-sm text-right">${numberFormat(record.distance)}</td>
-                <td class="px-6 py-4 text-sm text-gray-500">${record.notes || '—'}</td>
+                <td class="px-6 py-4 text-sm text-gray-500">${escapeHtml(record.notes) || '—'}</td>
                 <td class="px-6 py-4 text-sm text-center">
-                    <button type="button" onclick="deleteMileageRecord(${record.id})" class="text-red-600 hover:text-red-800" aria-label="Delete mileage record" title="Delete Record">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    <div class="flex items-center justify-center gap-3">
+                        <button type="button" onclick="viewMileage(${record.id})" class="text-blue-600 hover:text-blue-800" aria-label="View mileage record" title="View Record">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" onclick="openMileageEdit(${record.id})" class="text-amber-600 hover:text-amber-800" aria-label="Edit mileage record" title="Edit Record">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <button type="button" onclick="deleteMileageRecord(${record.id})" class="text-red-600 hover:text-red-800" aria-label="Delete mileage record" title="Delete Record">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;
@@ -1529,11 +1594,19 @@ function renderFuelLog(records) {
                 <td class="px-6 py-4 text-sm text-right">
                     ${efficiency !== '—' ? `<span class="text-green-600 font-medium">${efficiency} km/L</span>` : '—'}
                 </td>
-                <td class="px-6 py-4 text-sm">${record.fuel_station || '—'}</td>
+                <td class="px-6 py-4 text-sm">${escapeHtml(record.fuel_station) || '—'}</td>
                 <td class="px-6 py-4 text-sm text-center">
-                    <button type="button" onclick="deleteFuelRecord(${record.id})" class="text-red-600 hover:text-red-800" aria-label="Delete fuel record" title="Delete Record">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    <div class="flex items-center justify-center gap-3">
+                        <button type="button" onclick="viewFuel(${record.id})" class="text-blue-600 hover:text-blue-800" aria-label="View fuel record" title="View Record">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" onclick="openFuelEdit(${record.id})" class="text-amber-600 hover:text-amber-800" aria-label="Edit fuel record" title="Edit Record">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <button type="button" onclick="deleteFuelRecord(${record.id})" class="text-red-600 hover:text-red-800" aria-label="Delete fuel record" title="Delete Record">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;
@@ -1636,11 +1709,52 @@ function deleteFuelRecord(id) {
 /* =========================================================
    Mileage modal
    ========================================================= */
+let mileageEditId = null;
+
+function setMileageModalMode(isEdit) {
+    $('#mileage-modal-title').text(isEdit ? 'Edit Mileage Record' : 'Record Mileage');
+    $('#mileageModalSubtitle').text(isEdit
+        ? 'Update this mileage entry for ' + VEHICLE_REG
+        : 'Log trip mileage for ' + VEHICLE_REG);
+    $('#mileageSubmitLabel').text(isEdit ? 'Update Record' : 'Save Record');
+}
+
 function openMileageModal() {
+    mileageEditId = null;
+    $('#mileageForm')[0].reset();
+    setMileageModalMode(false);
     $('#mileageModal').removeClass('hidden');
     $('body').addClass('overflow-hidden');
-    $('#formEndMileage').val(VEHICLE_MILEAGE + 100);
-    $('#formEndMileage').trigger('input');
+    $('#formEndMileage').val(VEHICLE_MILEAGE + 100).trigger('input');
+}
+
+function openMileageEdit(id) {
+    $.ajax({
+        url: `/vehicles/mileage/${id}`,
+        method: 'GET',
+        success: function (response) {
+            const r = response.data;
+
+            $('#mileageForm')[0].reset();
+            mileageEditId = r.id;
+            setMileageModalMode(true);
+
+            $('#formMileageDate').val(r.date);
+            $('#formStartMileage').val(r.start_mileage);
+            $('#formEndMileage').val(r.end_mileage).trigger('input');
+            $('#mileageForm textarea[name="notes"]').val(r.notes || '');
+
+            $('#mileageModal .driver-search-input').val(r.driver_name || '');
+            $('#mileageModal .driver-id-input').val(r.driver_id || '');
+            updateDriverDetails($('#mileageModal .driver-search-group'), r.driver_id);
+
+            $('#mileageModal').removeClass('hidden');
+            $('body').addClass('overflow-hidden');
+        },
+        error: function (xhr) {
+            Swal.fire('Error', (xhr.responseJSON && xhr.responseJSON.message) || 'Failed to load mileage record', 'error');
+        }
+    });
 }
 
 function closeMileageModal() {
@@ -1648,6 +1762,69 @@ function closeMileageModal() {
     $('body').removeClass('overflow-hidden');
     $('#mileageForm')[0].reset();
     $('#formDistanceDisplay').text('0 km').css('color', '#6b7280');
+    mileageEditId = null;
+    setMileageModalMode(false);
+}
+
+function viewMileage(id) {
+    $.ajax({
+        url: `/vehicles/mileage/${id}`,
+        method: 'GET',
+        success: function (response) {
+            const d = response.data;
+            showRecordView({
+                title: 'Mileage Record',
+                subtitle: VEHICLE_REG + ' · ' + formatDate(d.date),
+                icon: 'fa-road',
+                iconClass: 'bg-blue-100 text-blue-600',
+                rows: [
+                    ['Date', formatDate(d.date)],
+                    ['Driver', d.driver_name || '—'],
+                    ['Start Mileage', numberFormat(d.start_mileage) + ' km'],
+                    ['End Mileage', numberFormat(d.end_mileage) + ' km'],
+                    ['Distance Traveled', numberFormat(d.distance) + ' km'],
+                    ['Notes', d.notes || '—'],
+                    ['Recorded By', d.recorded_by || 'System'],
+                    ['Created', d.created_at || '—']
+                ],
+                onEdit: () => openMileageEdit(id)
+            });
+        },
+        error: function (xhr) {
+            Swal.fire('Error', (xhr.responseJSON && xhr.responseJSON.message) || 'Failed to load mileage record', 'error');
+        }
+    });
+}
+
+/* Shared read-only modal used by both logs */
+function showRecordView(opts) {
+    $('#recordViewTitle').text(opts.title);
+    $('#recordViewSubtitle').text(opts.subtitle || '');
+    $('#recordViewIcon')
+        .attr('class', 'w-12 h-12 rounded-full flex items-center justify-center ' + opts.iconClass)
+        .html('<i class="fas ' + opts.icon + ' text-xl"></i>');
+
+    const rows = opts.rows.map(function (row) {
+        const value = escapeHtml(row[1]).replace(/\n/g, '<br>');
+        return `<div class="info-row">
+                    <span class="info-label">${escapeHtml(row[0])}</span>
+                    <span class="info-value text-right ml-4">${value}</span>
+                </div>`;
+    }).join('');
+    $('#recordViewBody').html(rows);
+
+    $('#recordViewEditBtn').off('click').on('click', function () {
+        closeRecordView();
+        opts.onEdit();
+    });
+
+    $('#recordViewModal').removeClass('hidden');
+    $('body').addClass('overflow-hidden');
+}
+
+function closeRecordView() {
+    $('#recordViewModal').addClass('hidden');
+    $('body').removeClass('overflow-hidden');
 }
 
 $(document).on('input', '#formStartMileage, #formEndMileage', function () {
@@ -1673,17 +1850,21 @@ $(document).on('submit', '#mileageForm', function (e) {
 
     $submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Saving...');
 
+    const editId = mileageEditId;
+    const url = editId ? `/vehicles/mileage/${editId}` : '{{ route("vehicles.mileage.store") }}';
+    const payload = editId ? $form.serialize() + '&_method=PUT' : $form.serialize();
+
     $.ajax({
-        url: '{{ route("vehicles.mileage.store") }}',
+        url: url,
         method: 'POST',
-        data: $form.serialize(),
+        data: payload,
         headers: { 'X-CSRF-TOKEN': CSRF_TOKEN },
         success: function () {
             closeMileageModal();
             Swal.fire({
                 icon: 'success',
                 title: 'Success',
-                text: 'Mileage recorded successfully',
+                text: editId ? 'Mileage record updated successfully' : 'Mileage recorded successfully',
                 timer: 1500,
                 showConfirmButton: false
             }).then(() => location.reload());
@@ -1701,11 +1882,72 @@ $(document).on('submit', '#mileageForm', function (e) {
    Fuel modal
    ========================================================= */
 let previousOdometerValue = 0;
+let fuelEditId = null;
+
+function setFuelModalMode(isEdit) {
+    $('#fuel-modal-title').text(isEdit ? 'Edit Fuel Record' : 'Record Fueling');
+    $('#fuelModalSubtitle').text(isEdit
+        ? 'Update this fuel transaction for ' + VEHICLE_REG
+        : 'Log fuel transaction for ' + VEHICLE_REG);
+    $('#fuelSubmitLabel').text(isEdit ? 'Update Record' : 'Save Record');
+}
+
+function resetFuelCalcDisplays() {
+    $('#distanceTraveledDisplay').text('0 km');
+    $('#pricePerUnitDisplay').html('<span class="text-gray-400">--</span>');
+    $('#fuelEfficiencyDisplay').html('<span class="text-gray-400">--</span>');
+}
 
 function openFuelModal() {
+    fuelEditId = null;
+    $('#fuelForm')[0].reset();
+    $('#fuelDate').val(new Date().toISOString().split('T')[0]);
+    resetFuelCalcDisplays();
+    setFuelModalMode(false);
     $('#fuelModal').removeClass('hidden');
     $('body').addClass('overflow-hidden');
     fetchPreviousOdometer();
+}
+
+function openFuelEdit(id) {
+    $.ajax({
+        url: `/vehicles/fuel/${id}`,
+        method: 'GET',
+        success: function (response) {
+            const r = response.data;
+
+            $('#fuelForm')[0].reset();
+            resetFuelCalcDisplays();
+            fuelEditId = r.id;
+            setFuelModalMode(true);
+
+            $('#fuelDate').val(r.date);
+            $('#fuelOdometer').val(r.odometer !== null ? r.odometer : '');
+            $('#fuelQuantity').val(r.fuel_quantity !== null ? r.fuel_quantity : '');
+            $('#fuelCost').val(r.fuel_cost);
+            $('#fuelType').val(r.fuel_type);
+            $('#paymentMethod').val(r.payment_method || '');
+            $('#fuelStation').val(r.fuel_station || '');
+            $('#location').val(r.location || '');
+            $('#receiptNumber').val(r.receipt_number || '');
+            $('#notes').val(r.notes || '');
+            $('#isFullTank').prop('checked', !!r.is_full_tank);
+            $('#isMaintenanceFuel').prop('checked', !!r.is_maintenance_fuel);
+
+            $('#fuelModal .driver-search-input').val(r.driver_name || '');
+            $('#driverId').val(r.driver_id || '');
+            updateDriverDetails($('#fuelModal .driver-search-group'), r.driver_id);
+
+            $('#fuelModal').removeClass('hidden');
+            $('body').addClass('overflow-hidden');
+
+            // Compare against the reading BEFORE this record, then refresh the live calculations
+            fetchPreviousOdometer(r.id, r.date).always(calculateFuelMetrics);
+        },
+        error: function (xhr) {
+            Swal.fire('Error', (xhr.responseJSON && xhr.responseJSON.message) || 'Failed to load fuel record', 'error');
+        }
+    });
 }
 
 function closeFuelModal() {
@@ -1713,12 +1955,65 @@ function closeFuelModal() {
     $('body').removeClass('overflow-hidden');
     $('#fuelForm')[0].reset();
     $('#fuelDate').val(new Date().toISOString().split('T')[0]);
+    resetFuelCalcDisplays();
+    fuelEditId = null;
+    setFuelModalMode(false);
 }
 
-function fetchPreviousOdometer() {
+function viewFuel(id) {
     $.ajax({
+        url: `/vehicles/fuel/${id}`,
+        method: 'GET',
+        success: function (response) {
+            const d = response.data;
+            const money = v => (v === null || v === undefined) ? '—' : 'GHS ' + Number(v).toFixed(2);
+            const num = (v, unit, digits) => (v === null || v === undefined) ? '—' : Number(v).toFixed(digits) + ' ' + unit;
+            const prettify = v => v ? String(v).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '—';
+
+            showRecordView({
+                title: 'Fuel Record',
+                subtitle: VEHICLE_REG + ' · ' + formatDate(d.date),
+                icon: 'fa-gas-pump',
+                iconClass: 'bg-green-100 text-green-600',
+                rows: [
+                    ['Date', formatDate(d.date)],
+                    ['Fuel Type', d.fuel_type ? d.fuel_type.toUpperCase() : '—'],
+                    ['Quantity', num(d.fuel_quantity, 'L', 2)],
+                    ['Total Cost', money(d.fuel_cost)],
+                    ['Price per Unit', d.fuel_price_per_unit ? money(d.fuel_price_per_unit) + '/L' : '—'],
+                    ['Odometer', d.odometer !== null ? numberFormat(d.odometer) + ' km' : '—'],
+                    ['Previous Odometer', d.previous_odometer !== null ? numberFormat(d.previous_odometer) + ' km' : '—'],
+                    ['Distance Traveled', d.distance_traveled !== null ? numberFormat(d.distance_traveled) + ' km' : '—'],
+                    ['Efficiency', num(d.fuel_efficiency, 'km/L', 2)],
+                    ['Payment Method', prettify(d.payment_method)],
+                    ['Fuel Station', d.fuel_station || '—'],
+                    ['Location', d.location || '—'],
+                    ['Receipt Number', d.receipt_number || '—'],
+                    ['Driver', d.driver_name || '—'],
+                    ['Full Tank', d.is_full_tank ? 'Yes' : 'No'],
+                    ['Maintenance Fuel', d.is_maintenance_fuel ? 'Yes' : 'No'],
+                    ['Notes', d.notes || '—'],
+                    ['Recorded By', d.recorded_by || 'System'],
+                    ['Created', d.created_at || '—']
+                ],
+                onEdit: () => openFuelEdit(id)
+            });
+        },
+        error: function (xhr) {
+            Swal.fire('Error', (xhr.responseJSON && xhr.responseJSON.message) || 'Failed to load fuel record', 'error');
+        }
+    });
+}
+
+function fetchPreviousOdometer(excludeId, date) {
+    const params = {};
+    if (excludeId) params.exclude = excludeId;
+    if (date) params.date = date;
+
+    return $.ajax({
         url: '{{ route("vehicles.fuel.previous", $vehicle->id) }}',
         method: 'GET',
+        data: params,
         success: function (response) {
             if (response.previous_odometer) {
                 previousOdometerValue = Number(response.previous_odometer);
@@ -1776,13 +2071,17 @@ $(document).on('submit', '#fuelForm', function (e) {
     const originalText = $submitBtn.html();
     $submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
 
+    const editId = fuelEditId;
+    const url = editId ? `/vehicles/fuel/${editId}` : '{{ route("vehicles.fuel.store") }}';
+    const payload = editId ? $(this).serialize() + '&_method=PUT' : $(this).serialize();
+
     $.ajax({
-        url: '{{ route("vehicles.fuel.store") }}',
+        url: url,
         method: 'POST',
-        data: $(this).serialize(),
+        data: payload,
         headers: { 'X-CSRF-TOKEN': CSRF_TOKEN },
         success: function () {
-            showNotification('success', 'Fuel record added successfully!');
+            showNotification('success', editId ? 'Fuel record updated successfully!' : 'Fuel record added successfully!');
             closeFuelModal();
             loadFuelLog();
             setTimeout(() => location.reload(), 1000);
@@ -2094,6 +2393,13 @@ $(document).on('input', '.driver-search-input', function () {
 $(function () {
     try { initMileageChart(); } catch (e) { console.warn('Chart init failed:', e.message); }
     try { fetchPreviousOdometer(); } catch (e) { console.warn('Previous odometer failed:', e.message); }
+
+    // Reopen the tab that was active before a reload (e.g. after saving a record)
+    const initialTab = (location.hash || '').replace('#', '');
+    if (initialTab) {
+        const $tabBtn = $('.tab-btn[data-tab="' + initialTab + '"]');
+        if ($tabBtn.length) $tabBtn.trigger('click');
+    }
 
     $('.driver-search-group').each(function () {
         const id = $(this).find('.driver-id-input').val();
